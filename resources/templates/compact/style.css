@@ -1,0 +1,235 @@
+@import "../common.css";
+
+/* compact template: space-efficient briefs, meeting notes, and internal reports */
+:root {
+  --compact-color-text: #202428;
+  --compact-color-muted: #596168;
+  --compact-color-rule: #aeb4b9;
+  --compact-color-rule-light: #d8dcdf;
+  --compact-color-panel: #f3f4f5;
+  --compact-color-strong: #343a40;
+  --pfpdf-task-accent: var(--compact-color-strong);
+  --pfpdf-task-indent: 1.1em;
+  --pfpdf-toc-indent-step: 1em;
+}
+
+html {
+  color: var(--compact-color-text);
+  font-size: 9.5pt;
+  line-height: 1.52;
+}
+
+.compact-header {
+  border-bottom: 1.5pt solid var(--compact-color-strong);
+  break-inside: avoid;
+  margin: 0 0 5mm;
+  padding: 0 0 3.5mm;
+}
+
+.compact-header-bar {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  min-height: 8mm;
+}
+
+.compact-header-series {
+  color: var(--compact-color-muted);
+  font-family: var(--pfpdf-font-code);
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  margin: 0;
+  string-set: pfpdf-series content();
+}
+
+.compact-header-logo {
+  display: block;
+  max-height: 8mm;
+  max-width: 38mm;
+}
+
+.compact-header-title-row {
+  align-items: start;
+  display: flex;
+  gap: 5mm;
+  justify-content: space-between;
+}
+
+.compact-header-title {
+  color: var(--compact-color-text);
+  flex: 1 1 auto;
+  font-size: 20pt;
+  line-height: 1.22;
+  margin: 1.5mm 0 0;
+  overflow-wrap: anywhere;
+}
+
+.compact-header-confidential {
+  border: 1pt solid var(--compact-color-strong);
+  color: var(--compact-color-text);
+  flex: 0 0 auto;
+  font-family: var(--pfpdf-font-code);
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 3mm 0 0;
+  padding: 0.16em 0.55em;
+  string-set: pfpdf-confidential content();
+  text-transform: uppercase;
+}
+
+.compact-header-meta {
+  color: var(--compact-color-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 8pt;
+  gap: 0 4mm;
+  margin-top: 2mm;
+}
+
+.compact-header-meta p { margin: 0; }
+
+.compact-toc-container {
+  border-bottom: 0.5pt solid var(--compact-color-rule);
+  margin-bottom: 5mm;
+  padding-bottom: 3mm;
+}
+
+.pfpdf-toc-title {
+  color: var(--compact-color-strong);
+  font-size: 11pt;
+  line-height: 1.3;
+  margin: 0 0 0.45em;
+}
+
+.pfpdf-toc-list {
+  column-count: 2;
+  column-gap: 8mm;
+}
+
+.pfpdf-toc li {
+  font-size: 8pt;
+  line-height: 1.35;
+  margin: 0.22em 0;
+}
+
+.pfpdf-toc a {
+  color: var(--compact-color-text);
+}
+
+.pfpdf-toc a::after {
+  color: var(--compact-color-muted);
+  font-family: var(--pfpdf-font-code);
+  font-size: 0.9em;
+}
+
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--compact-color-text);
+  line-height: 1.28;
+}
+
+.compact-content h1 {
+  border-bottom: 1pt solid var(--compact-color-strong);
+  font-size: 15pt;
+  margin: 1.2em 0 0.45em;
+  padding-bottom: 0.14em;
+}
+
+.compact-content > section:first-child > h1:first-child,
+.compact-content > h1:first-child { margin-top: 0; }
+
+h2 { font-size: 12pt; margin: 1.05em 0 0.38em; }
+h3 { border-left: 2pt solid var(--compact-color-strong); font-size: 10.5pt; margin: 0.95em 0 0.32em; padding-left: 0.45em; }
+h4 { font-size: 9.5pt; margin: 0.9em 0 0.28em; }
+h5 { color: var(--compact-color-muted); font-size: 9pt; margin: 0.85em 0 0.25em; }
+h5::before { color: var(--compact-color-strong); content: "› "; }
+h6 { color: var(--compact-color-muted); font-size: 8.5pt; margin: 0.8em 0 0.22em; }
+h6::before { color: var(--compact-color-strong); content: "– "; }
+
+p { margin: 0.38em 0; }
+
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 0.05em;
+  text-underline-offset: 0.12em;
+}
+
+pre {
+  background: var(--compact-color-panel);
+  border: 0.5pt solid var(--compact-color-rule);
+  font-size: 8.2pt;
+  line-height: 1.38;
+  margin: 0.55em 0;
+  padding: 0.5em 0.7em;
+  tab-size: 2;
+}
+
+:not(pre) > code {
+  background: var(--compact-color-panel);
+  border: 0.5pt solid var(--compact-color-rule-light);
+  font-size: 0.88em;
+  padding: 0.03em 0.2em;
+}
+
+blockquote {
+  border-left: 2pt solid var(--compact-color-strong);
+  color: #41484e;
+  margin: 0.55em 0;
+  padding: 0.15em 0.7em;
+}
+
+.note, .tip, .warning, .danger {
+  background: var(--compact-color-panel);
+  border: 0.5pt solid var(--compact-color-rule);
+  border-left: 3pt solid var(--compact-color-strong);
+  break-inside: avoid;
+  margin: 0.6em 0;
+  padding: 0.45em 0.65em;
+}
+
+.warning, .danger { border-left-style: double; }
+
+table {
+  font-size: 8.2pt;
+  line-height: 1.32;
+  margin: 0.55em 0;
+}
+th, td {
+  border: 0.5pt solid var(--compact-color-rule);
+  padding: 0.22em 0.38em;
+}
+
+th { background: #e5e7e9; font-weight: 700; }
+tbody tr:nth-child(even) { background: #f8f8f8; }
+
+ul, ol { margin-bottom: 0.38em; margin-top: 0.38em; padding-left: 1.55em; }
+li { margin: 0.08em 0; orphans: 2; widows: 2; }
+li > ul, li > ol { margin-bottom: 0.18em; margin-top: 0.18em; }
+
+ul:has(> li):not(:has(> li:nth-child(5))),
+ol:has(> li):not(:has(> li:nth-child(5))) {
+  break-inside: avoid;
+}
+
+kbd {
+  background: var(--compact-color-panel);
+  border: 0.5pt solid #7d858b;
+  border-bottom-width: 1.2pt;
+  border-radius: 1.5pt;
+  font-size: 0.82em;
+  padding: 0.02em 0.24em;
+}
+
+details {
+  border-left: 2pt solid var(--compact-color-strong);
+  margin: 0.55em 0;
+  padding: 0.3em 0 0.3em 0.65em;
+}
+
+figure { break-inside: avoid; margin: 0.65em 0; text-align: center; }
+figcaption { color: var(--compact-color-muted); font-size: 7.5pt; margin-top: 0.25em; }
+hr { border: 0; border-top: 0.5pt solid var(--compact-color-rule); margin: 0.8em 0; }
+.pfpdf-math-display { margin: 0.55em 0; }

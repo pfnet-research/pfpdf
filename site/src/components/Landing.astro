@@ -1,0 +1,291 @@
+---
+import Base from '../layouts/Base.astro';
+import CodeSnippet from './CodeSnippet.astro';
+import { t, localeRoot, type Locale } from '../i18n';
+import { REPO_URL } from '../lib/site-config.mjs';
+import { listTemplates, loadSample, loadHero, loadHeroSource, imageUrl, heroImageUrl } from '../lib/gallery';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const dict = t(locale);
+const root = localeRoot(locale);
+const templates = listTemplates();
+// The hero pairs a real input file with the PDF it actually renders to.
+const hero = loadHero(locale);
+const heroMarkdown = loadHeroSource(locale);
+const installCommand = 'npx pfpdf@latest --input document.md --output document.pdf';
+---
+
+<Base locale={locale} path={root}>
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <h1>{dict.tagline}</h1>
+        <p class="subcopy">{dict.hero.subcopy}</p>
+        <CodeSnippet locale={locale} code={installCommand} />
+        <p class="install-note">{dict.hero.installNote}</p>
+        <div class="cta-row">
+          <a class="button primary" href={`${root}docs/getting-started/`}>{dict.hero.getStarted}</a>
+          <a class="button secondary" href={`${root}gallery/`}>{dict.hero.browseTemplates}</a>
+          <a class="button secondary" href={REPO_URL} rel="external">{dict.hero.viewOnGitHub}</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <figure class="hero-input">
+          <figcaption>{dict.hero.inputLabel}</figcaption>
+          <pre><code>{heroMarkdown}</code></pre>
+        </figure>
+        <div class="hero-arrow" aria-hidden="true">→</div>
+        <figure class="hero-output">
+          <a class="paper-frame" href={`${root}gallery/${hero.template}/`}>
+            <img
+              src={heroImageUrl(locale, hero.cover.file)}
+              width={hero.cover.width}
+              height={hero.cover.height}
+              alt={dict.gallery.pageAlt(hero.template, locale, 1)}
+              fetchpriority="high"
+            />
+          </a>
+          <figcaption>{dict.hero.outputLabel}</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="container">
+      <h2>{dict.features.title}</h2>
+      <div class="feature-grid">
+        {dict.features.items.map((item) => (
+          <article class="feature-card">
+            <h3>{item.title}</h3>
+            <p>{item.body}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="teaser">
+    <div class="container">
+      <h2>{dict.teaser.title}</h2>
+      <p>{dict.teaser.body}</p>
+      <div class="teaser-row">
+        {templates.map((template) => {
+          const sample = loadSample(template, locale);
+          const cover = sample.pages[0];
+          return (
+            <a class="teaser-card" href={`${root}gallery/${template}/`}>
+              <span class="paper-frame">
+                <img
+                  src={imageUrl(template, locale, cover.thumb.file)}
+                  width={cover.thumb.width}
+                  height={cover.thumb.height}
+                  alt={dict.gallery.pageAlt(template, locale, 1)}
+                  loading="lazy"
+                />
+              </span>
+              <span class="teaser-name">{template}</span>
+              <span class="teaser-desc">{dict.templateDescriptions[template]}</span>
+            </a>
+          );
+        })}
+      </div>
+      <p><a href={`${root}gallery/`}>{dict.teaser.cta} →</a></p>
+    </div>
+  </section>
+
+  <section class="quick-start">
+    <div class="container">
+      <h2>{dict.quickStart.title}</h2>
+      <ol class="steps">
+        {dict.quickStart.steps.map((step, index) => (
+          <li>
+            <span class="step-number">{index + 1}</span>
+            <h3>{step.title}</h3>
+            <p>{step.body}</p>
+          </li>
+        ))}
+      </ol>
+      <p>{dict.quickStart.directoryNote}</p>
+      <pre><code>{'npx pfpdf@latest --input docs --output docs.pdf\nnpx --yes pfpdf@0.1.0 --input docs --output docs.pdf'}</code></pre>
+      <p class="note">{dict.quickStart.chromiumNote}</p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  section {
+    padding-block: 3rem;
+  }
+
+  .hero {
+    padding-block: 4rem 3rem;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 3rem;
+    align-items: center;
+  }
+
+  h1 {
+    font-size: clamp(1.9rem, 4vw, 2.8rem);
+    margin: 0 0 0.75rem;
+  }
+
+  .subcopy {
+    color: var(--ink-muted);
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .install-note {
+    color: var(--ink-muted);
+    font-size: 0.85rem;
+  }
+
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+
+  .hero-visual {
+    display: grid;
+    /* The input column is the wider one: it holds fixed-width Markdown lines,
+       while the cover scales to whatever is left. */
+    grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .hero-input pre {
+    font-size: 0.78rem;
+    margin: 0;
+    /* The snippet is the hero source file verbatim; wrap rather than clip if a
+       line ever outgrows the box. */
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+
+  .hero-visual figure {
+    margin: 0;
+  }
+
+  .hero-visual figcaption {
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+    margin-block: 0.4rem;
+  }
+
+  .hero-arrow {
+    font-size: 1.6rem;
+    color: var(--accent);
+  }
+
+  .hero-output .paper-frame {
+    display: block;
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 1rem;
+  }
+
+  .feature-card {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+  }
+
+  .feature-card h3 {
+    margin: 0 0 0.4rem;
+    font-size: 1rem;
+  }
+
+  .feature-card p {
+    margin: 0;
+    color: var(--ink-muted);
+    font-size: 0.92rem;
+  }
+
+  .teaser-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    gap: 1rem;
+    margin-block: 1.5rem;
+  }
+
+  .teaser-card {
+    text-decoration: none;
+    color: var(--ink);
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .teaser-card:hover .teaser-name {
+    color: var(--accent);
+  }
+
+  .teaser-name {
+    font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  .teaser-desc {
+    font-size: 0.82rem;
+    color: var(--ink-muted);
+  }
+
+  .steps {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 1.25rem;
+  }
+
+  .step-number {
+    display: inline-grid;
+    place-items: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-weight: 700;
+  }
+
+  .steps h3 {
+    margin: 0.5rem 0 0.3rem;
+    font-size: 1.05rem;
+  }
+
+  .steps p {
+    margin: 0;
+    color: var(--ink-muted);
+  }
+
+  .note {
+    color: var(--ink-muted);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 56rem) {
+    .hero-grid {
+      /* minmax(0, …) rather than 1fr: a plain 1fr track grows to its content's
+         min-content width, which the one-line install command would push past
+         the viewport. */
+      grid-template-columns: minmax(0, 1fr);
+      gap: 2rem;
+    }
+  }
+</style>

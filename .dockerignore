@@ -1,0 +1,10 @@
+.git
+.github
+.agents
+.codex
+build
+dist/tests
+node_modules
+*.tgz
+*.pdf
+.DS_Store

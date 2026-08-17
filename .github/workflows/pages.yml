@@ -1,0 +1,53 @@
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write # push to the docs branch
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Poppler tools
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: npm ci
+      - run: npm run build
+      - name: Select system Chrome
+        run: |
+          browser_path="$(command -v google-chrome)"
+          test -n "$browser_path"
+          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+      - name: Install site dependencies
+        run: npm ci
+        working-directory: site
+      - run: make site-assets
+      - name: Build site
+        run: |
+          export SITE_URL="${SITE_URL:-https://$(echo "${GITHUB_REPOSITORY%/*}" | tr '[:upper:]' '[:lower:]').github.io/${GITHUB_REPOSITORY#*/}/}"
+          npm run build
+        working-directory: site
+      - name: Deploy to the docs branch
+        run: |
+          cd site/dist
+          touch .nojekyll
+          git init -b docs
+          git add -A
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m "deploy: ${GITHUB_SHA}"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" docs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 220" role="img" aria-labelledby="title desc">
+  <title id="title">Template preview sample</title>
+  <desc id="desc">A restrained geometric image for checking local image rendering.</desc>
+  <rect x="24" y="24" width="752" height="172" rx="8" fill="none" stroke="#666" stroke-width="3"/>
+  <circle cx="125" cy="110" r="52" fill="#aaa"/>
+  <path d="M230 65h490M230 110h390M230 155h450" stroke="#666" stroke-width="14" stroke-linecap="round"/>
+</svg>

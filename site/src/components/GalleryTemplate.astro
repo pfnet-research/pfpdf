@@ -1,0 +1,298 @@
+---
+import Base from '../layouts/Base.astro';
+import CodeSnippet from './CodeSnippet.astro';
+import { t, localeRoot, type Locale } from '../i18n';
+import { listTemplates, loadSample, imageUrl, pdfUrl } from '../lib/gallery';
+
+interface Props {
+  locale: Locale;
+  template: string;
+}
+
+const { locale, template } = Astro.props;
+const dict = t(locale);
+const root = localeRoot(locale);
+const templates = listTemplates();
+const index = templates.indexOf(template);
+const prevTemplate = templates[(index + templates.length - 1) % templates.length];
+const nextTemplate = templates[(index + 1) % templates.length];
+const samples = {
+  en: loadSample(template, 'en'),
+  ja: loadSample(template, 'ja'),
+};
+const defaultTab: Locale = locale;
+const command = `npx pfpdf@latest --input document.md --output document.pdf --template ${template}`;
+const title = `${template} — ${dict.gallery.title} — ${dict.siteName}`;
+const description = `${template}: ${dict.templateDescriptions[template]}`;
+---
+
+<Base locale={locale} path={`${root}gallery/${template}/`} title={title} description={description}>
+  <div class="container">
+    <header class="template-header">
+      <h1>{template}</h1>
+      <p class="desc">{dict.templateDescriptions[template]}</p>
+      <div class="downloads">
+        <a class="button primary" href={pdfUrl(template, locale)} download>
+          {locale === 'ja' ? dict.gallery.downloadJa : dict.gallery.downloadEn}
+        </a>
+        <a class="button secondary" href={pdfUrl(template, locale === 'ja' ? 'en' : 'ja')} download>
+          {locale === 'ja' ? dict.gallery.downloadEn : dict.gallery.downloadJa}
+        </a>
+      </div>
+      <p class="cli-label">{dict.gallery.cliLabel}</p>
+      <CodeSnippet locale={locale} code={command} />
+    </header>
+
+    <div class="tabs" role="tablist">
+      {(['en', 'ja'] as Locale[]).map((lang) => (
+        <button
+          type="button"
+          role="tab"
+          class="tab"
+          aria-selected={lang === defaultTab ? 'true' : 'false'}
+          data-tab={lang}
+        >
+          {dict.gallery.sampleTabs[lang]}
+        </button>
+      ))}
+    </div>
+    <p class="showcase-note">{dict.gallery.jaShowcase}</p>
+
+    {(['en', 'ja'] as Locale[]).map((lang) => (
+      <div class="page-grid" data-tab-panel={lang} hidden={lang !== defaultTab}>
+        {samples[lang].pages.map((page) => (
+          <button
+            type="button"
+            class="page-thumb paper-frame"
+            data-lightbox-src={imageUrl(template, lang, page.full.file)}
+            data-lightbox-alt={dict.gallery.pageAlt(template, lang, page.page)}
+            data-lightbox-lang={lang}
+            data-lightbox-index={page.page - 1}
+          >
+            <img
+              src={imageUrl(template, lang, page.thumb.file)}
+              width={page.thumb.width}
+              height={page.thumb.height}
+              alt={dict.gallery.pageAlt(template, lang, page.page)}
+              loading="lazy"
+            />
+          </button>
+        ))}
+      </div>
+    ))}
+
+    <nav class="template-nav">
+      <a href={`${root}gallery/${prevTemplate}/`}>← {dict.gallery.prev}: {prevTemplate}</a>
+      <a href={`${root}gallery/${nextTemplate}/`}>{dict.gallery.next}: {nextTemplate} →</a>
+    </nav>
+    <p><a href={`${root}docs/templates-and-assets/`}>{dict.gallery.tutorialLink}</a></p>
+  </div>
+
+  <dialog id="lightbox" aria-label={dict.gallery.title}>
+    <button type="button" class="lb-close" data-lb-close aria-label={dict.gallery.lightbox.close}>×</button>
+    <button type="button" class="lb-prev" data-lb-prev aria-label={dict.gallery.lightbox.prev}>←</button>
+    <img id="lightbox-image" src="" alt="" />
+    <button type="button" class="lb-next" data-lb-next aria-label={dict.gallery.lightbox.next}>→</button>
+  </dialog>
+</Base>
+
+<script is:inline>
+  (() => {
+    // Sample-language tabs
+    const tabs = document.querySelectorAll('.tab');
+    for (const tab of tabs) {
+      tab.addEventListener('click', () => {
+        for (const other of tabs) {
+          other.setAttribute('aria-selected', other === tab ? 'true' : 'false');
+        }
+        for (const panel of document.querySelectorAll('[data-tab-panel]')) {
+          panel.hidden = panel.dataset.tabPanel !== tab.dataset.tab;
+        }
+      });
+    }
+
+    // Lightbox
+    const dialog = document.getElementById('lightbox');
+    const image = document.getElementById('lightbox-image');
+    let thumbs = [];
+    let current = 0;
+
+    function show(indexToShow) {
+      current = (indexToShow + thumbs.length) % thumbs.length;
+      const thumb = thumbs[current];
+      image.src = thumb.dataset.lightboxSrc;
+      image.alt = thumb.dataset.lightboxAlt;
+    }
+
+    for (const thumb of document.querySelectorAll('[data-lightbox-src]')) {
+      thumb.addEventListener('click', () => {
+        thumbs = [...document.querySelectorAll(
+          `[data-lightbox-src][data-lightbox-lang="${thumb.dataset.lightboxLang}"]`,
+        )];
+        show(Number(thumb.dataset.lightboxIndex));
+        dialog.showModal();
+      });
+    }
+    dialog.querySelector('[data-lb-close]').addEventListener('click', () => dialog.close());
+    dialog.querySelector('[data-lb-prev]').addEventListener('click', () => show(current - 1));
+    dialog.querySelector('[data-lb-next]').addEventListener('click', () => show(current + 1));
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+    dialog.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') show(current - 1);
+      if (event.key === 'ArrowRight') show(current + 1);
+    });
+  })();
+</script>
+
+<style>
+  .template-header {
+    margin-top: 2.5rem;
+  }
+
+  h1 {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin-bottom: 0.25rem;
+  }
+
+  .desc {
+    color: var(--ink-muted);
+    margin-top: 0;
+  }
+
+  .downloads {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-block: 1rem;
+  }
+
+  .cli-label {
+    margin-bottom: 0.4rem;
+    color: var(--ink-muted);
+    font-size: 0.9rem;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+    color: var(--ink-muted);
+    cursor: pointer;
+  }
+
+  .tab[aria-selected='true'] {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .showcase-note {
+    color: var(--ink-muted);
+    font-size: 0.85rem;
+  }
+
+  .page-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 1.25rem;
+    margin-block: 1.5rem 2.5rem;
+  }
+
+  /* `display: grid` above would otherwise beat the user-agent `[hidden]` rule,
+     leaving both language panels visible at once. */
+  .page-grid[hidden] {
+    display: none;
+  }
+
+  .page-thumb {
+    border: none;
+    padding: 0;
+    cursor: zoom-in;
+    aspect-ratio: 1 / 1.4142;
+  }
+
+  .template-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-block: 2rem 1rem;
+  }
+
+  dialog {
+    border: none;
+    background: transparent;
+    max-width: min(92vw, 60rem);
+    max-height: 92vh;
+    padding: 0;
+    overflow: visible;
+  }
+
+  dialog::backdrop {
+    background: rgb(10 16 17 / 82%);
+  }
+
+  dialog img {
+    display: block;
+    max-width: min(88vw, 56rem);
+    max-height: 88vh;
+    width: auto;
+    height: auto;
+    margin-inline: auto;
+    background: #ffffff;
+    box-shadow: var(--shadow);
+  }
+
+  dialog button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgb(255 255 255 / 92%);
+    border: none;
+    border-radius: 50%;
+    width: 2.4rem;
+    height: 2.4rem;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: #1c2224;
+  }
+
+  .lb-prev {
+    left: -3rem;
+  }
+
+  .lb-next {
+    right: -3rem;
+  }
+
+  .lb-close {
+    top: -1rem;
+    right: -1rem;
+    transform: none;
+  }
+
+  @media (max-width: 48rem) {
+    .lb-prev {
+      left: 0.5rem;
+    }
+
+    .lb-next {
+      right: 0.5rem;
+    }
+
+    .lb-close {
+      top: 0.5rem;
+      right: 0.5rem;
+    }
+  }
+</style>

@@ -1,0 +1,38 @@
+@import "../common-vivliostyle.css";
+
+/* default template: paged media rules */
+@page {
+  margin: 24mm 18mm 24mm;
+  @bottom-left {
+    color: #a00000;
+    content: string(pfpdf-confidential);
+    font-size: 7pt;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  @bottom-center {
+    content: counter(page);
+    font-size: 9pt;
+    color: #666;
+  }
+}
+
+@page :first {
+  margin-top: 20mm;
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+}
+
+
+@page {
+  @top-right {
+    color: #596168;
+    content: string(pfpdf-toc-continuation, first-except);
+    font-size: 7pt;
+    font-weight: 600;
+    margin-bottom: 5mm;
+    padding-bottom: 2mm;
+    vertical-align: bottom;
+  }
+}

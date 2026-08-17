@@ -1,0 +1,76 @@
+@import "../common-vivliostyle.css";
+
+/* book template: paged-media rules for long-form reading */
+@page {
+  background: #fdfbf6;
+  margin: 29mm 22mm 25mm;
+
+  @top-center {
+    border-bottom: 0.4pt solid #b8aea0;
+    color: #71685d;
+    content: env(pub-title);
+    font-size: 7.5pt;
+    letter-spacing: 0.06em;
+    margin-bottom: 5mm;
+    padding-bottom: 2.5mm;
+    vertical-align: bottom;
+  }
+
+  @bottom-center {
+    color: #5b312e;
+    content: "—  " counter(page) "  —";
+    font-size: 8pt;
+    padding-top: 2.5mm;
+    vertical-align: top;
+  }
+
+  @bottom-left {
+    color: #8b4a43;
+    content: string(pfpdf-confidential);
+    font-size: 6.5pt;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    padding-top: 2.5mm;
+    text-transform: uppercase;
+    vertical-align: top;
+  }
+}
+
+@page :first {
+  margin: 0;
+  @top-left { border: 0; content: none; }
+  @top-center { border: 0; content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+}
+
+@page {
+  @top-left {
+    border-bottom: 0.4pt solid #b8aea0;
+    content: "";
+    margin-bottom: 5mm;
+    padding-bottom: 2.5mm;
+    vertical-align: bottom;
+  }
+
+  @top-right {
+    border-bottom: 0.4pt solid #b8aea0;
+    color: #71685d;
+    content: string(pfpdf-toc-continuation, first-except);
+    font-size: 7.5pt;
+    letter-spacing: 0.06em;
+    margin-bottom: 5mm;
+    padding-bottom: 2.5mm;
+    vertical-align: bottom;
+  }
+}
+
+.book-content h1 { break-before: page; }
+.book-content .pfpdf-toc-continuation-reset + section > h1 { break-before: auto; }
+.book-content .pfpdf-toc-continuation-reset + section > h1::before { padding-top: 0; }
+.book-content [data-pfpdf-page-break]:has(+ h1) { break-before: auto; }
+.book-content h1 { break-inside: avoid; }
+.book-content figure,
+.book-content blockquote,
+.book-content table,
+.book-content details { break-inside: avoid; }

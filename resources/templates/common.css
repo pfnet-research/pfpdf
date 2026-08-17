@@ -1,0 +1,238 @@
+/* Shared structural rules for bundled templates.
+ *
+ * Keep visual choices in each template. This file owns the behavior that
+ * should remain consistent regardless of the selected design.
+ */
+:root {
+  --pfpdf-font-sans: "Noto Sans JP", "Noto Sans", "Noto Sans Arabic", "Noto Sans Armenian", "Noto Sans Bengali", "Noto Sans Ethiopic", "Noto Sans Georgian", "Noto Sans Gujarati", "Noto Sans Gurmukhi", "Noto Sans Hebrew", "Noto Sans Kannada", "Noto Sans Khmer", "Noto Sans KR", "Noto Sans Lao", "Noto Sans Malayalam", "Noto Sans Myanmar", "Noto Sans Sinhala", "Noto Sans Tamil", "Noto Sans Telugu", "Noto Sans Thai", "Noto Sans Symbols 2", "Noto Emoji", sans-serif;
+  --pfpdf-font-serif: "Noto Serif JP", "Noto Serif", "Noto Naskh Arabic", "Noto Serif Armenian", "Noto Serif Bengali", "Noto Serif Devanagari", "Noto Serif Ethiopic", "Noto Serif Georgian", "Noto Serif Gujarati", "Noto Serif Gurmukhi", "Noto Serif Hebrew", "Noto Serif Kannada", "Noto Serif Khmer", "Noto Serif KR", "Noto Serif Lao", "Noto Serif Malayalam", "Noto Serif Myanmar", "Noto Serif Sinhala", "Noto Serif Tamil", "Noto Serif Telugu", "Noto Serif Thai", "Noto Sans Symbols 2", "Noto Emoji", serif;
+  --pfpdf-font-mono: "Noto Sans Mono", "Noto Sans JP", "Noto Sans", "Noto Sans Arabic", "Noto Sans Armenian", "Noto Sans Bengali", "Noto Sans Ethiopic", "Noto Sans Georgian", "Noto Sans Gujarati", "Noto Sans Gurmukhi", "Noto Sans Hebrew", "Noto Sans Kannada", "Noto Sans Khmer", "Noto Sans KR", "Noto Sans Lao", "Noto Sans Malayalam", "Noto Sans Myanmar", "Noto Sans Sinhala", "Noto Sans Tamil", "Noto Sans Telugu", "Noto Sans Thai", "Noto Sans Symbols 2", "Noto Emoji", monospace;
+  --pfpdf-font-body: var(--pfpdf-font-sans);
+  --pfpdf-font-heading: var(--pfpdf-font-sans);
+  --pfpdf-font-code: var(--pfpdf-font-mono);
+  --pfpdf-task-accent: currentColor;
+  --pfpdf-task-indent: 1.2em;
+  --pfpdf-toc-indent-step: 1.4em;
+}
+
+html { font-family: var(--pfpdf-font-body); }
+body { margin: 0; }
+
+a { overflow-wrap: anywhere; }
+p,
+li,
+dd {
+  text-align: justify;
+  text-justify: inter-character;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  break-after: avoid;
+  overflow-wrap: anywhere;
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--pfpdf-font-code);
+}
+
+pre {
+  border-radius: 3pt;
+  font-size: 0.9em;
+  line-height: 1.5;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+  padding: 0.8em 1em;
+  text-align: start;
+  white-space: pre-wrap;
+}
+
+pre > code {
+  background: transparent;
+  color: inherit;
+  display: block;
+  overflow-wrap: anywhere;
+  padding: 0;
+  word-break: normal;
+}
+
+pre code.hljs {
+  background: transparent;
+  display: block;
+  padding: 0;
+}
+
+/* Highlighting Markdown examples must not turn source text after an
+   underscore into typographic emphasis. */
+pre code.hljs .hljs-emphasis { font-style: normal; }
+
+:not(pre) > code {
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  letter-spacing: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  word-spacing: normal;
+}
+
+blockquote > :first-child { margin-top: 0; }
+blockquote > :last-child { margin-bottom: 0; }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+thead { display: table-header-group; }
+tr { break-inside: avoid; }
+
+th,
+td {
+  overflow-wrap: anywhere;
+  letter-spacing: normal;
+  text-align: start;
+  vertical-align: top;
+  word-break: normal;
+  word-spacing: normal;
+}
+
+.pfpdf-table-cell-compact { white-space: nowrap; }
+.pfpdf-table-cell-min-4 { min-width: 4em; }
+
+.pfpdf-citation { white-space: nowrap; }
+.pfpdf-citation-link,
+.pfpdf-bibliography-backlink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.pfpdf-bibliography {
+  margin-block: 1.5em 0;
+}
+
+.pfpdf-bibliography-entry {
+  display: grid;
+  gap: 0 0.5em;
+  grid-template-columns: 2.5em minmax(0, 1fr);
+  margin-block: 0.75em;
+  overflow-wrap: anywhere;
+}
+
+.pfpdf-bibliography-entry .csl-left-margin {
+  font-variant-numeric: tabular-nums;
+  grid-column: 1;
+  text-align: end;
+}
+
+.pfpdf-bibliography-entry .csl-right-inline {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.pfpdf-bibliography-backlinks {
+  font-size: 0.8em;
+  grid-column: 2;
+  opacity: 0.72;
+}
+
+.pfpdf-bibliography-backlink + .pfpdf-bibliography-backlink {
+  margin-inline-start: 0.35em;
+}
+
+img { max-width: 100%; }
+
+.pfpdf-math-display {
+  break-inside: avoid;
+  text-align: center;
+}
+
+.pfpdf-math-display mjx-container,
+.pfpdf-math-display svg {
+  display: block;
+}
+
+.pfpdf-math-display svg {
+  height: auto;
+  margin-inline: auto;
+  vertical-align: middle !important;
+}
+
+.pfpdf-math-display svg,
+.pfpdf-math-inline svg {
+  max-width: 100%;
+}
+
+li.task-list-item {
+  list-style: none;
+}
+
+ul.contains-task-list {
+  break-inside: avoid;
+  padding-inline-start: var(--pfpdf-task-indent);
+}
+
+li.task-list-item > input[type="checkbox"],
+li.task-list-item > p > input[type="checkbox"] {
+  appearance: none;
+  background: #fff;
+  border: 1pt solid var(--pfpdf-task-accent);
+  border-radius: 1.5pt;
+  color: var(--pfpdf-task-accent);
+  display: inline-grid;
+  height: 0.95em;
+  margin: 0 0.4em 0 0;
+  opacity: 1;
+  place-content: center;
+  vertical-align: -0.12em;
+  width: 0.95em;
+}
+
+li.task-list-item > input[type="checkbox"]:checked,
+li.task-list-item > p > input[type="checkbox"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3 3 7-7' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 80% 80%;
+}
+
+li > ul,
+li > ol {
+  break-before: avoid;
+}
+
+kbd {
+  border-bottom-width: 1.5pt;
+  border-radius: 2pt;
+  display: inline-block;
+  font-size: 0.85em;
+  line-height: 1.25;
+  padding: 0.08em 0.35em;
+  white-space: nowrap;
+}
+
+details > summary { font-weight: 700; }
+
+.pfpdf-toc-list,
+.pfpdf-toc ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pfpdf-toc li { break-inside: avoid; }
+.pfpdf-toc a { text-decoration: none; }
+.pfpdf-toc a::after {
+  content: leader(".") target-counter(attr(href url), page);
+  font-variant-numeric: tabular-nums;
+}
+.pfpdf-toc-depth-1 { font-weight: 700; }
+.pfpdf-toc-depth-2 { padding-inline-start: var(--pfpdf-toc-indent-step); }
+.pfpdf-toc-depth-3 { padding-inline-start: calc(var(--pfpdf-toc-indent-step) * 2); }
+.pfpdf-toc-depth-4 { padding-inline-start: calc(var(--pfpdf-toc-indent-step) * 3); }
+.pfpdf-toc-depth-5 { padding-inline-start: calc(var(--pfpdf-toc-indent-step) * 4); }
+.pfpdf-toc-depth-6 { padding-inline-start: calc(var(--pfpdf-toc-indent-step) * 5); }

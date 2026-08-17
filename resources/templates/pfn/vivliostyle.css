@@ -1,0 +1,214 @@
+@import "../common-vivliostyle.css";
+
+/* pfn template: ported from vivlio/vivlio.css (Vivliostyle-only rules). */
+
+@page {
+	margin: 20mm 20mm 30mm 20mm;
+
+	@bottom-center {
+		position: absolute;
+		content: counter(page);
+		vertical-align: bottom;
+		margin-bottom: 8mm;
+		font-weight: 200;
+	}
+
+	@top-left-corner {
+		content: '';
+		margin-bottom: 7mm;
+		background-color: #263c7f;
+		margin-top: -3mm;
+		margin-left: -3mm;
+	}
+
+	@top-center {
+		content: env(pub-title);
+		vertical-align: bottom;
+		font-weight: 600;
+		font-size: 75%;
+		color: #ffffff;
+		margin-bottom: 7mm;
+		background-color: #263c7f;
+		margin-top: -3mm;
+		margin-left: -1mm;
+		margin-right: -1mm;
+		padding-top: 3mm;
+		padding-left: 1mm;
+		padding-right: 1mm;
+		padding-bottom: 2mm;
+	}
+
+	@top-right-corner {
+		content: '';
+		margin-bottom: 7mm;
+		background-color: #263c7f;
+		margin-top: -3mm;
+		margin-right: -3mm;
+	}
+
+	@bottom-left {
+		content: element(pfn-confidential);
+		margin-bottom: 8mm;
+		vertical-align: bottom;
+	}
+}
+
+/* Vivliostyle resolves margin boxes per page side.  Repeat the essential
+   declarations explicitly so neither side depends on base-page inheritance. */
+@page :left {
+	margin: 20mm 20mm 32mm 20mm;
+
+	@bottom-center {
+		content: counter(page);
+		vertical-align: bottom;
+		margin-bottom: 8mm;
+		font-weight: 200;
+	}
+	@top-left-corner { content: ''; margin: -3mm 0 7mm -3mm; background-color: #263c7f; }
+	@top-center {
+		content: env(pub-title);
+		vertical-align: bottom;
+		font-weight: 600;
+		font-size: 75%;
+		color: #fff;
+		margin: -3mm -1mm 7mm;
+		padding: 3mm 1mm 2mm;
+		background-color: #263c7f;
+	}
+	@top-right-corner { content: ''; margin: -3mm -3mm 7mm 0; background-color: #263c7f; }
+	@bottom-left {
+		content: element(pfn-confidential);
+		margin-bottom: 8mm;
+		vertical-align: bottom;
+	}
+}
+
+@page :right {
+	margin: 20mm 20mm 32mm 20mm;
+
+	@bottom-center {
+		content: counter(page);
+		vertical-align: bottom;
+		margin-bottom: 8mm;
+		font-weight: 200;
+	}
+	@top-left-corner { content: ''; margin: -3mm 0 7mm -3mm; background-color: #263c7f; }
+	@top-center {
+		content: env(pub-title);
+		vertical-align: bottom;
+		font-weight: 600;
+		font-size: 75%;
+		color: #fff;
+		margin: -3mm -1mm 7mm;
+		padding: 3mm 1mm 2mm;
+		background-color: #263c7f;
+	}
+	@top-right-corner { content: ''; margin: -3mm -3mm 7mm 0; background-color: #263c7f; }
+	@bottom-left {
+		content: element(pfn-confidential);
+		margin-bottom: 8mm;
+		vertical-align: bottom;
+	}
+}
+
+/* The pinned renderer paints @top-* backgrounds only on one page side.
+   Back the other side with the same physical band. */
+@page :nth(2n+1) {
+	background: linear-gradient(to bottom, #263c7f 0, #263c7f 11mm, transparent 11mm);
+}
+
+/* Keep this after the side rules because the first page is also :right. */
+@page :first {
+	margin: 0;
+	background: transparent;
+	@bottom-center { content: none; }
+	@bottom-left { content: none; }
+	@top-left-corner { content: none; background: transparent; }
+	@top-left { content: none; background: transparent; }
+	@top-center { content: none; background: transparent; }
+	@top-right { content: none; background: transparent; }
+	@top-right-corner { content: none; background: transparent; }
+}
+
+
+@page {
+	@top-left {
+		background-color: #263c7f;
+		content: '';
+		margin: -3mm -1mm 7mm;
+		padding: 3mm 1mm 2mm;
+	}
+
+	@top-right {
+		background-color: #263c7f;
+		color: #fff;
+		content: string(pfpdf-toc-continuation, first-except);
+		font-size: 70%;
+		margin: -3mm -1mm 7mm;
+		padding: 3mm 3mm 2mm 1mm;
+		text-align: right;
+		vertical-align: bottom;
+	}
+}
+
+@-adapt-footnote-area ::before {
+	margin-inline-start: -1000px;
+	margin-inline-end: 70%;
+	margin-block-end: 0.8em;
+}
+
+@-adapt-footnote-area {
+	word-break: break-all;
+}
+
+@media print {
+	/* Footnotes may get broken by overflow-x. */
+	html, html > body {
+		overflow-x: initial;
+	}
+
+	html > body > header {
+		background: none;
+	}
+
+	html > body > header::before {
+		position: absolute;
+		content: " ";
+		display: block;
+		width: calc(100vw + 26mm);
+		height: calc(100vh + 26mm);
+		top: -13mm;
+		left: -13mm;
+		/* Fallback mirrors the opaque backdrop embedded in cover-art.svg. */
+		background: url("./cover-art.svg") center / cover no-repeat, linear-gradient(135deg, #111b64 0%, #19438f 52%, #1b75b4 100%);
+		z-index: -100;
+	}
+
+	/* Vivliostyle cannot deal with flex boxes appropriately. */
+	html > body > main,
+	html > body > main > article {
+		display: inline;
+		margin: 0;
+		padding: 0 0 2.5rem 0;
+	}
+
+	/* URL footnotes are opt-in; wrap the target area with .url-footnotes. */
+	.url-footnotes :not(.footnote) > a[href^="http"] {
+		counter-increment: footnote;
+	}
+
+	.url-footnotes :not(.footnote) > a[href^="http"]::before {
+		display: block;
+		content: '[' counter(footnote) '] ' attr(href);
+		font-size: 70%;
+		float: footnote;
+		color: #000;
+		text-decoration: none;
+		word-break: break-all;
+	}
+
+	.url-footnotes :not(.footnote) > a[href^="http"]::after {
+		font-size: 100%;
+		content: ' [' counter(footnote) '] ';
+	}
+}

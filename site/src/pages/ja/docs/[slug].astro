@@ -1,0 +1,12 @@
+---
+import DocsPage from '../../../components/DocsPage.astro';
+import { listChapters } from '../../../lib/docs';
+
+export async function getStaticPaths() {
+  return (await listChapters('ja')).map((chapter) => ({ params: { slug: chapter.slug } }));
+}
+
+const { slug } = Astro.params;
+---
+
+<DocsPage locale="ja" slug={slug} />

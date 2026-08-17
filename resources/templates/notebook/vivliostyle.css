@@ -1,0 +1,68 @@
+@import "../common-vivliostyle.css";
+
+/* notebook template: paged-media rules */
+@page {
+  background: #fffdf8;
+  margin: 23mm 18mm 22mm;
+
+  @top-left {
+    color: #287d78;
+    content: env(pub-title);
+    font-size: 8pt;
+    font-weight: 700;
+    margin-bottom: 4mm;
+    padding-bottom: 2mm;
+    vertical-align: bottom;
+  }
+
+  @top-right {
+    color: #e66b58;
+    content: "●  ◆  ●";
+    font-size: 6pt;
+    letter-spacing: 0.15em;
+    margin-bottom: 4mm;
+    padding-bottom: 2mm;
+    vertical-align: bottom;
+  }
+
+  @bottom-center {
+    color: #66777a;
+    content: "—  " counter(page) "  —";
+    font-size: 8pt;
+    padding-top: 2mm;
+    vertical-align: top;
+  }
+
+  @bottom-left {
+    color: #b64b3e;
+    content: string(pfpdf-confidential);
+    font-size: 6.5pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding-top: 2mm;
+    text-transform: uppercase;
+    vertical-align: top;
+  }
+}
+
+@page :first {
+  margin: 0;
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+}
+
+@page {
+  @top-center {
+    color: #287d78;
+    content: string(pfpdf-toc-continuation, first-except);
+    font-size: 7pt;
+    margin-bottom: 8mm;
+    padding-bottom: 2mm;
+    vertical-align: bottom;
+  }
+}
+
+h1, h2, h3, h4, h5, h6 { break-inside: avoid; }
+blockquote, figure, details { break-inside: avoid; }

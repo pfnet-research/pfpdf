@@ -1,0 +1,93 @@
+---
+import Base from '../layouts/Base.astro';
+import { t, localeRoot, type Locale } from '../i18n';
+import { listTemplates, loadSample, imageUrl } from '../lib/gallery';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const dict = t(locale);
+const root = localeRoot(locale);
+const templates = listTemplates();
+---
+
+<Base
+  locale={locale}
+  path={`${root}gallery/`}
+  title={`${dict.gallery.title} — ${dict.siteName}`}
+  description={dict.gallery.intro}
+>
+  <div class="container">
+    <h1>{dict.gallery.title}</h1>
+    <p class="intro">{dict.gallery.intro}</p>
+    <div class="grid">
+      {templates.map((template) => {
+        const sample = loadSample(template, locale);
+        const cover = sample.pages[0];
+        return (
+          <a class="card" href={`${root}gallery/${template}/`}>
+            <span class="paper-frame">
+              <img
+                src={imageUrl(template, locale, cover.thumb.file)}
+                width={cover.thumb.width}
+                height={cover.thumb.height}
+                alt={dict.gallery.pageAlt(template, locale, 1)}
+                loading="lazy"
+              />
+            </span>
+            <span class="card-title">{template}</span>
+            <span class="card-desc">{dict.templateDescriptions[template]}</span>
+            <span class="card-pages">{dict.gallery.pages(sample.pageCount)}</span>
+          </a>
+        );
+      })}
+    </div>
+  </div>
+</Base>
+
+<style>
+  h1 {
+    margin-top: 2.5rem;
+  }
+
+  .intro {
+    max-width: 46rem;
+    color: var(--ink-muted);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 1.5rem;
+    margin-block: 2rem;
+  }
+
+  .card {
+    display: grid;
+    gap: 0.25rem;
+    text-decoration: none;
+    color: var(--ink);
+  }
+
+  .card:hover .card-title {
+    color: var(--accent);
+  }
+
+  .card-title {
+    font-weight: 700;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin-top: 0.4rem;
+  }
+
+  .card-desc {
+    color: var(--ink-muted);
+    font-size: 0.9rem;
+  }
+
+  .card-pages {
+    color: var(--ink-muted);
+    font-size: 0.8rem;
+  }
+</style>

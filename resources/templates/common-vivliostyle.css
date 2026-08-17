@@ -1,0 +1,66 @@
+/* Shared pagination safeguards for bundled templates. */
+@page {
+  font-family: var(--pfpdf-font-heading, "Noto Sans JP", "Noto Sans", "Noto Sans Arabic", "Noto Sans Armenian", "Noto Sans Bengali", "Noto Sans Ethiopic", "Noto Sans Georgian", "Noto Sans Gujarati", "Noto Sans Gurmukhi", "Noto Sans Hebrew", "Noto Sans Kannada", "Noto Sans Khmer", "Noto Sans KR", "Noto Sans Lao", "Noto Sans Malayalam", "Noto Sans Myanmar", "Noto Sans Sinhala", "Noto Sans Tamil", "Noto Sans Telugu", "Noto Sans Thai", "Noto Sans Symbols 2", "Noto Emoji", sans-serif);
+}
+
+section.pfpdf-source-file { break-inside: auto; }
+
+[data-pfpdf-page-break] + h1 { margin-top: 0; }
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  break-after: avoid;
+}
+
+h1 + *,
+h2 + *,
+h3 + *,
+h4 + *,
+h5 + *,
+h6 + * {
+  break-before: avoid;
+}
+
+p,
+li {
+  orphans: 2;
+  widows: 2;
+}
+
+pre {
+  break-inside: auto;
+  /* Scroll containers are monolithic during pagination in Chromium. */
+  overflow: visible;
+  orphans: 4;
+  widows: 4;
+}
+
+pre code.hljs { display: inline; }
+
+caption,
+figcaption,
+summary,
+thead {
+  break-after: avoid;
+}
+
+figure { break-inside: avoid; }
+
+.pfpdf-bibliography-entry {
+  break-inside: auto;
+  orphans: 2;
+  widows: 2;
+}
+
+.pfpdf-bibliography-entry .csl-left-margin {
+  break-after: avoid;
+}
+
+li > ul,
+li > ol {
+  break-before: avoid;
+}

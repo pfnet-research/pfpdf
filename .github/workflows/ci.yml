@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - name: Select system Chrome for Linux x64
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          browser_path="$(command -v google-chrome)"
+          test -n "$browser_path"
+          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+      - name: Install Chromium for Linux Arm64
+        if: matrix.os == 'ubuntu-24.04-arm'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+          browser_path="$(command -v chromium-browser || command -v chromium)"
+          test -n "$browser_path"
+          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+      - name: PDF smoke test
+        run: npm run test:e2e
+        env:
+          SOURCE_DATE_EPOCH: 1750000000
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Select system Chrome
+        run: |
+          browser_path="$(command -v google-chrome)"
+          test -n "$browser_path"
+          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+      - run: make docs-template-samples
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs-template-samples
+          path: build/docs/templates/*/sample.pdf
+          retention-days: 7

@@ -1,0 +1,12 @@
+---
+import GalleryTemplate from '../../../components/GalleryTemplate.astro';
+import { listTemplates } from '../../../lib/gallery';
+
+export function getStaticPaths() {
+  return listTemplates().map((template) => ({ params: { template } }));
+}
+
+const { template } = Astro.params;
+---
+
+<GalleryTemplate locale="ja" template={template} />

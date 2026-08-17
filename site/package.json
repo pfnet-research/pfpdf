@@ -1,0 +1,25 @@
+{
+  "name": "pfpdf-site",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Static website for pfpdf (built with Astro, deployed to GitHub Pages)",
+  "scripts": {
+    "predev": "node scripts/prepare-assets.mjs",
+    "dev": "astro dev",
+    "prebuild": "node scripts/prepare-assets.mjs",
+    "build": "astro build && node scripts/relativize-links.mjs dist && node scripts/check-links.mjs dist",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "5.12.8"
+  },
+  "devDependencies": {
+    "sharp": "0.34.3"
+  },
+  "allowScripts": {
+    "sharp@0.33.5": true,
+    "sharp@0.34.3": true,
+    "esbuild@0.25.12": true
+  }
+}

@@ -1,0 +1,69 @@
+---
+// A one-line command with a copy button (vanilla JS, no framework runtime).
+import { t, type Locale } from '../i18n';
+
+interface Props {
+  locale: Locale;
+  code: string;
+}
+
+const { locale, code } = Astro.props;
+const dict = t(locale);
+---
+
+<div class="snippet">
+  <pre><code>{code}</code></pre>
+  <button type="button" data-copy={code} data-copied-label={dict.hero.copied}>
+    {dict.hero.copy}
+  </button>
+</div>
+
+<script is:inline>
+  for (const button of document.querySelectorAll('button[data-copy]')) {
+    if (button.dataset.copyBound) continue;
+    button.dataset.copyBound = '1';
+    const label = button.textContent;
+    button.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(button.dataset.copy);
+      button.textContent = button.dataset.copiedLabel;
+      setTimeout(() => {
+        button.textContent = label;
+      }, 1500);
+    });
+  }
+</script>
+
+<style>
+  .snippet {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+    max-width: 100%;
+  }
+
+  .snippet pre {
+    margin: 0;
+    flex: 1;
+    /* Without this the command's min-content width propagates up and gives the
+       whole page a horizontal scrollbar on narrow screens. */
+    min-width: 0;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .snippet button {
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    background: var(--bg-raised);
+    color: var(--ink);
+    border-radius: 8px;
+    padding-inline: 0.8rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  .snippet button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+</style>

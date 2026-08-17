@@ -1,0 +1,11 @@
+{
+  "templates": [
+    "academic",
+    "book",
+    "compact",
+    "default",
+    "notebook",
+    "pfn",
+    "technical"
+  ]
+}

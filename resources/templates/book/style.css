@@ -1,0 +1,243 @@
+@import "../common.css";
+
+/* book template: restrained long-form document design */
+:root {
+  --pfpdf-font-body: var(--pfpdf-font-serif);
+  --book-color-ink: #292521;
+  --book-color-muted: #71685d;
+  --book-color-paper: #fdfbf6;
+  --book-color-accent: #5b312e;
+  --book-color-accent-pale: #eee5df;
+  --book-color-rule: #b8aea0;
+  --book-color-panel: #f4f0e8;
+  --pfpdf-task-accent: var(--book-color-accent);
+  --pfpdf-toc-indent-step: 1.5em;
+}
+
+html {
+  background: var(--book-color-paper);
+  color: var(--book-color-ink);
+  font-size: 10.5pt;
+  font-feature-settings: "palt" 1;
+  line-height: 1.9;
+}
+
+.book-cover {
+  background: var(--book-color-paper);
+  break-after: page;
+  box-sizing: border-box;
+  min-height: 297mm;
+  padding: 16mm;
+}
+
+.book-cover-frame {
+  border: 0.7pt solid var(--book-color-rule);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 265mm;
+  padding: 12mm 14mm 10mm;
+  position: relative;
+}
+
+.book-cover-frame::before {
+  border: 0.3pt solid var(--book-color-rule);
+  bottom: 2.5mm;
+  content: "";
+  left: 2.5mm;
+  pointer-events: none;
+  position: absolute;
+  right: 2.5mm;
+  top: 2.5mm;
+}
+
+.book-cover-topline {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  min-height: 16mm;
+  position: relative;
+  z-index: 1;
+}
+
+.book-cover-series {
+  color: var(--book-color-muted);
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  margin: 0;
+}
+
+.book-cover-logo {
+  display: block;
+  max-height: 14mm;
+  max-width: 45mm;
+}
+
+.book-cover-main {
+  margin: auto;
+  max-width: 145mm;
+  position: relative;
+  text-align: center;
+  width: 100%;
+  z-index: 1;
+}
+
+.book-cover-confidential {
+  border: 0.5pt solid var(--book-color-accent);
+  color: var(--book-color-accent);
+  display: inline-block;
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  margin: 0 0 8mm;
+  padding: 0.2em 1.1em;
+  string-set: pfpdf-confidential content();
+  text-transform: uppercase;
+}
+
+.book-cover-ornament {
+  color: var(--book-color-accent);
+  display: none;
+  font-size: 9pt;
+  margin-bottom: 7mm;
+}
+
+.book-cover-main:has(.book-cover-confidential) .book-cover-ornament { display: block; }
+
+.book-cover-title {
+  color: var(--book-color-ink);
+  font-size: 27pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.45;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.book-cover-rule {
+  background: var(--book-color-accent);
+  height: 0.7pt;
+  margin: 9mm auto 7mm;
+  width: 32mm;
+}
+
+.book-cover-author,
+.book-cover-date {
+  color: var(--book-color-muted);
+  margin: 0.3em 0;
+}
+
+.book-cover-author { font-size: 11pt; }
+.book-cover-date { font-size: 9pt; }
+
+.book-toc-container { break-after: page; }
+
+.pfpdf-toc {
+  margin: 0 auto;
+  max-width: 145mm;
+  padding-top: 8mm;
+}
+
+.pfpdf-toc-title {
+  color: var(--book-color-accent);
+  font-size: 16pt;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  margin: 0 0 0.8em;
+  text-align: center;
+}
+
+.pfpdf-toc li { margin: 0.65em 0; }
+.pfpdf-toc a { color: var(--book-color-ink); }
+.pfpdf-toc a::after { color: var(--book-color-muted); content: leader("·") target-counter(attr(href url), page); }
+.pfpdf-toc-depth-1 { margin-top: 1em !important; }
+.pfpdf-toc-depth-3 { color: var(--book-color-muted); font-size: 0.94em; }
+
+.book-content { margin: 0 auto; max-width: 155mm; }
+
+.book-content h1,
+.book-content h2,
+.book-content h3,
+.book-content h4,
+.book-content h5,
+.book-content h6 {
+  color: var(--book-color-ink);
+  line-height: 1.5;
+}
+
+.book-content h1 {
+  border-bottom: 0.7pt solid var(--book-color-accent);
+  color: var(--book-color-accent);
+  font-size: 21pt;
+  letter-spacing: 0.08em;
+  margin: 0 0 1.4em;
+  padding: 0 0 0.5em;
+  text-align: center;
+}
+
+.book-content h1::before {
+  content: "◆";
+  display: block;
+  font-size: 7pt;
+  margin-bottom: 0.8em;
+  padding-top: 18mm;
+}
+
+.book-content h2 { font-size: 15pt; margin: 2em 0 0.8em; }
+.book-content h2::after { color: var(--book-color-accent); content: "  —"; font-weight: 400; }
+.book-content h3 { border-left: 2pt solid var(--book-color-accent); font-size: 12.5pt; margin: 1.7em 0 0.7em; padding-left: 0.65em; }
+.book-content h4 { font-size: 11pt; margin: 1.5em 0 0.6em; }
+.book-content h5 { color: var(--book-color-accent); font-size: 10.5pt; margin: 1.3em 0 0.5em; }
+.book-content h5::before { content: "◆ "; font-size: 0.55em; vertical-align: 0.18em; }
+.book-content h6 { color: var(--book-color-muted); font-size: 10pt; margin: 1.2em 0 0.5em; padding-left: 1.25em; }
+
+.book-content p { margin: 0.75em 0; }
+a { color: var(--book-color-accent); text-decoration-thickness: 0.5pt; text-underline-offset: 0.15em; }
+
+pre {
+  background: var(--book-color-panel);
+  border-left: 2pt solid var(--book-color-rule);
+  font-size: 0.88em;
+  line-height: 1.6;
+  padding: 0.9em 1.1em;
+}
+
+:not(pre) > code {
+  background: var(--book-color-accent-pale);
+  font-size: 0.9em;
+  padding: 0.08em 0.3em;
+}
+
+blockquote {
+  border-bottom: 0.3pt solid var(--book-color-rule);
+  border-top: 0.3pt solid var(--book-color-rule);
+  color: #554e47;
+  margin: 1.3em 1.5em;
+  padding: 0.6em 1.2em;
+}
+
+table { font-family: var(--pfpdf-font-heading); margin: 1.2em 0; }
+th, td { border-bottom: 0.4pt solid var(--book-color-rule); padding: 0.45em 0.65em; }
+.pfpdf-table-many-columns { font-size: 0.9em; }
+.pfpdf-table-many-columns th,
+.pfpdf-table-many-columns td { padding: 0.3em 0.4em; }
+th { border-bottom: 1pt solid var(--book-color-accent); color: var(--book-color-accent); font-weight: 700; }
+tbody tr:nth-child(even) td { background: var(--book-color-panel); }
+
+hr { border: 0; border-top: 0.5pt solid var(--book-color-rule); margin: 2em auto; width: 45%; }
+.pfpdf-math-display { margin: 1.2em 0; }
+
+kbd {
+  background: #fff;
+  border: 0.5pt solid var(--book-color-rule);
+}
+
+details {
+  background: var(--book-color-panel);
+  border-left: 2pt solid var(--book-color-accent);
+  margin: 1em 0;
+  padding: 0.6em 1em;
+}
+
+details > summary { color: var(--book-color-accent); }

@@ -1,0 +1,36 @@
+---
+// `/docs/` used to be a chapter list, which was only a detour: every docs page
+// already carries the full chapter list in its sidebar. The URL stays alive as
+// a redirect to the first chapter so existing links keep working.
+import { t, type Locale } from '../i18n';
+import { listChapters } from '../lib/docs';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const dict = t(locale);
+const [first] = await listChapters(locale);
+// Page-relative on purpose: this file is never touched by relativize-links.mjs
+// (there is no root-relative URL to rewrite), and it must work under any base.
+const target = `./${first.slug}/`;
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+    <title>{`${dict.docs.title} — ${dict.siteName}`}</title>
+    <link rel="canonical" href={target} />
+  </head>
+  <body>
+    <p><a href={target}>{first.title}</a></p>
+    <script is:inline>
+      location.replace(document.querySelector('link[rel="canonical"]').getAttribute('href'));
+    </script>
+  </body>
+</html>

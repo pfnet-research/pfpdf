@@ -1,0 +1,286 @@
+@import "../common.css";
+
+/* notebook template: friendly, colorful documents for notes and plans */
+:root {
+  --notebook-color-ink: #293b40;
+  --notebook-color-muted: #66777a;
+  --notebook-color-paper: #fffdf8;
+  --notebook-color-teal: #287d78;
+  --notebook-color-teal-dark: #185b58;
+  --notebook-color-teal-pale: #e5f2ef;
+  --notebook-color-coral: #e66b58;
+  --notebook-color-coral-pale: #fbe8e2;
+  --notebook-color-gold: #d8a62d;
+  --notebook-color-gold-pale: #fff4cf;
+  --notebook-color-rule: #c9d5d2;
+  --pfpdf-task-accent: var(--notebook-color-teal-dark);
+  --pfpdf-task-indent: 1.3em;
+}
+
+html {
+  background: var(--notebook-color-paper);
+  color: var(--notebook-color-ink);
+  font-size: 10.5pt;
+  line-height: 1.75;
+}
+
+.notebook-cover {
+  background: var(--notebook-color-paper);
+  break-after: page;
+  box-sizing: border-box;
+  min-height: 297mm;
+  overflow: hidden;
+  padding: 18mm;
+  position: relative;
+}
+
+.notebook-cover-shape {
+  position: absolute;
+  transform: rotate(-8deg);
+}
+
+.notebook-cover-shape-top {
+  background: var(--notebook-color-teal);
+  height: 78mm;
+  right: -38mm;
+  top: -42mm;
+  width: 125mm;
+}
+
+.notebook-cover-shape-bottom {
+  background: var(--notebook-color-coral);
+  bottom: -48mm;
+  height: 82mm;
+  left: -30mm;
+  width: 145mm;
+}
+
+.notebook-cover-inner {
+  border: 1.2pt solid var(--notebook-color-teal);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 261mm;
+  padding: 13mm 14mm;
+  position: relative;
+}
+
+.notebook-cover-topline {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  min-height: 18mm;
+}
+
+.notebook-cover-series {
+  color: var(--notebook-color-teal-dark);
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  margin: 0;
+}
+
+.notebook-cover-logo {
+  display: block;
+  max-height: 15mm;
+  max-width: 48mm;
+}
+
+.notebook-cover-main {
+  margin: auto 0;
+  max-width: 145mm;
+  padding: 0 5mm;
+}
+
+.notebook-cover-confidential {
+  background: var(--notebook-color-coral-pale);
+  border-radius: 10em;
+  color: #a63e32;
+  display: inline-block;
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: 0 0 5mm;
+  padding: 0.25em 1em;
+  string-set: pfpdf-confidential "●  " content();
+  text-transform: uppercase;
+}
+
+.notebook-cover-title {
+  color: var(--notebook-color-ink);
+  font-size: 29pt;
+  line-height: 1.35;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.notebook-cover-rule {
+  background: linear-gradient(
+    to right,
+    var(--notebook-color-coral) 0 24%,
+    transparent 24% 27%,
+    var(--notebook-color-gold) 27% 43%,
+    transparent 43% 46%,
+    var(--notebook-color-teal) 46% 100%
+  );
+  border-radius: 2mm;
+  height: 2.5mm;
+  margin: 9mm 0 7mm;
+  max-width: 92mm;
+}
+
+.notebook-cover-meta {
+  color: var(--notebook-color-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 10pt;
+  gap: 0.5em 1.5em;
+}
+
+.notebook-cover-meta p { margin: 0; }
+.notebook-cover-author::before { color: var(--notebook-color-teal); content: "● "; }
+.notebook-cover-date::before { color: var(--notebook-color-coral); content: "● "; }
+
+.notebook-cover-dots {
+  align-self: flex-end;
+  color: var(--notebook-color-gold);
+  display: block;
+  height: 28mm;
+  width: 42mm;
+}
+
+.notebook-cover-dots circle { fill: currentColor; }
+
+.notebook-toc-container { break-after: page; }
+
+.pfpdf-toc {
+  background: var(--notebook-color-teal-pale);
+  border-radius: 4mm;
+  box-decoration-break: clone;
+  padding: 9mm 10mm;
+  -webkit-box-decoration-break: clone;
+}
+
+.pfpdf-toc-title {
+  color: var(--notebook-color-teal-dark);
+  font-size: 18pt;
+  line-height: 1.3;
+  margin: 0 0 0.7em;
+}
+
+.pfpdf-toc li { margin: 0.55em 0; }
+.pfpdf-toc a { color: var(--notebook-color-ink); }
+.pfpdf-toc a::after { color: var(--notebook-color-teal); content: leader("·") target-counter(attr(href url), page); }
+.pfpdf-toc-depth-1 { margin-top: 0.8em !important; }
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.4;
+}
+
+.notebook-content h1 {
+  color: var(--notebook-color-teal-dark);
+  font-size: 20pt;
+  margin: 1.5em 0 0.7em;
+  padding-bottom: 0.25em;
+  position: relative;
+}
+
+.notebook-content h1::after {
+  background: linear-gradient(to right, var(--notebook-color-coral) 0 22mm, var(--notebook-color-gold) 22mm 36mm, var(--notebook-color-rule) 36mm 100%);
+  bottom: 0;
+  content: "";
+  height: 1.5pt;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}
+
+h2 {
+  color: var(--notebook-color-teal-dark);
+  font-size: 15pt;
+  margin: 1.4em 0 0.6em;
+  padding-left: 0.7em;
+  position: relative;
+}
+
+h2::before {
+  background: var(--notebook-color-coral);
+  border-radius: 50%;
+  content: "";
+  height: 0.42em;
+  left: 0;
+  position: absolute;
+  top: 0.5em;
+  width: 0.42em;
+}
+
+h3 { color: var(--notebook-color-coral); font-size: 12.5pt; margin: 1.25em 0 0.5em; }
+h4 { color: var(--notebook-color-teal-dark); font-size: 11pt; margin: 1.15em 0 0.45em; }
+h4::before { color: var(--notebook-color-gold); content: "◆ "; }
+h5 { color: var(--notebook-color-ink); font-size: 10.5pt; margin: 1em 0 0.4em; }
+h5::before { color: var(--notebook-color-coral); content: "› "; }
+h6 { color: var(--notebook-color-muted); font-size: 10pt; margin: 1em 0 0.35em; }
+h6::before { color: var(--notebook-color-teal); content: "– "; }
+
+p { margin: 0.65em 0; }
+a { color: var(--notebook-color-teal-dark); text-decoration-color: var(--notebook-color-coral); text-underline-offset: 0.16em; }
+
+pre {
+  background: #f5f5f1;
+  border: 0.5pt solid var(--notebook-color-rule);
+  border-radius: 3mm;
+  font-size: 0.88em;
+  line-height: 1.55;
+}
+
+:not(pre) > code {
+  background: var(--notebook-color-gold-pale);
+  border-radius: 2pt;
+  font-size: 0.9em;
+  padding: 0.08em 0.3em;
+}
+
+blockquote {
+  background: var(--notebook-color-coral-pale);
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 3pt 0 var(--notebook-color-coral);
+  color: #574743;
+  margin: 1em 0;
+  padding: 0.6em 1em;
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1em 0;
+}
+thead tr { background: var(--notebook-color-teal); }
+th, td {
+  border-bottom: 0.5pt solid var(--notebook-color-rule);
+  padding: 0.45em 0.65em;
+}
+th { background: var(--notebook-color-teal); color: #fff; font-weight: 700; }
+th:first-child { border-radius: 2.5mm 0 0 0; }
+th:last-child { border-radius: 0 2.5mm 0 0; }
+tbody tr:nth-child(even) td { background: var(--notebook-color-teal-pale); }
+
+li.task-list-item { padding-left: 1.35em; text-indent: -1.35em; }
+hr { border: 0; border-top: 1.5pt dotted var(--notebook-color-coral); margin: 1.6em 0; }
+.pfpdf-math-display {
+  margin: 1em 0;
+}
+
+kbd {
+  background: #fff;
+  border: 0.5pt solid var(--notebook-color-rule);
+}
+
+details {
+  background: var(--notebook-color-teal-pale);
+  border-radius: 3mm;
+  margin: 0.9em 0;
+  padding: 0.55em 0.9em;
+}
+
+details > summary { color: var(--notebook-color-teal-dark); }

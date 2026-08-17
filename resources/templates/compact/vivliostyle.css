@@ -1,0 +1,69 @@
+@import "../common-vivliostyle.css";
+
+/* compact template: paged-media rules */
+@page {
+  margin: 19mm 14mm 17mm;
+
+  @top-left {
+    border-bottom: 0.5pt solid #aeb4b9;
+    color: #596168;
+    content: env(pub-title);
+    font-size: 7pt;
+    margin-bottom: 4mm;
+    padding-bottom: 1.5mm;
+    vertical-align: bottom;
+  }
+
+  @top-right {
+    border-bottom: 0.5pt solid #aeb4b9;
+    color: #343a40;
+    content: string(pfpdf-series);
+    font-family: var(--pfpdf-font-code);
+    font-size: 6.5pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin-bottom: 4mm;
+    padding-bottom: 1.5mm;
+    vertical-align: bottom;
+  }
+
+  @bottom-left {
+    color: #596168;
+    content: string(pfpdf-confidential);
+    font-family: var(--pfpdf-font-code);
+    font-size: 6.5pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding-top: 1.5mm;
+    text-transform: uppercase;
+    vertical-align: top;
+  }
+
+  @bottom-right {
+    color: #202428;
+    content: counter(page);
+    font-family: var(--pfpdf-font-code);
+    font-size: 7pt;
+    font-weight: 700;
+    padding-top: 1.5mm;
+    vertical-align: top;
+  }
+}
+
+@page :first {
+  margin-top: 15mm;
+  @top-left { border: 0; content: none; }
+  @top-right { border: 0; content: none; }
+  @bottom-left { content: none; }
+}
+
+@page {
+  @top-center {
+    color: #596168;
+    content: string(pfpdf-toc-continuation, first-except);
+    font-size: 6.5pt;
+    vertical-align: bottom;
+  }
+}
+
+blockquote, figure, .note, .tip, .warning, .danger { break-inside: avoid; }

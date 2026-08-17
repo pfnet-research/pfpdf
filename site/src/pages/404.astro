@@ -1,0 +1,64 @@
+---
+// GitHub Pages serves 404.html for URLs of arbitrary depth, so relative links
+// would break here; this page alone uses absolute URLs derived from SITE_URL.
+// scripts/relativize-links.mjs skips 404.html.
+import '../styles/global.css';
+import { t } from '../i18n';
+import { SITE_URL } from '../lib/site-config.mjs';
+
+const en = t('en');
+const ja = t('ja');
+const absolute = (rootRelative: string) => new URL(rootRelative, SITE_URL).href;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>404 — pfpdf</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href={absolute('favicon.svg')} />
+    <script is:inline>
+      (() => {
+        const stored = localStorage.getItem('pfpdf-theme');
+        const dark = stored === 'dark'
+          || (stored === null && matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.dataset.theme = 'dark';
+      })();
+    </script>
+  </head>
+  <body>
+    <main class="container">
+      <h1>404</h1>
+      <section>
+        <h2>{en.notFound.title}</h2>
+        <p>{en.notFound.body}</p>
+        <p>
+          <a href={absolute('')}>{en.notFound.home}</a> /
+          <a href={absolute('gallery/')}>{en.notFound.gallery}</a>
+        </p>
+      </section>
+      <section lang="ja">
+        <h2>{ja.notFound.title}</h2>
+        <p>{ja.notFound.body}</p>
+        <p>
+          <a href={absolute('ja/')}>{ja.notFound.home}</a> /
+          <a href={absolute('ja/gallery/')}>{ja.notFound.gallery}</a>
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
+
+<style>
+  main {
+    padding-block: 4rem;
+  }
+
+  h1 {
+    font-size: 4rem;
+    margin-bottom: 0;
+    color: var(--accent);
+  }
+</style>

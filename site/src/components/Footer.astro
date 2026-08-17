@@ -1,0 +1,60 @@
+---
+import { t, localeRoot, type Locale } from '../i18n';
+import { REPO_URL } from '../lib/site-config.mjs';
+import { docsEntryPath } from '../lib/docs';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const dict = t(locale);
+const root = localeRoot(locale);
+const docsPath = await docsEntryPath(locale);
+---
+
+<footer class="site-footer">
+  <div class="container">
+    <nav aria-label="Footer">
+      <a href={docsPath}>{dict.footer.docs}</a>
+      <a href={`${root}gallery/`}>{dict.footer.gallery}</a>
+      <a href={REPO_URL} rel="external">{dict.footer.github}</a>
+      <a href="https://www.npmjs.com/package/pfpdf" rel="external">{dict.footer.npm}</a>
+      <a href={`${REPO_URL}/releases`} rel="external">{dict.footer.releases}</a>
+      <a href={`${REPO_URL}/blob/main/LICENSE`} rel="external">{dict.footer.license}</a>
+    </nav>
+    <p class="license-note">{dict.footer.licenseNote}</p>
+    <p class="copyright">{dict.footer.copyright}</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: 4rem;
+    border-top: 1px solid var(--border);
+    padding-block: 2rem;
+    color: var(--ink-muted);
+    font-size: 0.9rem;
+  }
+
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  nav a {
+    color: var(--ink-muted);
+    text-decoration: none;
+  }
+
+  nav a:hover {
+    color: var(--accent);
+  }
+
+  .license-note,
+  .copyright {
+    margin: 0.25rem 0;
+  }
+</style>

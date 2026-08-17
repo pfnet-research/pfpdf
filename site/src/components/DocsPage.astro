@@ -1,0 +1,279 @@
+---
+import { render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { t, localeRoot, type Locale } from '../i18n';
+import { listChapters } from '../lib/docs';
+
+interface Props {
+  locale: Locale;
+  slug: string;
+}
+
+const { locale, slug } = Astro.props;
+const dict = t(locale);
+const root = localeRoot(locale);
+const chapters = await listChapters(locale);
+const index = chapters.findIndex((chapter) => chapter.slug === slug);
+const chapter = chapters[index];
+const prev = index > 0 ? chapters[index - 1] : undefined;
+const next = index < chapters.length - 1 ? chapters[index + 1] : undefined;
+const { Content, headings } = await render(chapter.entry);
+const toc = headings.filter((heading) => heading.depth === 2);
+---
+
+<Base
+  locale={locale}
+  path={`${root}docs/${slug}/`}
+  title={`${chapter.title} — ${dict.docs.title} — ${dict.siteName}`}
+  description={`${dict.siteName}: ${chapter.title}`}
+>
+  <div class="docs-shell docs-grid">
+    <nav class="sidebar" aria-label={dict.docs.chapters}>
+      <p class="sidebar-title">{dict.docs.chapters}</p>
+      <ol>
+        {chapters.map((item) => (
+          <li>
+            <a href={`${root}docs/${item.slug}/`} aria-current={item.slug === slug ? 'page' : undefined}>
+              <span class="chapter-number">{item.order}.</span>
+              <span class="chapter-title">{item.title}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+    <article class="docs-body">
+      <Content />
+      <nav class="pager">
+        <span>
+          {prev && <a href={`${root}docs/${prev.slug}/`}>← {dict.docs.prev}: {prev.title}</a>}
+        </span>
+        <span>
+          {next && <a href={`${root}docs/${next.slug}/`}>{dict.docs.next}: {next.title} →</a>}
+        </span>
+      </nav>
+    </article>
+    <aside class="toc" aria-label={dict.docs.onThisPage}>
+      {toc.length > 0 && (
+        <>
+          <p class="sidebar-title">{dict.docs.onThisPage}</p>
+          <ul id="toc-list">
+            {toc.map((heading) => (
+              <li>
+                <a href={`#${heading.slug}`}>{heading.text}</a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </aside>
+  </div>
+</Base>
+
+<script is:inline>
+  (() => {
+    // Highlight the section currently under the top of the viewport in the
+    // "on this page" list. A scroll handler is used rather than
+    // IntersectionObserver so that sections shorter than the viewport (and the
+    // final section, which may never reach the top) still resolve correctly.
+    const list = document.getElementById('toc-list');
+    if (list === null) return;
+    const links = [...list.querySelectorAll('a')];
+    const targets = links
+      .map((link) => ({ link, heading: document.getElementById(decodeURIComponent(link.hash.slice(1))) }))
+      .filter((entry) => entry.heading !== null);
+    if (targets.length === 0) return;
+
+    const OFFSET = 96; // sticky header height plus a little breathing room
+
+    function activate(active) {
+      for (const { link } of targets) {
+        link.toggleAttribute('data-active', link === active);
+      }
+    }
+
+    function update() {
+      const atBottom = window.scrollY + window.innerHeight >= document.body.scrollHeight - 2;
+      let current = targets[0].link;
+      if (atBottom) {
+        current = targets[targets.length - 1].link;
+      } else {
+        for (const { link, heading } of targets) {
+          if (heading.getBoundingClientRect().top <= OFFSET) current = link;
+        }
+      }
+      activate(current);
+    }
+
+    let queued = false;
+    function schedule() {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        update();
+      });
+    }
+
+    addEventListener('scroll', schedule, { passive: true });
+    addEventListener('resize', schedule);
+    update();
+  })();
+</script>
+
+<style>
+  /* Docs use a wider shell than the rest of the site: three columns need the
+     room, and the marketing pages' 72rem would squeeze the article. */
+  .docs-shell {
+    max-width: 96rem;
+    margin-inline: auto;
+    padding-inline: 1.5rem;
+  }
+
+  .docs-grid {
+    display: grid;
+    grid-template-columns: 17rem minmax(0, 1fr) 16rem;
+    gap: 3rem;
+    align-items: start;
+    padding-top: 2rem;
+  }
+
+  .sidebar,
+  .toc {
+    position: sticky;
+    top: 4.5rem;
+    font-size: 0.9rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+
+  .sidebar-title {
+    font-weight: 700;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+  }
+
+  .sidebar ol,
+  .toc ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .sidebar li,
+  .toc li {
+    margin-block: 0.15rem;
+  }
+
+  .sidebar a,
+  .toc a {
+    color: var(--ink-muted);
+    text-decoration: none;
+    display: block;
+    border-radius: 6px;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .sidebar a {
+    display: grid;
+    grid-template-columns: 1.4rem minmax(0, 1fr);
+    gap: 0.3rem;
+  }
+
+  .chapter-number {
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sidebar a:hover,
+  .toc a:hover {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+
+  .sidebar a[aria-current='page'],
+  .toc a[data-active] {
+    color: var(--accent);
+    font-weight: 700;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+
+  .sidebar a[aria-current='page'] .chapter-number {
+    color: inherit;
+  }
+
+  .docs-body {
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+
+  .docs-body :global(h1) {
+    font-size: 1.9rem;
+  }
+
+  /* Anchor targets clear the sticky header when jumped to from the TOC. */
+  .docs-body :global(h2),
+  .docs-body :global(h3) {
+    scroll-margin-top: 5rem;
+  }
+
+  .docs-body :global(img) {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .docs-body :global(table) {
+    border-collapse: collapse;
+    display: block;
+    overflow-x: auto;
+  }
+
+  .docs-body :global(th),
+  .docs-body :global(td) {
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.8rem;
+  }
+
+  .docs-body :global(th) {
+    background: var(--code-bg);
+  }
+
+  .docs-body :global(blockquote) {
+    margin-inline: 0;
+    padding-inline-start: 1rem;
+    border-inline-start: 3px solid var(--accent);
+    color: var(--ink-muted);
+  }
+
+  .pager {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 3rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+
+  @media (max-width: 78rem) {
+    .docs-grid {
+      grid-template-columns: 15rem minmax(0, 1fr);
+      gap: 2.5rem;
+    }
+
+    .toc {
+      display: none;
+    }
+  }
+
+  @media (max-width: 56rem) {
+    .docs-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+      position: static;
+      max-height: none;
+    }
+  }
+</style>
