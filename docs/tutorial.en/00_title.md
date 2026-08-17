@@ -11,7 +11,7 @@ dir: ltr
 This tutorial takes you from initial setup to generating PDFs from Markdown with pfpdf. Each chapter is also a working pfpdf input example: pass the entire directory to pfpdf to produce the PDF you are reading now.
 
 ```bash
-npx pfpdf@latest --input docs/tutorial.en --output tutorial.en.pdf
+npx @pfnet-research/pfpdf@latest --input docs/tutorial.en --output tutorial.en.pdf
 ```
 
 ## Chapters

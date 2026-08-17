@@ -11,19 +11,19 @@ English README: [README.md](README.md)
 Node.js と npm があれば、install なしで実行できます。
 
 ```bash
-npx pfpdf@latest --input document.md --output document.pdf
+npx @pfnet-research/pfpdf@latest --input document.md --output document.pdf
 ```
 
 ディレクトリを渡すと、直下の `*.md` がファイル名順に結合されて 1 つの PDF になります。
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf
 ```
 
 CI や長期保存する手順書では version を固定してください。
 
 ```bash
-npx --yes pfpdf@0.1.0 --input docs --output docs.pdf
+npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output docs.pdf
 ```
 
 > **初回実行時の注意**: PDF 描画用の Chromium が自動で download されるため、初回は数百 MB の通信が発生することがあります。2 回目以降は cache が使われ、組み込み機能(数式・コードハイライト)だけを使う文書はネットワークなしで変換できます。
@@ -53,7 +53,7 @@ npx --yes pfpdf@0.1.0 --input docs --output docs.pdf
 Linux では Chromium の実行に OS の shared library が必要です。必要 package と診断方法は [チュートリアルの troubleshooting 章](docs/tutorial.ja/08_troubleshooting.md) を参照してください。環境の診断には次が使えます。
 
 ```bash
-npx pfpdf@latest --doctor
+npx @pfnet-research/pfpdf@latest --doctor
 ```
 
 ## trust model(重要)

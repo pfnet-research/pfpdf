@@ -23,7 +23,7 @@ pfpdf には 7 つの template が同梱されています。
 bundled template は利用者が指定していない出版名、文書種別、ブランド名、目次名などの文字列を追加しません。全 template で共通のシリーズ名を表示したい場合は front matter の `series` を使います。表示位置と書体は template ごとに異なり、省略時は表示領域自体が削除されます。
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf --template pfn
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
 ```
 
 ## 6.2 ロゴの注入
@@ -31,7 +31,7 @@ npx pfpdf@latest --input docs --output docs.pdf --template pfn
 template にはロゴ画像は含まれていません。表紙などにロゴを入れたい場合は、利用者が権利を持つロゴファイルを `--logo` または環境変数 `PFPDF_LOGO` で指定します。
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf \
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --template pfn --logo assets/logo.png
 ```
 
@@ -42,7 +42,7 @@ npx pfpdf@latest --input docs --output docs.pdf \
 
 ```make
 docs.pdf: $(wildcard docs/*.md)
-	npx --yes pfpdf@0.1.0 --input docs --output $@ \
+	npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output $@ \
 	  --template pfn --logo assets/logo.png
 ```
 
@@ -58,7 +58,7 @@ my-template/
 ```
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf --template-dir my-template
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template-dir my-template
 ```
 
 - custom template は信頼できるローカルコードとして扱われ、raw HTML や script を実行できます
@@ -102,10 +102,10 @@ OS にインストールされたフォントを使いたい場合は、明示�
 
 ```bash
 # OS 標準の font directory を探索する
-npx pfpdf@latest --input docs --output docs.pdf --host-fonts
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --host-fonts
 
 # 特定の directory だけを追加する(--host-fonts なしでも可)
-npx pfpdf@latest --input docs --output docs.pdf --font-dir ~/my-fonts
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --font-dir ~/my-fonts
 ```
 
 - `--font-dir` は複数回指定できます

@@ -31,7 +31,7 @@ This is my first PDF made with **pfpdf**.
 Convert it.
 
 ```bash
-npx pfpdf@latest --input hello.md --output hello.pdf
+npx @pfnet-research/pfpdf@latest --input hello.md --output hello.pdf
 ```
 
 After the command succeeds, `hello.pdf` contains a cover with the title and a body with the heading and paragraph.
@@ -41,7 +41,7 @@ After the command succeeds, `hello.pdf` contains a cover with the title and a bo
 In CI and long-lived runbooks, pin a specific version instead of using `latest`.
 
 ```bash
-npx --yes pfpdf@0.1.0 --input hello.md --output hello.pdf
+npx --yes @pfnet-research/pfpdf@0.1.0 --input hello.md --output hello.pdf
 ```
 
 ## 1.4 Converting a whole directory
@@ -56,7 +56,7 @@ docs/
 ```
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf
 ```
 
 Files are ordered by the byte sequence of their filenames. We recommend adding numeric prefixes such as `00_` and `01_`.
@@ -66,7 +66,7 @@ Files are ordered by the byte sequence of their filenames. We recommend adding n
 Use `--doctor` to diagnose your environment.
 
 ```bash
-npx pfpdf@latest --doctor
+npx @pfnet-research/pfpdf@latest --doctor
 ```
 
 The command checks Node.js, browser availability, fonts, and other parts of the environment, then reports any problems with suggested fixes. See Chapter 08 for details.

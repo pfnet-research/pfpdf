@@ -415,3 +415,14 @@ Each decision follows this format:
 - Risk: Two extra PDFs are rendered for the hero, but both are about two pages and barely affect build time
 - Verification: `make site-assets` produces the hero covers, and a headless browser confirmed the badge is absent on the landing page and still present in the gallery
 - Reconsider when: Overriding front matter from the CLI lands for other reasons (the sample could then be reused directly)
+
+## DD-37: Publish the npm package in the Organization scope
+
+- Status: Accepted (2026-08)
+- Problem: The originally planned unscoped package name `pfpdf` was unused, but the npm registry rejected its first publish with `E403` because it was confusingly similar to the existing `jspdf`. The official distribution must express Organization ownership while preserving the user-facing executable name `pfpdf`
+- Options: (a) ask npm for an exception for the unscoped name, (b) choose another unscoped name, (c) use the Organization-scoped package `@pfnet-research/pfpdf`, (d) use the personal scope `@imostella/pfpdf`
+- Adopted: (c). The Organization scope does not conflict with the registry-wide similarity restriction and matches the owner of the GitHub repository. The `bin` key in `package.json` remains `pfpdf`, so global installation keeps the executable name while direct execution uses `npx @pfnet-research/pfpdf@<version>`. `publishConfig` pins the public npm registry and public access
+- Rejected because: (a) offers no guarantee that an exception will be granted and makes the release depend on an individual registry decision. (b) still changes the user-facing package name and does not identify the official Organization distribution. (d) differs from the intended final owner, and a scoped package cannot later move to another scope
+- Risk: The `npx` package spec becomes longer, and every existing `npx pfpdf` example must change. npm packages and GHCR images use separate namespaces, so the Docker image remains `ghcr.io/pfnet-research/pfpdf`
+- Verification: Inspect the package name, public access, and tarball contents with `npm pack --dry-run`; install the tarball into an empty temporary project and run the `pfpdf` executable. After publishing, verify `npx @pfnet-research/pfpdf@<version> --version` through the registry
+- Reconsider when: The Organization or registry naming policy changes before the first publish. After the first publish, moving to another package would be a user-facing breaking change and is not reconsidered as an ordinary rename

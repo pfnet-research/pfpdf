@@ -62,7 +62,7 @@ CLI 引数の多くは環境変数でも設定できます。同じ項目が両�
 - どの設定がどこから来たかは `--print-effective-config` で、versioned schema の JSON object として確認できます
 
 ```bash
-PFPDF_TEMPLATE=pfn npx pfpdf@latest --print-effective-config
+PFPDF_TEMPLATE=pfn npx @pfnet-research/pfpdf@latest --print-effective-config
 ```
 
 ## 7.3 終了コード
@@ -85,7 +85,7 @@ PFPDF_TEMPLATE=pfn npx pfpdf@latest --print-effective-config
 - 既にある互換 browser を使いたい場合は `--browser-path` または `PFPDF_BROWSER_PATH` で指定します
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf \
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --browser-path /usr/bin/chromium
 ```
 
@@ -94,9 +94,9 @@ npx pfpdf@latest --input docs --output docs.pdf \
 サーバーや CI などで、browser の実行環境をコンテナに閉じ込めたい場合は Docker renderer を使えます。
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf --renderer docker
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --renderer docker
 # または
-PFPDF_RENDERER=docker npx pfpdf@latest --input docs --output docs.pdf
+PFPDF_RENDERER=docker npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf
 ```
 
 - 公開 registry 上の pfpdf image が使われます。image は `--docker-image` で指定でき、実行時には pull / inspect 後の image ID または digest に固定されます
@@ -110,7 +110,7 @@ PFPDF_RENDERER=docker npx pfpdf@latest --input docs --output docs.pdf
 Docker image / browser の確認と初回取得、readiness、PDF 描画・後処理・構造検査の合計には既定で 300,000 ms(5 分)の timeout があります。大きな文書や低速な初回 download で不足する場合だけ、1,000 から 3,600,000 ms の範囲で変更します。`0` など無期限にする値は使えません。
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf \
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --render-timeout-ms 600000
 ```
 
@@ -124,7 +124,7 @@ front matter に表示用の `date` が書かれていても、PDF metadata の 
 
 ```bash
 SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) \
-  npx --yes pfpdf@0.1.0 --input docs --output docs.pdf
+  npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output docs.pdf
 ```
 
 ## 7.8 デバッグ

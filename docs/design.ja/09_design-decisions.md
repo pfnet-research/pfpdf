@@ -415,3 +415,14 @@
 - risk: hero 用に PDF を 2 本余分にレンダリングするが、いずれも 2 ページ程度で build 時間への影響は小さい
 - 検証: `make site-assets` で hero の cover が生成されること、トップページに badge がなく gallery には残ることを headless browser で確認した
 - 再検討条件: front matter を CLI から上書きする機能が別の理由で入った場合(その場合は sample を使い回せる)
+
+## DD-37: npm package は Organization scope で公開する
+
+- status: Accepted(2026-08)
+- 問題: 当初予定した unscoped package 名 `pfpdf` は未使用だったが、npm registry が既存 package `jspdf` との類似名として初回 publish を `E403` で拒否した。公式な配布元を Organization の所有権で明示しつつ、利用者向け executable 名 `pfpdf` を維持する必要がある
+- 選択肢: (a) npm へ unscoped 名の例外を申請する、(b) 別の unscoped 名へ変更する、(c) Organization scoped package `@pfnet-research/pfpdf` とする、(d) 個人 scope `@imostella/pfpdf` とする
+- 採用: (c)。Organization scope は registry 全体の類似名制約と衝突せず、GitHub repository の所有主体とも一致する。`package.json` の `bin` key は `pfpdf` のままなので、global install 後の executable 名は変えず、直接実行は `npx @pfnet-research/pfpdf@<version>` とする。`publishConfig` で public npm registry と public access を固定する
+- 非採用理由: (a) は例外が認められる保証がなく release を registry の個別判断へ依存させる。(b) は利用者向け package 名をいずれにせよ変更し、Organization の正規配布物であることも名前から示せない。(d) は最終所有者と異なり、scoped package は後から別 scope へ移せない
+- risk: `npx` の package spec が長くなり、既存の `npx pfpdf` 表記はすべて更新が必要になる。npm package と GHCR image は別 namespace なので、Docker image は `ghcr.io/pfnet-research/pfpdf` のまま維持する
+- 検証: `npm pack --dry-run` で package 名、public access、tarball 内容を確認し、空の一時 project へ tarball を install して `pfpdf` executable を実行する。publish 後は `npx @pfnet-research/pfpdf@<version> --version` を registry 経由で確認する
+- 再検討条件: 初回 publish 前に Organization または registry の命名方針が変わった場合。初回 publish 後は別 package への移行が利用者向け破壊的変更になるため、通常の名称変更としては再検討しない

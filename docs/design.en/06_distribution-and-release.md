@@ -12,11 +12,11 @@
 
 ## 6.2 Contents of the published tarball
 
-The compiled `dist/cli.js` is published as `pfpdf` via the npm package's `bin` field.
+The npm package `@pfnet-research/pfpdf` publishes the compiled `dist/launcher.js` as `pfpdf` via its `bin` field.
 
 - The published tarball contains only the package metadata and shrinkwrap, `dist/`, required resources, the README, and license documents, and it is confirmed that no local absolute paths remain in the TypeScript source maps
 - The `files` allowlist in `package.json`, together with inspection of the tarball extracted in CI, ensures that test fixtures, `.env`, caches, and similar files are not published
-- Secure the npm package name under the Organization's ownership before publishing; if it cannot be secured, use an Organization-scoped package. A registry `404` does not mean the name has been reserved
+- The npm package name is `@pfnet-research/pfpdf` in the Organization scope. The registry rejects the unscoped `pfpdf` as confusingly similar to the existing `jspdf`, so it is not used. Publishing requires `--access public` or the equivalent `publishConfig.access`
 
 ## 6.3 Directory layout
 
@@ -98,7 +98,7 @@ The Make targets generate `docs/*.pdf` files as build artifacts. They are listed
 
 - npm publishing uses GitHub Actions trusted publishing; repository secrets contain no long-lived npm token
 - Before npm publish, a dry-run job plus a human-approval environment verify the package name, version, tarball file list, checksums, and license files
-- Before publishing, stage the npm tarball, per-architecture Docker images, document PDFs, and checksums from the same source revision, install the packed tarball into an empty temporary project, and confirm that the `npm ls --json` runtime tree matches the shrinkwrap. `npx pfpdf@<version>` via the registry is verified with a prerelease tag or during post-publish verification
+- Before publishing, stage the npm tarball, per-architecture Docker images, document PDFs, and checksums from the same source revision, install the packed tarball into an empty temporary project, and confirm that the `npm ls --json` runtime tree matches the shrinkwrap. `npx @pfnet-research/pfpdf@<version>` via the registry is verified with a prerelease tag or during post-publish verification
 - GitHub Releases are created as drafts first and published only after the upload of the four PDFs and their checksums has been confirmed. For Docker, inspect the immutable per-architecture digests first, and build the version manifest only from those digests
 - npm, Docker, and GitHub Releases cannot be published atomically. If a failure occurs midway, do not overwrite or reuse already-published immutable artifacts; record the release as incomplete and ship a corrected version as a new version
 - After publishing, verify from the public npm and Docker endpoints that the exact version and the internal renderer protocol match. A failed version is never overwritten; the fix is published as a new version

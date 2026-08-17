@@ -12,11 +12,11 @@
 
 ## 6.2 公開 tarball の内容
 
-npm package の `bin` field から compile 済みの `dist/cli.js` を `pfpdf` として公開します。
+npm package `@pfnet-research/pfpdf` の `bin` field から compile 済みの `dist/launcher.js` を `pfpdf` として公開します。
 
 - 公開 tarball には package metadata / shrinkwrap、`dist/`、必要な resource、README、license 文書だけを含め、TypeScript source map にローカル絶対パスが残らないことを確認する
 - `package.json` の `files` allowlist と CI 上で展開した tarball の確認を使い、test fixture、`.env`、cache などを publish しない
-- npm package 名は公開前に Organization の所有下で確保し、確保できない場合は Organization の scoped package を使う。registry の `404` は名前の予約を意味しない
+- npm package 名は Organization scope の `@pfnet-research/pfpdf` とする。unscoped の `pfpdf` は既存 package `jspdf` との類似名判定により registry から拒否されるため使わない。公開時は `--access public` または同等の `publishConfig.access` を必須とする
 
 ## 6.3 ディレクトリ構成
 
@@ -98,7 +98,7 @@ pfpdf/
 
 - npm publish は GitHub Actions の trusted publishing を使い、長期 npm token を repository secret に保存しない
 - npm publish 前に package 名、version、tarball の file list、checksum、license file を確認する dry-run job と human approval environment を設ける
-- publish 前は同じ source revision から npm tarball、architecture ごとの Docker image、文書 PDF、checksum を staging し、空の一時 project へ packed tarball を install して `npm ls --json` の runtime tree が shrinkwrap と一致することを確認する。registry 経由の `npx pfpdf@<version>` は prerelease tag または publish 後 verification で確認する
+- publish 前は同じ source revision から npm tarball、architecture ごとの Docker image、文書 PDF、checksum を staging し、空の一時 project へ packed tarball を install して `npm ls --json` の runtime tree が shrinkwrap と一致することを確認する。registry 経由の `npx @pfnet-research/pfpdf@<version>` は prerelease tag または publish 後 verification で確認する
 - GitHub Release は最初 draft として作成し、4 PDF と checksum の upload を確認してから公開する。Docker は architecture ごとの immutable digest を先に検査し、その digest だけから version manifest を作る
 - npm、Docker、GitHub Release を atomic に公開することはできない。途中で失敗した場合は既に公開した immutable artifact を上書き・再利用せず、release を incomplete として記録し、修正版を新しい version で公開する
 - publish 後に npm と Docker の public endpoint から exact version と internal renderer protocol の一致を検証する。失敗した version は上書きせず、問題を修正した新しい version を公開する

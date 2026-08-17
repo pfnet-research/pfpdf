@@ -18,20 +18,20 @@ edit it or base work on it.
 With Node.js and npm installed, no installation step is needed:
 
 ```bash
-npx pfpdf@latest --input document.md --output document.pdf
+npx @pfnet-research/pfpdf@latest --input document.md --output document.pdf
 ```
 
 When you pass a directory, pfpdf combines the `*.md` files directly inside it
 into a single PDF, ordered by filename:
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf
 ```
 
 Pin the version in CI and long-lived documentation:
 
 ```bash
-npx --yes pfpdf@0.1.0 --input docs --output docs.pdf
+npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output docs.pdf
 ```
 
 > **First run:** pfpdf automatically downloads Chromium for PDF rendering. The
@@ -80,7 +80,7 @@ On Linux, Chromium requires additional system libraries. See the
 run:
 
 ```bash
-npx pfpdf@latest --doctor
+npx @pfnet-research/pfpdf@latest --doctor
 ```
 
 ## Trust model (important)

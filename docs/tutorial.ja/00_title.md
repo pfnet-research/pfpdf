@@ -11,7 +11,7 @@ dir: ltr
 このチュートリアルは、pfpdf で Markdown 文書から PDF を生成する方法を、導入から順番に説明します。各章の Markdown source 自体が pfpdf の入力例になっており、このディレクトリ全体を pfpdf に渡すと、いま読んでいる PDF が生成されます。
 
 ```bash
-npx pfpdf@latest --input docs/tutorial.ja --output tutorial.ja.pdf
+npx @pfnet-research/pfpdf@latest --input docs/tutorial.ja --output tutorial.ja.pdf
 ```
 
 ## 章構成

@@ -28,7 +28,7 @@ title: はじめての pfpdf
 変換します。
 
 ```bash
-npx pfpdf@latest --input hello.md --output hello.pdf
+npx @pfnet-research/pfpdf@latest --input hello.md --output hello.pdf
 ```
 
 `hello.pdf` が生成されれば成功です。表紙にタイトル、本文に見出しと段落が入っています。
@@ -38,7 +38,7 @@ npx pfpdf@latest --input hello.md --output hello.pdf
 CI や長期保存する手順書では `latest` を使わず、version を固定してください。
 
 ```bash
-npx --yes pfpdf@0.1.0 --input hello.md --output hello.pdf
+npx --yes @pfnet-research/pfpdf@0.1.0 --input hello.md --output hello.pdf
 ```
 
 ## 1.4 ディレクトリをまとめて変換する
@@ -53,7 +53,7 @@ docs/
 ```
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf
 ```
 
 並び順はファイル名の byte 列順です。`00_`、`01_` のような番号 prefix を付けることを推奨します。
@@ -63,7 +63,7 @@ npx pfpdf@latest --input docs --output docs.pdf
 環境の診断には `--doctor` を使います。
 
 ```bash
-npx pfpdf@latest --doctor
+npx @pfnet-research/pfpdf@latest --doctor
 ```
 
 Node.js、browser、フォントなどの状態を検査し、問題があれば対処方法とともに報告します。詳しくは 08 章を参照してください。

@@ -5,7 +5,7 @@
 問題が起きたら、最初に `--doctor` を実行してください。
 
 ```bash
-npx pfpdf@latest --doctor
+npx @pfnet-research/pfpdf@latest --doctor
 ```
 
 Node.js の version、browser の有無、Docker daemon、フォント、出力先の権限などを検査し、問題を対処方法とともに報告します。`--input` / `--output` を付けて実行すると、その文書のリソースと書き込み先まで検査します。stdout は versioned schema の JSON object 1 個なので、CI からも parse できます。通常 log は stderr に分離されます。

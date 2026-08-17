@@ -23,7 +23,7 @@ To make chapter boundaries clear, `book` starts a new page at every H1, even for
 Bundled templates never add strings you did not specify, such as publication names, document types, brand names, or table-of-contents titles. To display a series name across all templates, set `series` in the front matter. Its position and typeface vary by template, and when it is omitted the display area itself is removed.
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf --template pfn
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
 ```
 
 ## 6.2 Injecting a logo
@@ -31,7 +31,7 @@ npx pfpdf@latest --input docs --output docs.pdf --template pfn
 Templates do not include a logo image. If you want a logo on the cover and elsewhere, point `--logo` or the `PFPDF_LOGO` environment variable at a logo file you hold the rights to.
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf \
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --template pfn --logo assets/logo.png
 ```
 
@@ -42,7 +42,7 @@ npx pfpdf@latest --input docs --output docs.pdf \
 
 ```make
 docs.pdf: $(wildcard docs/*.md)
-	npx --yes pfpdf@0.1.0 --input docs --output $@ \
+	npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output $@ \
 	  --template pfn --logo assets/logo.png
 ```
 
@@ -58,7 +58,7 @@ my-template/
 ```
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf --template-dir my-template
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template-dir my-template
 ```
 
 - Custom templates are treated as trusted local code and can run raw HTML and scripts
@@ -102,10 +102,10 @@ To use fonts installed on the OS, opt in explicitly.
 
 ```bash
 # Search the OS standard font directories
-npx pfpdf@latest --input docs --output docs.pdf --host-fonts
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --host-fonts
 
 # Add only specific directories (also works without --host-fonts)
-npx pfpdf@latest --input docs --output docs.pdf --font-dir ~/my-fonts
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --font-dir ~/my-fonts
 ```
 
 - `--font-dir` can be specified multiple times

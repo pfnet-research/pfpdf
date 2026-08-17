@@ -66,7 +66,7 @@ export const ja: typeof en = {
     title: 'クイックスタート',
     steps: [
       { title: 'Markdown を書く', body: '普通の .md ファイルに、必要なら front matter でタイトル・著者・テンプレートを指定します。' },
-      { title: 'npx pfpdf を実行', body: 'インストール不要。ディレクトリを渡すと直下の Markdown を1つの PDF に結合します。' },
+      { title: 'npx @pfnet-research/pfpdf を実行', body: 'インストール不要。ディレクトリを渡すと直下の Markdown を1つの PDF に結合します。' },
       { title: '印刷品質の PDF が完成', body: '表紙・目次・ページ番号つきの組版済み PDF がそのまま得られます。' },
     ],
     directoryNote: 'ディレクトリの一括変換や、CI でのバージョン固定も可能です:',

@@ -5,7 +5,7 @@
 If something goes wrong, run `--doctor` first.
 
 ```bash
-npx pfpdf@latest --doctor
+npx @pfnet-research/pfpdf@latest --doctor
 ```
 
 The command checks the Node.js version, browser availability, Docker daemon, fonts, output permissions, and other environmental requirements, then reports problems with suggested remedies. When you provide `--input` and `--output`, it also checks the document's resources and output destination. Standard output contains a single JSON object with a versioned schema, making it suitable for CI; regular logs are written separately to standard error.

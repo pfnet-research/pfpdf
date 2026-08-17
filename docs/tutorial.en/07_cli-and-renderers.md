@@ -62,7 +62,7 @@ Most CLI arguments can also be set via environment variables. When both are pres
 - To see where each setting came from, use `--print-effective-config`, which outputs a JSON object with a versioned schema
 
 ```bash
-PFPDF_TEMPLATE=pfn npx pfpdf@latest --print-effective-config
+PFPDF_TEMPLATE=pfn npx @pfnet-research/pfpdf@latest --print-effective-config
 ```
 
 ## 7.3 Exit codes
@@ -85,7 +85,7 @@ The default `--renderer local` renders the PDF locally using the bundled Vivlios
 - To use an existing compatible browser, specify it with `--browser-path` or `PFPDF_BROWSER_PATH`
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf \
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --browser-path /usr/bin/chromium
 ```
 
@@ -94,9 +94,9 @@ npx pfpdf@latest --input docs --output docs.pdf \
 Use the Docker renderer to confine the browser runtime to a container, for example on servers or in CI.
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf --renderer docker
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --renderer docker
 # or
-PFPDF_RENDERER=docker npx pfpdf@latest --input docs --output docs.pdf
+PFPDF_RENDERER=docker npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf
 ```
 
 - The pfpdf image on the public registry is used. You can specify an image with `--docker-image`; at run time it is pinned to the image ID or digest obtained after pull / inspect
@@ -110,7 +110,7 @@ PFPDF_RENDERER=docker npx pfpdf@latest --input docs --output docs.pdf
 The default timeout of 300,000 ms (five minutes) covers the entire operation: Docker image or browser verification and initial download, document readiness, PDF rendering, post-processing, and structural inspection. If a large document or slow initial download needs more time, choose a value from 1,000 to 3,600,000 ms. Unlimited values such as `0` are not accepted.
 
 ```bash
-npx pfpdf@latest --input docs --output docs.pdf \
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --render-timeout-ms 600000
 ```
 
@@ -124,7 +124,7 @@ Even if a display `date` is set in the front matter, the PDF metadata timestamps
 
 ```bash
 SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) \
-  npx --yes pfpdf@0.1.0 --input docs --output docs.pdf
+  npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output docs.pdf
 ```
 
 ## 7.8 Debugging

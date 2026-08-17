@@ -16,7 +16,7 @@ const templates = listTemplates();
 // The hero pairs a real input file with the PDF it actually renders to.
 const hero = loadHero(locale);
 const heroMarkdown = loadHeroSource(locale);
-const installCommand = 'npx pfpdf@latest --input document.md --output document.pdf';
+const installCommand = 'npx @pfnet-research/pfpdf@latest --input document.md --output document.pdf';
 ---
 
 <Base locale={locale} path={root}>
@@ -111,7 +111,7 @@ const installCommand = 'npx pfpdf@latest --input document.md --output document.p
         ))}
       </ol>
       <p>{dict.quickStart.directoryNote}</p>
-      <pre><code>{'npx pfpdf@latest --input docs --output docs.pdf\nnpx --yes pfpdf@0.1.0 --input docs --output docs.pdf'}</code></pre>
+      <pre><code>{'npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf\nnpx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output docs.pdf'}</code></pre>
       <p class="note">{dict.quickStart.chromiumNote}</p>
     </div>
   </section>

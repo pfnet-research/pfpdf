@@ -5,19 +5,19 @@
 pfpdf is a command-line tool that converts Markdown documents to PDF through HTML. Its primary goal is to let anyone with Node.js and npm generate a PDF with a single command, without first cloning the repository:
 
 ```bash
-npx pfpdf@latest --input foo --output foo.pdf
+npx @pfnet-research/pfpdf@latest --input foo --output foo.pdf
 ```
 
 In CI and in long-lived runbooks, pin the version instead of using `latest`.
 
 ```bash
-npx --yes pfpdf@0.1.0 --input foo --output foo.pdf
+npx --yes @pfnet-research/pfpdf@0.1.0 --input foo --output foo.pdf
 ```
 
 ## 1.2 Goals for `v0.1.0`
 
 - Work without requiring Docker (the local renderer is the default)
-- Make `npx pfpdf` the only official installation path for the user-facing CLI
+- Make `npx @pfnet-research/pfpdf` the only official installation path for the user-facing CLI
 - Require no external Python installation
 - Support all official GitHub Flavored Markdown (GFM) syntax in principle, including the underlying CommonMark syntax
 - Reliably convert Japanese strong emphasis containing full-width punctuation and brackets, such as `これは**「重要」**です`, into `<strong>` even without surrounding whitespace

@@ -21,7 +21,7 @@ const samples = {
   ja: loadSample(template, 'ja'),
 };
 const defaultTab: Locale = locale;
-const command = `npx pfpdf@latest --input document.md --output document.pdf --template ${template}`;
+const command = `npx @pfnet-research/pfpdf@latest --input document.md --output document.pdf --template ${template}`;
 const title = `${template} — ${dict.gallery.title} — ${dict.siteName}`;
 const description = `${template}: ${dict.templateDescriptions[template]}`;
 ---

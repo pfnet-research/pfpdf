@@ -1,5 +1,5 @@
 {
-  "name": "pfpdf",
+  "name": "@pfnet-research/pfpdf",
   "version": "0.1.0",
   "description": "Convert GitHub Flavored Markdown documents into print-quality PDF via Vivliostyle",
   "license": "MIT",
@@ -9,6 +9,10 @@
   },
   "homepage": "https://github.com/pfnet-research/pfpdf#readme",
   "bugs": "https://github.com/pfnet-research/pfpdf/issues",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "type": "module",
   "bin": {
     "pfpdf": "dist/launcher.js"

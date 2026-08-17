@@ -64,7 +64,7 @@ export const en = {
     title: 'Quick start',
     steps: [
       { title: 'Write Markdown', body: 'A plain .md file with optional front matter for title, author, and template settings.' },
-      { title: 'Run npx pfpdf', body: 'No install needed. Pass a directory to combine its Markdown files into a single PDF.' },
+      { title: 'Run npx @pfnet-research/pfpdf', body: 'No install needed. Pass a directory to combine its Markdown files into a single PDF.' },
       { title: 'Get a print-quality PDF', body: 'Cover page, table of contents, page numbers, and typeset body — ready to print or share.' },
     ],
     directoryNote: 'Convert a directory of chapters at once, and pin the version in CI:',
