@@ -33,8 +33,9 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copy-resources.mjs",
-    "test": "npm run build && node --test \"dist/tests/*.test.js\"",
-    "lint": "tsc -p tsconfig.json --noEmit && oxlint src && node scripts/check-doc-policy.mjs && node scripts/check-package-policy.mjs",
+    "test": "npm run build && node --test \"dist/tests/*.test.js\" && npm run test:release",
+    "test:release": "node --test \"scripts/tests/*.test.mjs\"",
+    "lint": "tsc -p tsconfig.json --noEmit && oxlint src && node scripts/check-doc-policy.mjs && node scripts/check-package-policy.mjs && node scripts/check-workflows.mjs",
     "prepack": "npm run build",
     "test:e2e": "npm run build && node scripts/run-e2e.mjs"
   },
