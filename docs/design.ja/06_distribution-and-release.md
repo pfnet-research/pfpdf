@@ -104,10 +104,10 @@ pfpdf/
 
 ## 6.5 publish
 
-- Release Please は release PR の merge commit に `v<package version>` tag と draft GitHub Release を作る。tag の作成を契機に `.github/workflows/release.yml` が始まり、手動再開では既存 tag を明示する。tag、`package.json`、lockfile、CHANGELOG の version が一致しない場合は publish 前に失敗させる
+- Release Please は release PR の merge commit に `v<package version>` tag と draft GitHub Release を作る。tag の作成を契機に `.github/workflows/release.yml` が始まる。手動再開は `gh workflow run release.yml --ref v<package version>` で workflow 自体を既存 tag から開始し、branch から別 tag を input する方式は許可しない。tag、`package.json`、lockfile、CHANGELOG の version が一致しない場合は publish 前に失敗させる
 - tag の同じ source revision から npm tarball と4文書 PDFを一度だけ build し、GitHub Actions artifact に保存する。承認後に再 build せず、この tarball と PDF を publish まで昇格させる
-- packed tarball は file allowlist、package 名、version、shrinkwrap、checksum、license file を検査し、空の一時 project へ install する。同一 tarball を macOS aarch64、Linux x86_64、Windows x86_64、Linux aarch64 で `npm ls --all --json`、`pfpdf --version`、実 PDF smoke test に使う
-- GitHub Release は最初 draft として作成し、`build/docs/release/` の4 PDFと `SHA256SUMS` だけを upload する。template preview、npm tarball、内部 metadata は Release asset に含めない
+- packed tarball は file allowlist、package 名、version、shrinkwrap、checksum、license file を検査し、空の一時 project へ install する。生成された install lock の package path、version、resolved source、integrity が公開 shrinkwrap と一致することを確認し、同一 tarball を macOS aarch64、Linux x86_64、Windows x86_64、Linux aarch64 で `npm ls --all --json`、`pfpdf --version`、実 PDF smoke test に使う
+- GitHub Release は最初 draft として作成し、`build/docs/release/` の4 PDFと `SHA256SUMS` だけを upload する。upload 直後と公開直前に remote asset の exact set、upload state、size、SHA-256 digest を staging metadata と照合する。template preview、npm tarball、内部 metadata は Release asset に含めない
 - `release` GitHub Environment は required reviewer、self-review 禁止、release tag 制限を持つ。承認画面の job summary に source commit、tarball file count と SHA-256、toolchain version、4 PDF の checksum、全 matrix test の結果を表示する
 - npm publish は `.github/workflows/release.yml` と `release` Environment に限定した GitHub Actions trusted publishing を使い、長期 npm token を repository secret に保存しない。OIDC に必要な `id-token: write` は publish job だけへ付与し、stable は `latest`、prerelease は `next` tag で公開する
 - publish 後は public registry から exact version を新しい一時 project へ取得し、version と実 PDF smoke test を確認してから draft GitHub Release を公開する。公開確認、npm tarball SHA-256、Vivliostyle / Chromium / font version、4 PDF の checksum を release note に追記する

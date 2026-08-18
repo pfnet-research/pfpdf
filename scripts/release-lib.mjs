@@ -136,6 +136,43 @@ export function inspectNpmPack({ packJsonPath, expectedName, expectedVersion }) 
   return packed;
 }
 
+export function compareInstalledDependencyLock({ shrinkwrapPath, installedLockPath, packageName, packageVersion }) {
+  const expectedLock = readJson(shrinkwrapPath);
+  const installedLock = readJson(installedLockPath);
+  const expectedPackages = expectedLock.packages;
+  const installedPackages = installedLock.packages;
+  invariant(expectedPackages && typeof expectedPackages === 'object', 'npm shrinkwrap has no package map');
+  invariant(installedPackages && typeof installedPackages === 'object', 'installed package lock has no package map');
+
+  const expectedRoot = expectedPackages[''];
+  invariant(expectedRoot?.name === packageName, 'npm shrinkwrap root package name mismatch');
+  invariant(expectedRoot.version === packageVersion, 'npm shrinkwrap root package version mismatch');
+  const runtimeEntries = Object.entries(expectedPackages)
+    .filter(([name, value]) => name !== '' && (value.dev !== true || value.devOptional === true));
+  const allowedPaths = new Set(runtimeEntries.map(([name]) => name));
+  const installedPaths = Object.keys(installedPackages).sort();
+  for (const name of installedPaths) {
+    invariant(allowedPaths.has(name), `installed dependency is absent from npm shrinkwrap: ${name}`);
+  }
+  for (const [name, expected] of runtimeEntries) {
+    const installed = installedPackages[name];
+    if (!installed) {
+      invariant(
+        expected.optional === true || expected.devOptional === true,
+        `installed dependency lock is missing required package: ${name}`,
+      );
+      continue;
+    }
+    for (const field of ['version', 'resolved', 'integrity']) {
+      invariant(
+        installed[field] === expected[field],
+        `installed dependency ${name} has a different ${field} from npm shrinkwrap`,
+      );
+    }
+  }
+  return { package: packageName, version: expectedRoot.version, packageCount: installedPaths.length };
+}
+
 function releaseArtifactPaths(metadataPath, metadata) {
   const releaseDir = path.dirname(metadataPath);
   return {
@@ -283,25 +320,37 @@ export function testPackedPackage({ metadataPath }) {
   const metadata = verifyReleaseArtifacts({ metadataPath });
   const { tarball } = releaseArtifactPaths(metadataPath, metadata);
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-packed-'));
+  const isolated = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-packed-tree-'));
   try {
     fs.writeFileSync(path.join(temp, 'package.json'), '{"private":true}\n');
     runNpm([
       'install', '--no-audit', '--no-fund', '--no-package-lock', tarball,
     ], { cwd: temp });
-    runNpm(['ls', '--all', '--json'], { cwd: temp });
 
     const bin = path.join(temp, 'node_modules', '.bin', process.platform === 'win32' ? 'pfpdf.cmd' : 'pfpdf');
     invariant(fs.existsSync(bin), 'packed package did not install the pfpdf executable');
-    const launcher = path.join(temp, 'node_modules', ...metadata.npm.name.split('/'), 'dist', 'launcher.js');
+    const installedPackage = path.join(temp, 'node_modules', ...metadata.npm.name.split('/'));
+    const packageRoot = path.join(isolated, 'package');
+    fs.cpSync(installedPackage, packageRoot, { recursive: true });
+    runNpm(['ci', '--omit=dev', '--no-audit', '--no-fund'], { cwd: packageRoot });
+    runNpm(['ls', '--omit=dev', '--all', '--json'], { cwd: packageRoot });
+    compareInstalledDependencyLock({
+      shrinkwrapPath: path.join(packageRoot, 'npm-shrinkwrap.json'),
+      installedLockPath: path.join(packageRoot, 'node_modules', '.package-lock.json'),
+      packageName: metadata.npm.name,
+      packageVersion: metadata.npm.version,
+    });
+
+    const launcher = path.join(packageRoot, 'dist', 'launcher.js');
     invariant(fs.existsSync(launcher), 'packed package did not install dist/launcher.js');
-    const version = run(process.execPath, [launcher, '--version'], { cwd: temp });
+    const version = run(process.execPath, [launcher, '--version'], { cwd: packageRoot });
     invariant(version.stdout.trim() === metadata.npm.version, 'packed executable reports the wrong version');
 
     const input = path.join(temp, 'input.md');
     const output = path.join(temp, 'output.pdf');
     fs.writeFileSync(input, '---\ntitle: Packed package smoke test\n---\n\n# Test\n\nHello from pfpdf.\n');
     run(process.execPath, [launcher, '--input', input, '--output', output], {
-      cwd: temp,
+      cwd: packageRoot,
       env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' },
     });
     const pdf = fs.readFileSync(output);
@@ -309,6 +358,7 @@ export function testPackedPackage({ metadataPath }) {
     return { platform: process.platform, arch: process.arch, version: metadata.npm.version, pdfBytes: pdf.length };
   } finally {
     fs.rmSync(temp, { recursive: true, force: true });
+    fs.rmSync(isolated, { recursive: true, force: true });
   }
 }
 
@@ -403,6 +453,32 @@ function ghReleaseView(tag) {
   return JSON.parse(result.stdout);
 }
 
+export function validateGitHubReleaseAssets({ metadataPath, release }) {
+  const metadata = verifyReleaseArtifacts({ metadataPath });
+  invariant(Array.isArray(release?.assets), 'GitHub Release has no asset list');
+  const paths = releaseArtifactPaths(metadataPath, metadata);
+  const expected = [
+    ...metadata.pdfs.map((pdf) => ({ name: pdf.name, size: pdf.size, digest: `sha256:${pdf.sha256}` })),
+    {
+      name: 'SHA256SUMS',
+      size: fs.statSync(paths.checksums).size,
+      digest: `sha256:${sha256File(paths.checksums)}`,
+    },
+  ].sort((a, b) => a.name.localeCompare(b.name));
+  const actual = [...release.assets].sort((a, b) => a.name.localeCompare(b.name));
+  invariant(
+    JSON.stringify(actual.map((asset) => asset.name)) === JSON.stringify(expected.map((asset) => asset.name)),
+    'GitHub Release asset set is incomplete',
+  );
+  for (const [index, asset] of actual.entries()) {
+    const wanted = expected[index];
+    invariant(asset.state === 'uploaded', `GitHub Release asset is not uploaded: ${asset.name}`);
+    invariant(asset.size === wanted.size, `GitHub Release asset size mismatch: ${asset.name}`);
+    invariant(asset.digest === wanted.digest, `GitHub Release asset SHA-256 mismatch: ${asset.name}`);
+  }
+  return { tag: metadata.source.tag, assets: expected.map((asset) => asset.name) };
+}
+
 export function stageGitHubRelease({ metadataPath }) {
   const metadata = verifyReleaseArtifacts({ metadataPath });
   const release = ghReleaseView(metadata.source.tag);
@@ -418,9 +494,8 @@ export function stageGitHubRelease({ metadataPath }) {
     'release', 'upload', metadata.source.tag, ...paths.pdfs, paths.checksums, '--clobber',
   ]);
   const staged = ghReleaseView(metadata.source.tag);
-  const stagedNames = staged.assets.map((asset) => asset.name).sort();
-  invariant(JSON.stringify(stagedNames) === JSON.stringify(expectedNames), 'draft GitHub Release asset set is incomplete');
-  return { tag: metadata.source.tag, url: staged.url, assets: stagedNames };
+  const validated = validateGitHubReleaseAssets({ metadataPath, release: staged });
+  return { tag: metadata.source.tag, url: staged.url, assets: validated.assets };
 }
 
 function releaseVerificationNotes(metadata) {
@@ -441,6 +516,7 @@ export function finalizeGitHubRelease({ metadataPath }) {
   const metadata = verifyReleaseArtifacts({ metadataPath });
   const release = ghReleaseView(metadata.source.tag);
   invariant(release.isDraft === true, `GitHub Release ${metadata.source.tag} is already published`);
+  validateGitHubReleaseAssets({ metadataPath, release });
   const body = typeof release.body === 'string' ? release.body : '';
   const baseBody = body.includes(VERIFICATION_MARKER)
     ? body.slice(0, body.indexOf(VERIFICATION_MARKER)).trimEnd()

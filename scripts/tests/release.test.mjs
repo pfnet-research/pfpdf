@@ -5,10 +5,13 @@ import path from 'node:path';
 import test from 'node:test';
 import {
   RELEASE_PDF_NAMES,
+  compareInstalledDependencyLock,
   createReleaseArtifacts,
   inspectNpmPack,
   parseVersion,
+  sha256File,
   validateReleaseSource,
+  validateGitHubReleaseAssets,
   verifyReleaseArtifacts,
 } from '../release-lib.mjs';
 
@@ -98,6 +101,45 @@ test('npm pack inspection enforces the publication allowlist', (t) => {
   }), /forbidden path/);
 });
 
+test('installed dependency lock must exactly match the published shrinkwrap', (t) => {
+  const root = fixture();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const shrinkwrapPath = path.join(root, 'npm-shrinkwrap.json');
+  const shrinkwrap = JSON.parse(fs.readFileSync(shrinkwrapPath, 'utf8'));
+  shrinkwrap.packages['node_modules/example-runtime'] = {
+    version: '4.5.6',
+    resolved: 'https://registry.npmjs.org/example-runtime/-/example-runtime-4.5.6.tgz',
+    integrity: 'sha512-runtime',
+  };
+  fs.writeFileSync(shrinkwrapPath, `${JSON.stringify(shrinkwrap, null, 2)}\n`);
+  const installedLockPath = path.join(root, 'installed-package-lock.json');
+  const installed = {
+    lockfileVersion: 3,
+    packages: {
+      'node_modules/example-runtime': {
+        version: '4.5.6',
+        resolved: 'https://registry.npmjs.org/example-runtime/-/example-runtime-4.5.6.tgz',
+        integrity: 'sha512-runtime',
+      },
+    },
+  };
+  fs.writeFileSync(installedLockPath, `${JSON.stringify(installed, null, 2)}\n`);
+  assert.equal(compareInstalledDependencyLock({
+    shrinkwrapPath,
+    installedLockPath,
+    packageName: '@example/pfpdf',
+    packageVersion: '1.2.3',
+  }).packageCount, 1);
+  installed.packages['node_modules/example-runtime'].version = '4.5.7';
+  fs.writeFileSync(installedLockPath, `${JSON.stringify(installed, null, 2)}\n`);
+  assert.throws(() => compareInstalledDependencyLock({
+    shrinkwrapPath,
+    installedLockPath,
+    packageName: '@example/pfpdf',
+    packageVersion: '1.2.3',
+  }), /different version/);
+});
+
 test('release artifact metadata covers the exact PDF set and detects changes', (t) => {
   const root = fixture();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -119,6 +161,28 @@ test('release artifact metadata covers the exact PDF set and detects changes', (
   });
   assert.deepEqual(metadata.pdfs.map((pdf) => pdf.name), RELEASE_PDF_NAMES);
   verifyReleaseArtifacts({ metadataPath });
+  const release = {
+    assets: [
+      ...metadata.pdfs.map((pdf) => ({
+        name: pdf.name,
+        size: pdf.size,
+        state: 'uploaded',
+        digest: `sha256:${pdf.sha256}`,
+      })),
+      {
+        name: 'SHA256SUMS',
+        size: fs.statSync(checksumsPath).size,
+        state: 'uploaded',
+        digest: `sha256:${sha256File(checksumsPath)}`,
+      },
+    ],
+  };
+  validateGitHubReleaseAssets({ metadataPath, release });
+  release.assets[0].digest = `sha256:${'0'.repeat(64)}`;
+  assert.throws(
+    () => validateGitHubReleaseAssets({ metadataPath, release }),
+    /SHA-256 mismatch/,
+  );
   fs.appendFileSync(path.join(pdfDir, RELEASE_PDF_NAMES[0]), 'changed');
   assert.throws(() => verifyReleaseArtifacts({ metadataPath }), /SHA-256 mismatch/);
 });

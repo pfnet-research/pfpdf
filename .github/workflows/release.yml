@@ -5,21 +5,16 @@ on:
     tags:
       - 'v*.*.*'
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Existing release tag to resume
-        required: true
-        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ inputs.tag || github.ref_name }}
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 env:
-  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+  RELEASE_TAG: ${{ github.ref_name }}
 
 jobs:
   build:
@@ -33,7 +28,7 @@ jobs:
       - name: Check out the release tag
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ github.ref }}
           fetch-depth: 0
       - name: Set up the oldest supported Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -44,6 +39,7 @@ jobs:
         id: source
         shell: bash
         run: |
+          test "$GITHUB_REF_TYPE" = tag
           node scripts/release.mjs validate-source --tag "$RELEASE_TAG"
           source_sha="$(git rev-parse HEAD)"
           tag_sha="$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
