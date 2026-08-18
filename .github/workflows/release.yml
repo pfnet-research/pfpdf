@@ -1,0 +1,280 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to resume
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      tag: ${{ steps.source.outputs.tag }}
+      version: ${{ steps.source.outputs.version }}
+      source-sha: ${{ steps.source.outputs.source-sha }}
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+      - name: Set up the oldest supported Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - name: Validate tag and source metadata
+        id: source
+        shell: bash
+        run: |
+          node scripts/release.mjs validate-source --tag "$RELEASE_TAG"
+          source_sha="$(git rev-parse HEAD)"
+          tag_sha="$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
+          test "$source_sha" = "$tag_sha"
+          git merge-base --is-ancestor "$source_sha" origin/main
+          node scripts/release.mjs validate-source --tag "$RELEASE_TAG" --sha "$source_sha"
+          version="$(node -p "JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).version")"
+          source_date_epoch="$(git show -s --format=%ct HEAD)"
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "source-sha=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "SOURCE_DATE_EPOCH=$source_date_epoch" >> "$GITHUB_ENV"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - name: Select system Chrome
+        id: browser
+        shell: bash
+        run: |
+          browser_path="$(command -v google-chrome)"
+          test -n "$browser_path"
+          browser_version="$("$browser_path" --version)"
+          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+          echo "version=$browser_version" >> "$GITHUB_OUTPUT"
+      - name: Build the four release PDFs
+        run: make docs-release
+      - name: Pack the npm artifact once
+        shell: bash
+        run: |
+          mkdir -p build/release/pdfs
+          npm pack --json --pack-destination build/release > build/release/npm-pack.json
+          cp build/docs/release/*.pdf build/release/pdfs/
+      - name: Validate and describe release artifacts
+        run: >-
+          node scripts/release.mjs create-artifacts
+          --tag "$RELEASE_TAG"
+          --sha "${{ steps.source.outputs.source-sha }}"
+          --pack-json build/release/npm-pack.json
+          --pdf-dir build/release/pdfs
+          --browser-version "${{ steps.browser.outputs.version }}"
+          --output build/release/release-metadata.json
+          --checksums build/release/SHA256SUMS
+      - name: Add candidate details to the run summary
+        run: >-
+          node scripts/release.mjs summary
+          --metadata build/release/release-metadata.json
+          --output "$GITHUB_STEP_SUMMARY"
+      - name: Preserve the immutable candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-${{ steps.source.outputs.version }}
+          path: build/release/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  test-packed-package:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, macos-latest, windows-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - name: Check out release test code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.build.outputs.tag }}
+      - name: Set up the oldest supported Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - name: Download the exact release candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-${{ needs.build.outputs.version }}
+          path: build/release
+      - name: Select Chrome on Linux x64
+        if: matrix.runner == 'ubuntu-latest'
+        shell: bash
+        run: |
+          browser_path="$(command -v google-chrome)"
+          test -n "$browser_path"
+          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+      - name: Install Chromium on Linux Arm64
+        if: matrix.runner == 'ubuntu-24.04-arm'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+          browser_path="$(command -v chromium-browser || command -v chromium)"
+          test -n "$browser_path"
+          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+      - name: Select Chrome on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          browser_path='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+          test -x "$browser_path"
+          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+      - name: Select Chrome on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $browserPath = Join-Path $env:PROGRAMFILES 'Google\Chrome\Application\chrome.exe'
+          if (-not (Test-Path $browserPath)) { throw 'Google Chrome is not installed' }
+          "PFPDF_BROWSER_PATH=$browserPath" >> $env:GITHUB_ENV
+      - name: Install and smoke-test the packed package
+        run: node scripts/release.mjs test-packed --metadata build/release/release-metadata.json
+
+  stage-github-release:
+    needs: [build, test-packed-package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      url: ${{ steps.stage.outputs.url }}
+    steps:
+      - name: Check out release automation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.build.outputs.tag }}
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - name: Download the tested release candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-${{ needs.build.outputs.version }}
+          path: build/release
+      - name: Upload the four PDFs and checksums to the draft release
+        id: stage
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          result="$(node scripts/release.mjs stage-github --metadata build/release/release-metadata.json)"
+          echo "$result"
+          echo "url=$(printf '%s' "$result" | jq -r .url)" >> "$GITHUB_OUTPUT"
+      - name: Add candidate details to the run summary
+        run: >-
+          node scripts/release.mjs summary
+          --metadata build/release/release-metadata.json
+          --output "$GITHUB_STEP_SUMMARY"
+
+  publish-npm:
+    needs: [build, stage-github-release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: release
+      url: ${{ needs.stage-github-release.outputs.url }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out release automation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.build.outputs.tag }}
+      - name: Set up npm trusted publishing
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Download the approved candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-${{ needs.build.outputs.version }}
+          path: build/release
+      - name: Check whether this exact tarball is already public
+        id: registry
+        shell: bash
+        run: |
+          status="$(node scripts/release.mjs registry-status --metadata build/release/release-metadata.json)"
+          echo "$status"
+          echo "published=$(printf '%s' "$status" | jq -r .published)" >> "$GITHUB_OUTPUT"
+      - name: Publish the approved tarball through npm OIDC
+        if: steps.registry.outputs.published != 'true'
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          tarball="$(node -p "require('./build/release/release-metadata.json').npm.filename")"
+          if [[ "$RELEASE_VERSION" == *-* ]]; then
+            npm publish "build/release/$tarball" --access public --tag next
+          else
+            npm publish "build/release/$tarball" --access public
+          fi
+      - name: Select system Chrome
+        shell: bash
+        run: |
+          browser_path="$(command -v google-chrome)"
+          test -n "$browser_path"
+          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+      - name: Verify installation from the public registry
+        run: node scripts/release.mjs verify-published --metadata build/release/release-metadata.json
+      - name: Record the approved candidate
+        run: >-
+          node scripts/release.mjs summary
+          --metadata build/release/release-metadata.json
+          --output "$GITHUB_STEP_SUMMARY"
+
+  finalize-github-release:
+    needs: [build, publish-npm]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release automation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.build.outputs.tag }}
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - name: Download the verified candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-${{ needs.build.outputs.version }}
+          path: build/release
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release.mjs finalize-github --metadata build/release/release-metadata.json

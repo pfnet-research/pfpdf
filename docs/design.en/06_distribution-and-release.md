@@ -24,6 +24,7 @@ The npm package `@pfnet-research/pfpdf` publishes the compiled `dist/launcher.js
 pfpdf/
   .github/workflows/
     ci.yml
+    release-please.yml
     release.yml
   src/
     asset-server.ts
@@ -61,8 +62,13 @@ pfpdf/
   scripts/
     check-doc-policy.mjs
     check-doc-translations.mjs
+    check-workflows.mjs
+    release-lib.mjs
+    release.mjs
   tests/
   Makefile
+  release-please-config.json
+  .release-please-manifest.json
   package.json
   package-lock.json
   tsconfig.json
@@ -87,22 +93,33 @@ The Make targets generate `docs/*.pdf` files as build artifacts. They are listed
 - Diffs to `package-lock.json` are treated as a review target
 - Publishing is forbidden if the dependencies or integrity of the `npm-shrinkwrap.json` generated in staging do not match the reviewed `package-lock.json`. The generated artifact is never hand-edited in place of the source lockfile
 - Dependabot or Renovate only opens update pull requests; nothing is auto-merged
-- Every pull request runs TypeScript tests, lint, packed npm package tests, and a minimal PDF smoke test in the four environments
-- Every pull request runs `make docs-release docs-templates` to confirm that the public Japanese and English canonical and translated documents, as well as previews using all bundled templates, can be built
+- Every pull request runs TypeScript tests, lint, and a minimal PDF smoke test in the four environments. For a release tag, the release workflow installs the identical npm tarball packed once by the workflow and runs a real PDF smoke test in all four environments
+- Every pull request runs `make docs-release docs-template-samples` to confirm that the public Japanese and English canonical and translated documents, as well as the shared preview in every bundled template, can be built. Use `make docs-template-images` for detailed visual review of every template
 - `scripts/check-doc-translations.mjs` checks the Japanese/English file correspondence and change synchronization, and semantic agreement of translations is a mandatory checklist item in pull request review
 - `scripts/check-doc-policy.mjs` checks that no `AGENTS.md` contains Japanese characters
 - The Vivliostyle CLI is never fetched unconditionally from npm's latest at run time; a single verified version is pinned via the exact direct dependency spec, the source lockfile, and the published shrinkwrap. Updates are never auto-merged and land only after sample PDF smoke tests on each supported OS
 - CI test commands do not fetch conformance fixtures or scripts from the network; they use only inputs pinned in the lockfile and the repository. Jobs that require dependency downloads are separated from offline behavior checks
+- Release Please treats Conventional Commits as release units and updates a release PR containing the version, `CHANGELOG.md`, `package-lock.json`, and `npm-shrinkwrap.json`. Version choices and release notes, including breaking changes in `0.x`, receive human review before merge
+- A short-lived installation token from a dedicated release GitHub App lets the normal workflows run for PRs and tags created by Release Please. The App has only the necessary write permissions for Contents, Pull requests, and Issues in this repository; no personal access token is used
 
 ## 6.5 Publishing
 
-- npm publishing uses GitHub Actions trusted publishing; repository secrets contain no long-lived npm token
-- Before npm publish, a dry-run job plus a human-approval environment verify the package name, version, tarball file list, checksums, and license files
-- Before publishing, stage the npm tarball, per-architecture Docker images, document PDFs, and checksums from the same source revision, install the packed tarball into an empty temporary project, and confirm that the `npm ls --json` runtime tree matches the shrinkwrap. `npx @pfnet-research/pfpdf@<version>` via the registry is verified with a prerelease tag or during post-publish verification
-- GitHub Releases are created as drafts first and published only after the upload of the four PDFs and their checksums has been confirmed. For Docker, inspect the immutable per-architecture digests first, and build the version manifest only from those digests
-- npm, Docker, and GitHub Releases cannot be published atomically. If a failure occurs midway, do not overwrite or reuse already-published immutable artifacts; record the release as incomplete and ship a corrected version as a new version
-- After publishing, verify from the public npm and Docker endpoints that the exact version and the internal renderer protocol match. A failed version is never overwritten; the fix is published as a new version
+- When the release PR is merged, Release Please creates a `v<package version>` tag at the merge commit and a draft GitHub Release. The tag starts `.github/workflows/release.yml`; a manual resume names an existing tag explicitly. Publishing fails early unless the tag, `package.json`, lockfile, and CHANGELOG versions agree
+- Build the npm tarball and four documentation PDFs exactly once from the same tagged source revision, then preserve them as a GitHub Actions artifact. Approval promotes these exact files; it never rebuilds them
+- Inspect the packed tarball's file allowlist, package name, version, shrinkwrap, checksums, and license files, then install it into an empty temporary project. The same tarball runs `npm ls --all --json`, `pfpdf --version`, and a real PDF smoke test on macOS aarch64, Linux x86_64, Windows x86_64, and Linux aarch64
+- Create the GitHub Release as a draft and upload only the four PDFs from `build/docs/release/` plus `SHA256SUMS`. Template previews, the npm tarball, and internal metadata are not Release assets
+- The `release` GitHub Environment has required reviewers, prevents self-review, and restricts release tags. Its approval job summary shows the source commit, tarball file count and SHA-256, toolchain versions, checksums of the four PDFs, and all matrix-test results
+- npm publishing uses GitHub Actions trusted publishing restricted to `.github/workflows/release.yml` and the `release` Environment; repository secrets contain no long-lived npm token. Only the publish job receives `id-token: write`. Stable versions publish under `latest`, and prereleases under `next`
+- After publishing, install the exact version from the public registry into a new temporary project and verify its version and a real PDF smoke test before publishing the draft GitHub Release. Append the public verification, npm tarball SHA-256, Vivliostyle / Chromium / font versions, and four PDF checksums to the release notes
+- npm and GitHub Releases cannot be published atomically. A mid-release failure leaves the GitHub Release as a draft. On a rerun, an npm version whose SHA-1 and integrity match the staged tarball is treated as already published and resumes at verification; a mismatch stops the workflow. Never overwrite or reuse a published artifact; a fix gets a new version
+- Docker image build and publication are outside the release workflow. While Docker renderer code remains in the source tree, an npm release does not depend on Docker registry state and GitHub Release assets contain no Docker artifact
 - Because security fixes for shrinkwrapped transitive dependencies also do not automatically reach the install results of existing releases, they are distributed as a new patch release with an updated lockfile that has passed all smoke tests
+
+The following one-time settings live outside the repository:
+
+- Put the dedicated release GitHub App ID in the `RELEASE_APP_ID` repository variable and its private key in the `RELEASE_APP_PRIVATE_KEY` Actions secret
+- Bind the npm package trusted publisher to this repository, the `release.yml` workflow file, and the `release` Environment, and permit public publishing
+- Configure required reviewers and a deployment tag rule on the `release` GitHub Environment, and use a ruleset to forbid release-tag updates and deletion
 
 ## 6.6 Document builds and release
 
@@ -125,12 +142,11 @@ make docs-template-images  # rasterize every page to PNG for visual review
 - Each target uses the current pfpdf built inside the checkout, and does not depend on `latest` in the registry or on a previous release
 - `SOURCE_DATE_EPOCH` is accepted, and release builds fix it to the tag's source date to improve reproducibility
 - The release workflow regenerates the four PDFs with `docs-release` from the tag's source and uploads only `build/docs/release/*.pdf`, together with checksums, to the draft GitHub Release. Template preview PDFs and PNGs are not included in release assets. A release missing any of the four PDFs does not proceed to the published state
-- Docker images are published to a public registry for `linux/amd64` and `linux/arm64` with the same version tag as the release tag, and the multi-architecture manifest is created only after real browser tests on both architectures. The digests are recorded in the release notes
 
 ## 6.7 Versioning and license documents
 
 - The CHANGELOG follows Semantic Versioning, and breaking changes in `0.x` are also explicitly noted
-- Record the release tag, Vivliostyle, Chromium, fonts, checksums of the four PDFs, post-publish verification, and the procedure for security-fix releases
+- Record the release tag, source commit, npm tarball checksum, Vivliostyle, Chromium, fonts, checksums of the four PDFs, post-publish verification, and the procedure for security-fix releases
 - Code newly written for pfpdf is under the MIT License. However, do not represent the npm package or Docker image as a whole as consisting solely of MIT-licensed components
 - The Vivliostyle CLI is a direct runtime dependency under AGPL-3.0. Organize the obligations per distribution channel (bundling into npm, Docker images, network services), and record the exact source version, upstream URL, license text, and whether any modifications were made
 - MathJax, highlight.js, fonts, Chromium, Node.js, the GFM parser, the CJK-friendly extension, and the PDF parser/rewriter are likewise listed in `THIRD_PARTY_LICENSES.md` with their versions, licenses, and sources

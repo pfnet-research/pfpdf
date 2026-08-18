@@ -87,4 +87,4 @@ for (const spec of fontSpecs) {
   }
 }
 
-console.log('resources copied');
+console.error('resources copied');

@@ -1,0 +1,15 @@
+{
+  "bootstrap-sha": "47d1a707b4d0c6fe99f41a99cd6cc0bdd20f7217",
+  "bump-minor-pre-major": true,
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "@pfnet-research/pfpdf",
+      "changelog-path": "CHANGELOG.md",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
+      "draft": true,
+      "force-tag-creation": true
+    }
+  }
+}

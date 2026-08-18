@@ -35,3 +35,15 @@ npm run lint
   `make docs-template-images` uses Poppler tools to validate the page count and
   contents, then renders every page as a sequentially named PNG for visual
   review.
+
+## Release notes
+
+- Use a Conventional Commit title for the squash commit of a user-visible pull
+  request. `feat:` proposes a minor release, `fix:` proposes a patch release,
+  and `!` marks a breaking change. The release pull request remains the place
+  where maintainers make the final version decision.
+- Release Please maintains `CHANGELOG.md`, the package version, and both lock
+  files in one release pull request. Do not publish from a development checkout
+  or create a release tag manually.
+- The detailed build, approval, retry, and publication contract is in
+  `docs/design.en/06_distribution-and-release.md`.

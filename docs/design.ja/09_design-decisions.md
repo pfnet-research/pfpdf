@@ -423,6 +423,18 @@
 - 選択肢: (a) npm へ unscoped 名の例外を申請する、(b) 別の unscoped 名へ変更する、(c) Organization scoped package `@pfnet-research/pfpdf` とする、(d) 個人 scope `@imostella/pfpdf` とする
 - 採用: (c)。Organization scope は registry 全体の類似名制約と衝突せず、GitHub repository の所有主体とも一致する。`package.json` の `bin` key は `pfpdf` のままなので、global install 後の executable 名は変えず、直接実行は `npx @pfnet-research/pfpdf@<version>` とする。`publishConfig` で public npm registry と public access を固定する
 - 非採用理由: (a) は例外が認められる保証がなく release を registry の個別判断へ依存させる。(b) は利用者向け package 名をいずれにせよ変更し、Organization の正規配布物であることも名前から示せない。(d) は最終所有者と異なり、scoped package は後から別 scope へ移せない
-- risk: `npx` の package spec が長くなり、既存の `npx pfpdf` 表記はすべて更新が必要になる。npm package と GHCR image は別 namespace なので、Docker image は `ghcr.io/pfnet-research/pfpdf` のまま維持する
+- risk: `npx` の package spec が長くなり、既存の `npx pfpdf` 表記はすべて更新が必要になる
 - 検証: `npm pack --dry-run` で package 名、public access、tarball 内容を確認し、空の一時 project へ tarball を install して `pfpdf` executable を実行する。publish 後は `npx @pfnet-research/pfpdf@<version> --version` を registry 経由で確認する
 - 再検討条件: 初回 publish 前に Organization または registry の命名方針が変わった場合。初回 publish 後は別 package への移行が利用者向け破壊的変更になるため、通常の名称変更としては再検討しない
+
+## DD-38: release PR と承認付き build-once publish を分離する
+
+- status: Accepted(2026-08)
+- 問題: version / CHANGELOG の判断、npm tarball と4文書 PDFの検証、npm と GitHub Release の公開を自動化しつつ、`main` merge ごとの無条件 publish、承認後の再 build、長期 npm token を避ける必要がある。Release Please が既定 `GITHUB_TOKEN` で作った PR / tag は再帰防止により通常の workflow event を発生させない
+- 選択肢: (a) `main` の merge ごとに semantic-release で即 publish、(b) maintainer が version、tag、CHANGELOG、publish command を手作業で管理、(c) Release Please の release PR と tag-backed draft Release、tag source からの build-once staging、GitHub Environment 承認、npm trusted publishing、公開後検証を分離する
+- 採用: (c)。Conventional Commit から Release Please が release PR を維持し、version と note は PR review で確定する。権限を repository に限定した release GitHub App の短命 installation token で PR / tag を作り、tag workflow は npm tarball と4 PDFを一度だけ生成する。同じ tarball を4環境で検査し、draft ReleaseへPDFを揃え、`release` Environment 承認後にOIDCでnpmへ公開する。public registryからexact versionを検証して初めてGitHub Releaseを公開する
+- 非採用理由: (a) は release timing と `0.x` のversion判断をcommit prefixだけに委ね、公開前の成果物reviewを持てない。(b) はlockfile、tag、artifactの対応を人手に依存し、同じsourceから同じartifactを配布した証跡が弱い。既定 `GITHUB_TOKEN` をRelease Pleaseに使う案は生成PRのrequired CIとtag workflowを起動できないため採用しない
+- scope: Docker imageはrelease artifactに含めない。Docker rendererの将来削除と独立に、公式利用者向け配布をnpm、付属文書をGitHub Releaseへ限定する
+- risk: GitHub App、Environment、npm trusted publisherのrepository外設定が必要である。App permissionをContents / Pull requests / Issuesの必要範囲へ絞り、actionをcommit SHA固定し、workflow lintと運用checklistで設定driftを検出する。npm公開後にGitHub Release公開が失敗する非atomic区間は残るため、draftを維持し、同一tarballのregistry integrityを確認してfinalizeだけ再開できるようにする
+- 検証: release helperのunit test、tag / lock / CHANGELOGの整合検査、npm pack allowlist、4環境のpacked-package install / `npm ls` / 実PDF smoke test、4 PDFのexact setとchecksum、draft asset検査、public registryからのexact-version smoke test
+- 再検討条件: packageが複数になる場合、npm staged publishingを採用してnpm側の2FA承認もrelease gateへ含める場合、またはGitHub / npmが複数artifactのtransactional promotionを提供する場合
