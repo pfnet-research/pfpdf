@@ -55,7 +55,7 @@
 - 非採用理由: (a) は raw HTML が任意の local file を参照できるという前提と矛盾し、安全性の錯覚を与える
 - risk: `AssetServer` を多用途に流用される可能性。design と `SECURITY.md` で boundary ではないことを明示する
 - 検証: 静的配信、CORS、port close の integration test
-- 置換理由: Docker でも同じ HTML を使い、`..` / absolute path / nested CSS を正しく mount するには静的 resource の対応表が必要だった。また wildcard CORS の単純 server は、別の local web page からの偶発的な file 読取り範囲を不必要に広げる。sandbox を提供しなくても exact-file map と random token には correctness と defense-in-depth の価値がある
+- 置換理由: `..` / absolute path / nested CSS を正しく解決するには静的 resource の対応表が必要だった。また wildcard CORS の単純 server は、別の local web page からの偶発的な file 読取り範囲を不必要に広げる。sandbox を提供しなくても exact-file map と random token には correctness と defense-in-depth の価値がある
 
 ## DD-05: browser 管理は Vivliostyle CLI へ委譲する
 
@@ -68,16 +68,16 @@
 - 検証: browser なし初回実行と明示 browser path の integration test
 - 再検討条件: upstream の browser 管理が pfpdf の要件を満たさなくなった場合
 
-## DD-06: renderer は local 既定、Docker は明示 opt-in
+## DD-06: renderer は単一の描画経路にする
 
 - status: Accepted(2026-08)
-- 問題: local renderer と Docker renderer の関係
-- 選択肢: (a) Docker を既定にする、(b) local を既定にし Docker へ暗黙 fallback する、(c) local を既定にし Docker は明示切替のみ
-- 採用: (c)。Docker を必須にしないことが目標であり、暗黙 fallback は失敗箇所の診断を困難にする
-- 非採用理由: (a) は Docker の導入を全利用者へ強制する。(b) はどちらの実装が失敗したか分からなくなり、Docker 未導入環境で二重のエラーを生む
-- risk: 環境差で local renderer が失敗する利用者は明示的な切替が必要。`--doctor` で診断を支援する
-- 検証: renderer 選択と fallback 禁止の unit / integration test
-- 再検討条件: なし(trust model と診断性の要件が変わらない限り維持)
+- 問題: 複数の renderer backend と利用者向け選択設定は、実行経路、診断、cleanup、test matrix を増やし、同じ入力に対する挙動差を生み得る
+- 選択肢: (a) 複数 backend と明示的な切替を維持する、(b) 単一の Vivliostyle 描画経路に限定する
+- 採用: (b)。`AssetServer` と Vivliostyle CLI の child process に描画経路を限定し、設定・診断・失敗分類を一意にする
+- 非採用理由: (a) は利用されない backend にも配布、互換性、timeout、cleanup の保守を要求し、品質保証を分散させる
+- risk: 特定環境で browser を起動できない場合に別 backend へ切り替えられない。`--doctor`、明示 browser path、対応環境の検証で診断と移行を支援する
+- 検証: 公開 CLI に renderer 選択がなく、integration test が実際の単一経路を通ることを確認する
+- 再検討条件: 別の描画 engine が独立した利用価値と保守可能な互換性 contract を持つ場合
 
 ## DD-07: 設定は CLI 引数と環境変数のみ、CLI が常に優先
 
@@ -126,12 +126,12 @@
 ## DD-11: 静的 resource graph と token 付き exact-file server を使う
 
 - status: Superseded by DD-18(2026-08)
-- 問題: local / Docker renderer へ同じ `document.html` を渡しつつ、Markdown、raw HTML、nested CSS から参照される local asset を正しい基準 path で解決する必要がある
-- 選択肢: (a) input directory 全体や filesystem root を mount / 配信する、(b) asset をすべて data URL として HTML に埋め込む、(c) 静的参照を parser 上で graph 化し logical URL へ書き換える
-- 採用: (c)。renderer 固有 path を HTML から除去でき、Docker mount を必要な resource に限定でき、CSS import cycle も明示的に扱える。server は random path token と exact-file map を使い、local では host、Docker では container 内で browser と同じ loopback network に起動する
-- 非採用理由: (a) は absolute path を扱うために過度に広い mount / 配信を招き、path collision と platform 差も残る。(b) は大きな font / image の memory 使用を増やし、単一 HTML 出力を非目標とする方針にも反する
-- risk: HTML / CSS の静的 URL 抽出が新しい複雑さになる。script が動的に生成する local path は対象にできず、local / Docker のどちらでも保証しない。asset 内容の build 中 snapshot も行わない。専用 parser、visited set、manifest fixture で緩和する
-- 検証: nested `@import`、`url()`、`srcset`、absolute / `..` / symlink、循環、local / Docker の同一 logical URL、token / traversal / range の integration test。Docker が host network や公開 port に依存せず、container 内 server から同じ HTML byte 列を配信することも検査する
+- 問題: Markdown、raw HTML、nested CSS から参照される local asset を正しい基準 path で解決しつつ、renderer へ同じ `document.html` を渡す必要がある
+- 選択肢: (a) input directory 全体や filesystem root を配信する、(b) asset をすべて data URL として HTML に埋め込む、(c) 静的参照を parser 上で graph 化し logical URL へ書き換える
+- 採用: (c)。renderer 固有 path を HTML から除去でき、配信を必要な resource に限定でき、CSS import cycle も明示的に扱える。server は random path token と exact-file map を使い、browser と同じ host の loopback interface に起動する
+- 非採用理由: (a) は absolute path を扱うために過度に広い配信を招き、path collision と platform 差も残る。(b) は大きな font / image の memory 使用を増やし、単一 HTML 出力を非目標とする方針にも反する
+- risk: HTML / CSS の静的 URL 抽出が新しい複雑さになる。script が動的に生成する local path は対象にできず、renderer での解決を保証しない。asset 内容の build 中 snapshot も行わない。専用 parser、visited set、manifest fixture で緩和する
+- 検証: nested `@import`、`url()`、`srcset`、absolute / `..` / symlink、循環、logical URL、token / traversal / range の integration test。同じ HTML byte 列を server から配信することも検査する
 - 再検討条件: upstream renderer が renderer-neutral な resource protocol を提供し、独自 graph を安全に削除できる場合
 
 ## DD-12: 複数 Markdown は file ごとに独立 parse して AST を結合する
@@ -164,7 +164,7 @@
 - 採用: (b)。CI の永久停止を防ぎ、header / EOF だけを持つ壊れた PDF を除外し、失敗時に既存出力を維持できる。deadline は既定 300 秒、1 秒から 1 時間の範囲で変更できる。pagination 前 hook が上流にない場合は load gate と loopback 完了 signal を使い、その方法を pinned renderer で実証できることを release 条件とする
 - 非採用理由: (a) は trusted input でも無限 loop、browser bug、切断 write に弱く、fail-fast の契約を満たさない
 - risk: 非常に大きい正当な文書では PDF parse の time / memory も増え、既定 timeout を超える。明示 override と phase / elapsed time の診断を提供する。構造 parse でも text / visual の意味までは保証できないため CI で独立した `pdfinfo` / `pdftotext` / `pdffonts` を併用する
-- 検証: readiness gate 前の pagination 禁止、readiness hang、child / container hang、source / copy byte 数不一致、copy 後の truncated trailer、flush / rename failure、中断、既存出力保持の fault-injection test
+- 検証: readiness gate 前の pagination 禁止、readiness hang、child hang、source / copy byte 数不一致、copy 後の truncated trailer、flush / rename failure、中断、既存出力保持の fault-injection test
 - 再検討条件: 実測により既定値が不適切と判明した場合。無期限待機へ戻す理由にはしない
 
 ## DD-15: front matter は制限した YAML 1.2 mapping とする
@@ -218,7 +218,7 @@
 - 非採用理由: (a) は同じassetを事前fetchとbrowser loadで二度読み、endpointとbrowser stateを増やす。(b) はfontやimage decode前にpaginationを開始するraceと、利用者promise rejectionを成功扱いする問題を戻す
 - trusted inputとの関係: `window.pfpdf`をnon-configurableにする処理と改変検出はsecurity専用の防御であり削除する。利用者scriptが登録APIを上書きすればそのscript自身のcontract違反であり、別の改変監視状態は持たない
 - risk: 動的に生成され、DOM image / font / static resource load / 登録promiseのいずれにも現れない非同期処理は自動検出できない。paginationに影響する利用者処理は`registerReady`へ登録する
-- 検証: fontとlocal SVGを含むlocal / Docker smoke、登録promise rejectionのbrowser E2E、resource MIME / load failure、通知失敗、timeout、gate解放、child abort、既存出力保持のtest
+- 検証: fontとlocal SVGを含むbrowser smoke、登録promise rejectionのbrowser E2E、resource MIME / load failure、通知失敗、timeout、gate解放、child abort、既存出力保持のtest
 - 再検討条件: Vivliostyleがpagination前の正式なasync hookを提供し、gate resourceとloopback通知を同等の失敗診断付きで置換できる場合
 - 検証: local resource、byte range、readiness、YAML metadata type、language tag、renderer 起動の test を維持する。security mechanism 自体の test は削除する
 - 再検討条件: 不特定利用者の文書を処理する service mode を正式に追加する場合。その場合は個別の filter ではなく process / filesystem / network を含む sandbox を別設計する
@@ -307,7 +307,7 @@
 - 選択肢: (a) 全templateで`overflow-wrap: anywhere`だけを使う、(b) Markdown sourceへzero-width spaceまたはsoft hyphenを挿入する、(c) serialize後のHTML文字列を置換する、(d) HASTの可視textへ`wbr` elementを挿入する
 - 採用: (d)。grapheme境界、URL・識別子の意味境界、除外context、inline elementをまたぐrunをDOM構造上で判定できる。`wbr`は表示上の改行候補であり、元のtext content、copy結果、link destination、attributeを変えない
 - 非採用理由: (a) はoverflowを防げても意味境界を優先できない。(b) はcode、link destination、source位置、copy結果を変え得る。(c) はtextとattributeを安全に区別できず、escapeとraw HTMLを壊し得る
-- pipeline: 見出しID、目次、resource URL、table decoration、MathJax、syntax highlightの後、source sectionの最終passとして適用する。local / Docker rendererが消費する同じ`document.html`へ含め、test専用pipelineは作らない
+- pipeline: 見出しID、目次、resource URL、table decoration、MathJax、syntax highlightの後、source sectionの最終passとして適用する。rendererが消費する`document.html`へ含め、test専用pipelineは作らない
 - accessibility / raw HTML: text自体は不変で、screen readerやcopyに不可視文字を追加しない。trusted raw HTMLの通常の可視textは対象だが、code、script、style、form value、SVG、MathJax、`contenteditable`は完全保存する
 - risk: 候補が多いと不自然な短い行を作り得る。最大16、基本最小4、break数最小化、semantic priority、均等化をbounded DPで固定し、全templateのPDF画像と`pdftotext`で確認する
 - 検証: 15 / 16 / 17 / 31 / 32 / 33 grapheme、Unicode cluster、URL構造、識別子、inline境界、属性保存、除外context、冪等性、長大runをunit / full-pipeline fixtureで検査する。共通previewを全bundled templateで描画し、抽出文字列とpage領域を確認する
@@ -316,9 +316,9 @@
 ## DD-28: Mermaid は server-side DOM で build-time SVG にする
 
 - status: Accepted(2026-08)
-- 問題: Mermaid fence を PDF の図として扱いながら、network 非依存、local / Docker で同じ静的 HTML、構文 error 時の fail-fast を満たす必要がある。Vivliostyle は frontend framework に SSR を要求し、source document で非同期生成した DOM は pagination 入力へ安定して反映されない
+- 問題: Mermaid fence を PDF の図として扱いながら、network 非依存、renderer と test で同じ静的 HTML、構文 error 時の fail-fast を満たす必要がある。Vivliostyle は frontend framework に SSR を要求し、source document で非同期生成した DOM は pagination 入力へ安定して反映されない
 - 選択肢: (a) 利用者に画像の事前生成を求める、(b) CDN または同梱 browser script で描画する、(c) 別の headless browser process で build-time SVG を生成する、(d) 固定した Mermaid を server-side DOM adapter 上で実行しinline SVGを生成する、(e) (d)で生成したSVGをbuild workspaceの外部assetにして`img`から参照する、(f) SVG markerを独自実装で通常pathへ展開する
-- 採用: (e)。renderer 開始前に SVG を HAST 上で検査・正規化し、`generated/mermaid-NNNN.svg`へserializeする。local / Docker と test が同じ生成assetを消費し、既存rendererとは別のbrowser processやCDNを必要としない。外部SVGはVivliostyleのpagination用DOMによるinline SVG marker参照の欠落を避け、vector、SVG内text、決定的IDを維持する
+- 採用: (e)。renderer 開始前に SVG を HAST 上で検査・正規化し、`generated/mermaid-NNNN.svg`へserializeする。renderer と test が同じ生成assetを消費し、既存rendererとは別のbrowser processやCDNを必要としない。外部SVGはVivliostyleのpagination用DOMによるinline SVG marker参照の欠落を避け、vector、SVG内text、決定的IDを維持する
 - 非採用理由: (a) は Mermaid 記法への対応にならない。(b) は offline version 固定または Vivliostyle の SSR 制約を満たさない。(c) は browser 取得、process、deadline、font 環境を二重化する。(d) は生成SVG単体とChrome直接PDFでは正常だが、Vivliostyle組版後だけ`marker-end`の矢印が消え、線端にgapを残す。(f) はpathの接線、markerのviewBox・refX・orient・markerUnitsを再実装し、Mermaidが出力する図種とmarkerの変更へ追従する必要がある。edge labelにはHTML labelへの切替、背景の固定量移動、`tspan` baseline補正、背景除去も検討したが、順に`foreignObject`依存、font size依存、複数行labelの行間破壊、Mermaid本来のlabel背景喪失を生じるため採用せず、edge label自体を未対応とする
 - security / error: `securityLevel: strict`、HTML label 無効、error rendering 抑止を固定する。各図を直列描画し、source error へ file / line を付加して code `2` とする。同梱 runtime failure は code `1` とし、未描画 source や error diagram を成功 PDF に残さない
 - risk: 軽量 DOM の text 測定結果は実 browserのMermaidと完全一致しない可能性がある。またSVGは独立documentになるため、外側documentのCSSを継承しない。Mermaidが必要なstyleとfont fallbackをSVG内へ固定し、Mermaid、adapter、DOM dependencyをlockfileに固定する。`img`にはMermaidのaccessible title / descriptionからaltを付け、存在しなければ一般labelを付ける
@@ -339,14 +339,14 @@
 ## DD-30: BibTeX citation は TeX 風構文と build 時 CSL 処理を組み合わせる
 
 - status: Accepted(2026-08)
-- 問題: Markdown source から `.bib` を参照し、本文 citation、決定的な参考文献一覧、PDF 内部 link を生成したい。既存 GFM / HAST / Vivliostyle pipeline、単一/複数 file 入力、local / Docker の同一 HTML を維持する必要がある
+- 問題: Markdown source から `.bib` を参照し、本文 citation、決定的な参考文献一覧、PDF 内部 link を生成したい。既存 GFM / HAST / Vivliostyle pipeline、単一/複数 file 入力、renderer と test の同一 HTML を維持する必要がある
 - 選択肢: (a) 文献に `\ref{key}` を割り当て独自 formatter を書く、(b) Pandoc の `[@key]` と Pandoc process を追加する、(c) `\cite{key}` を pfpdf parser extension とし、Citation.js / citeproc-js を Node.js build 時に利用する、(d) browser script で `.bib` を処理する
 - 採用: (c)。先頭 Markdown の `bibliography` metadata から `.bib` を一回読みし、全 source の citation cluster を一つの citeproc session で処理する。初期版は numeric style 1 種、`\cite{key1,key2}`、任意の `\printbibliography` marker を提供する。marker 省略時は文書末尾へ追加し、通常 heading を利用者が書くことで既存 ToC を再利用する
-- 非採用理由: (a) の `\ref` は TeX では一般 label 参照で、将来の figure / table / equation / section と衝突し、独自 formatter は entry type と locale 規則を再実装する。(b) は既存 remark pipeline と出力差を作り、外部 executable を local / Docker に追加する。(d) は入力 error が renderer 起動後まで遅れ、asset / readiness / mount を増やす。Pandoc syntax は source portability に利点があるが、部分互換を名乗らず将来 alias として再評価する
+- 非採用理由: (a) の `\ref` は TeX では一般 label 参照で、将来の figure / table / equation / section と衝突し、独自 formatter は entry type と locale 規則を再実装する。(b) は既存 remark pipeline と出力差を作り、外部 executable を build に追加する。(d) は入力 error が renderer 起動後まで遅れ、asset / readiness 処理を増やす。Pandoc syntax は source portability に利点があるが、部分互換を名乗らず将来 alias として再評価する
 - path: relative `.bib` は front matter source の親 directory 基準とする。absolute、`..`、symlink は既存 trusted-input 方針と同じく許可し、自動探索と後勝ちは採用しない。複数 file の重複 key は code `2` とする
 - HTML: processor の entry 順を citation number の正本とし、entry HTML を HAST fragment に変換する。pfpdf が encoded ID、`doc-biblioref`、`doc-bibliography`、全引用位置への `doc-backlink` を付ける。template は共通 semantic DOM を装飾するだけで citation 規則を持たない
 - risk: Citation.js / citeproc-js / CSL style の変換差、package size、BibLaTeX 非完全互換、英語 locale の label に依存する。version と license を lockし、日本語、Unicode、TeX accent、`@string`、crossref、DOI / URL の fixture と全 template PDF を維持する。custom CSL、locator、`\nocite` は別仕様とする
-- 検証: input / parser / formatter / semantic HTML の unit test、bibliography error 時の既存 output 保持、共通 preview の全 template PDF / page image / link / `pdftotext`、local / Docker E2E を実行する
+- 検証: input / parser / formatter / semantic HTML の unit test、bibliography error 時の既存 output 保持、共通 preview の全 template PDF / page image / link / `pdftotext`、renderer E2E を実行する
 - 再検討条件: VFM が citation syntax を標準化した場合、Pandoc source portability の要求が増えた場合、または投稿規程向け custom CSL / locator / note style を first-class feature にする場合
 
 ## DD-31: pfn template の表紙背景と artwork は単一の vector SVG として生成する
@@ -434,7 +434,7 @@
 - 選択肢: (a) `main` の merge ごとに semantic-release で即 publish、(b) maintainer が version、tag、CHANGELOG、publish command を手作業で管理、(c) Release Please の release PR と tag-backed draft Release、tag source からの build-once staging、GitHub Environment 承認、npm trusted publishing、公開後検証を分離する
 - 採用: (c)。Conventional Commit から Release Please が release PR を維持し、version と note は PR review で確定する。権限を repository に限定した release GitHub App の短命 installation token で PR / tag を作り、tag workflow は npm tarball と4 PDFを一度だけ生成する。同じ tarball を4環境で検査し、draft ReleaseへPDFを揃え、`release` Environment 承認後にOIDCでnpmへ公開する。手動再開も workflow ref を既存 release tag に固定する。public registryからexact versionを検証し、remote Release asset のdigestを再検証して初めてGitHub Releaseを公開する
 - 非採用理由: (a) は release timing と `0.x` のversion判断をcommit prefixだけに委ね、公開前の成果物reviewを持てない。(b) はlockfile、tag、artifactの対応を人手に依存し、同じsourceから同じartifactを配布した証跡が弱い。既定 `GITHUB_TOKEN` をRelease Pleaseに使う案は生成PRのrequired CIとtag workflowを起動できないため採用しない
-- scope: Docker imageはrelease artifactに含めない。Docker rendererの将来削除と独立に、公式利用者向け配布をnpm、付属文書をGitHub Releaseへ限定する
+- scope: 公式利用者向け配布をnpm、付属文書をGitHub Releaseへ限定する
 - risk: GitHub App、Environment、npm trusted publisherのrepository外設定が必要である。App permissionをContents / Pull requests / Issuesの必要範囲へ絞り、actionをcommit SHA固定し、workflow lintと運用checklistで設定driftを検出する。npm公開後にGitHub Release公開が失敗する非atomic区間は残るため、draftを維持し、同一tarballのregistry integrityを確認してfinalizeだけ再開できるようにする
 - 検証: release helperのunit test、tag / lock / CHANGELOGの整合検査、npm pack allowlist、4環境のpacked-package install lock / shrinkwrap一致、`npm ls`、実PDF smoke test、4 PDFのexact setとchecksum、draft assetのstate / size / remote SHA-256 digest検査、public registryからのexact-version smoke test
 - 再検討条件: packageが複数になる場合、npm staged publishingを採用してnpm側の2FA承認もrelease gateへ含める場合、またはGitHub / npmが複数artifactのtransactional promotionを提供する場合

@@ -44,11 +44,7 @@ pfpdf/
     templates.ts
     workspace.ts
     output.ts
-    renderer/
-      index.ts
-      internal.ts
-      local.ts
-      docker.ts
+    renderer.ts
   resources/
     templates/
       default/
@@ -72,7 +68,6 @@ pfpdf/
   package.json
   package-lock.json
   tsconfig.json
-  Dockerfile
   AGENTS.md
   README.md
   CHANGELOG.md
@@ -112,7 +107,6 @@ pfpdf/
 - npm publish は `.github/workflows/release.yml` と `release` Environment に限定した GitHub Actions trusted publishing を使い、長期 npm token を repository secret に保存しない。OIDC に必要な `id-token: write` は publish job だけへ付与し、stable は `latest`、prerelease は `next` tag で公開する
 - publish 後は public registry から exact version を新しい一時 project へ取得し、version と実 PDF smoke test を確認してから draft GitHub Release を公開する。公開確認、npm tarball SHA-256、Vivliostyle / Chromium / font version、4 PDF の checksum を release note に追記する
 - npm と GitHub Release は atomic に公開できない。途中で失敗した場合、GitHub Release は draft のまま保つ。再実行時に npm 上の同 version の SHA-1 / integrity が staging tarball と一致すれば publish 済みとして後続検証から再開し、不一致なら停止する。公開済み artifact を上書き・再利用せず、修正版は新しい version とする
-- Docker image の build / publish は release workflow の対象外とする。Docker renderer 機能が source tree に残る期間も、npm release の成立条件や GitHub Release asset に Docker registry の状態を含めない
 - shrinkwrap された transitive dependency の security fix も既存 release の install 結果へ自動反映されないため、lockfile を更新して全 smoke test を通した新しい patch release として配布する
 
 Repository 外では次を一度だけ設定します。
@@ -147,8 +141,8 @@ make docs-template-images  # 目視用に全ページをPNG化
 
 - CHANGELOG は Semantic Versioning に従い、`0.x` の破壊的変更も明記する
 - release tag、source commit、npm tarball checksum、Vivliostyle、Chromium、font、4 PDF の checksum、publish 後 verification、security fix release の手順を記録する
-- pfpdf が新規に作成するコードは MIT License とする。ただし npm package や Docker image 全体が MIT の要素だけで構成されるとは表現しない
-- Vivliostyle CLI は AGPL-3.0 の直接 runtime dependency である。配布経路(npm への同梱、Docker image、ネットワークサービス)ごとの義務を整理し、正確な source version、upstream URL、license 文、変更の有無を記録する
+- pfpdf が新規に作成するコードは MIT License とする。ただし npm package 全体が MIT の要素だけで構成されるとは表現しない
+- Vivliostyle CLI は AGPL-3.0 の直接 runtime dependency である。配布経路(npm への同梱、ネットワークサービス)ごとの義務を整理し、正確な source version、upstream URL、license 文、変更の有無を記録する
 - MathJax、highlight.js、フォント、Chromium、Node.js、GFM parser、CJK-friendly extension、PDF parser / rewriter についても、バージョン・ライセンス・入手元を `THIRD_PARTY_LICENSES.md` に一覧化する
 - filename collision、heading slug、BCP 47 canonicalization に使う Unicode / language subtag data の version、license、入手元も固定し、更新時は anchor と既存文書の互換性差分を review する
 - release 前に secret scan、dependency review、第三者ライセンス一覧の更新を確認する

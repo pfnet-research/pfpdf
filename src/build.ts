@@ -142,8 +142,6 @@ export async function runBuild(
       };
       await renderDocument({
         ...job,
-        renderer: config.renderer.value,
-        dockerImage: config.dockerImage.value,
         manifest,
         generated,
         workspaceDir: workspace.dir,

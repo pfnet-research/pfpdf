@@ -20,11 +20,9 @@ export interface Config {
   toc: ResolvedValue<boolean>;
   template: ResolvedValue<{ kind: 'bundled'; name: string } | { kind: 'custom'; dir: string }>;
   logo: ResolvedValue<string | null>;
-  renderer: ResolvedValue<'local' | 'docker'>;
   hostFonts: ResolvedValue<boolean>;
   fontDirs: ResolvedValue<string[]>;
   browserPath: ResolvedValue<string | null>;
-  dockerImage: ResolvedValue<string | null>;
   renderTimeoutMs: ResolvedValue<number>;
   keepWorkDir: ResolvedValue<boolean>;
   logLevel: ResolvedValue<'error' | 'warn' | 'info' | 'debug'>;
@@ -44,12 +42,12 @@ interface RawCli {
 
 const VALUE_OPTIONS = new Set([
   '--input', '--output', '--title', '--template', '--template-dir', '--logo',
-  '--renderer', '--font-dir', '--browser-path', '--docker-image',
+  '--font-dir', '--browser-path',
   '--render-timeout-ms', '--log-level',
 ]);
 const FLAG_OPTIONS = new Set([
   '--toc', '--no-toc', '--host-fonts', '--no-host-fonts', '--no-font-dirs',
-  '--no-logo', '--managed-browser', '--default-docker-image',
+  '--no-logo', '--managed-browser',
   '--keep-work-dir', '--no-keep-work-dir',
   '--print-effective-config', '--doctor', '--version', '--help', '-h',
 ]);
@@ -63,7 +61,6 @@ const CONFLICT_PAIRS: Array<[string, string]> = [
   ['--logo', '--no-logo'],
   ['--font-dir', '--no-font-dirs'],
   ['--browser-path', '--managed-browser'],
-  ['--docker-image', '--default-docker-image'],
   ['--keep-work-dir', '--no-keep-work-dir'],
 ];
 
@@ -82,9 +79,6 @@ export function parseArgv(argv: string[]): RawCli {
       if (value === undefined) throw new InputError(`missing value for ${arg}`);
       if (value === '' && PATH_OPTIONS.has(arg)) {
         throw new InputError(`${arg}: empty path is not allowed`);
-      }
-      if (value === '' && arg === '--docker-image') {
-        throw new InputError('--docker-image: empty image reference is not allowed');
       }
       i++;
       seen.set(arg, (seen.get(arg) ?? 0) + 1);
@@ -203,7 +197,6 @@ export function resolveConfig(
   const keepWorkDir = bool('--keep-work-dir', '--no-keep-work-dir', 'PFPDF_KEEP_WORK_DIR', false);
   const logo = optionalPath('--logo', '--no-logo', 'PFPDF_LOGO');
   const browserPath = optionalPath('--browser-path', '--managed-browser', 'PFPDF_BROWSER_PATH');
-  const dockerImage = optionalPath('--docker-image', '--default-docker-image', 'PFPDF_DOCKER_IMAGE');
 
   // template / template-dir is one logical setting.
   let template: Config['template'];
@@ -232,15 +225,6 @@ export function resolveConfig(
   }
   if (template.value.kind === 'bundled' && !BUNDLED_TEMPLATE_NAMES.includes(template.value.name)) {
     throw new InputError(`unknown bundled template: ${template.value.name}`);
-  }
-
-  // renderer
-  let renderer: ResolvedValue<'local' | 'docker'>;
-  {
-    const v = str('--renderer', 'PFPDF_RENDERER');
-    if (v.value === null) renderer = { value: 'local', source: 'default' };
-    else if (v.value === 'local' || v.value === 'docker') renderer = { value: v.value, source: v.source };
-    else throw new InputError(`--renderer: expected local or docker, got ${JSON.stringify(v.value)}`);
   }
 
   // font dirs: CLI list replaces the environment list entirely.
@@ -308,11 +292,9 @@ export function resolveConfig(
     toc,
     template,
     logo,
-    renderer,
     hostFonts,
     fontDirs,
     browserPath,
-    dockerImage,
     renderTimeoutMs,
     keepWorkDir,
     logLevel,
@@ -329,7 +311,7 @@ export function resolveConfig(
 export function effectiveConfigJson(config: Config): string {
   const entry = <T>(v: ResolvedValue<T>) => ({ value: v.value, source: v.source });
   const obj = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     command: config.command,
     config: {
       input: entry(config.input),
@@ -338,11 +320,9 @@ export function effectiveConfigJson(config: Config): string {
       toc: entry(config.toc),
       template: entry(config.template),
       logo: entry(config.logo),
-      renderer: entry(config.renderer),
       hostFonts: entry(config.hostFonts),
       fontDirs: entry(config.fontDirs),
       browserPath: entry(config.browserPath),
-      dockerImage: entry(config.dockerImage),
       renderTimeoutMs: entry(config.renderTimeoutMs),
       keepWorkDir: entry(config.keepWorkDir),
       logLevel: entry(config.logLevel),
@@ -375,15 +355,12 @@ Options:
   --template NAME          bundled template name (default: default)
   --template-dir PATH      custom template directory
   --logo PATH / --no-logo  logo file for the template / disable env logo
-  --renderer MODE          local or docker (default: local)
   --host-fonts             search OS standard font directories
   --no-host-fonts          disable host fonts requested via environment
   --font-dir PATH          extra font directory (repeatable)
   --no-font-dirs           disable extra font directories from environment
-  --browser-path PATH      browser used by the local renderer
+  --browser-path PATH      browser used by the renderer
   --managed-browser        disable the browser path from environment
-  --docker-image IMAGE     image used by the Docker renderer
-  --default-docker-image   disable the image from environment
   --render-timeout-ms N    absolute deadline in ms (default: 300000)
   --keep-work-dir / --no-keep-work-dir
                            keep the temporary workspace / disable env setting

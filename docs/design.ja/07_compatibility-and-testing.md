@@ -58,14 +58,13 @@ Linux では browser archive だけでは shared library が揃いません。
 - 正常終了、通常エラー、捕捉可能な中断での workspace cleanup
 - CLI、environment、default の優先順位と、CLI が常に勝つこと
 - 環境変数の boolean、enum、数値、path list の厳密な parse
-- 排他的 flag の同時指定、`--font-dir` 以外の option 重複、unknown option / positional argument / value 欠落、template selector と logo / font directory / managed browser / default Docker image / workspace 保持の明示 reset が環境変数の論理設定全体を上書きすること、path list の空 / 重複 component、timeout の最小・最大・overflow
+- 排他的 flag の同時指定、`--font-dir` 以外の option 重複、unknown option / positional argument / value 欠落、template selector と logo / font directory / managed browser / workspace 保持の明示 reset が環境変数の論理設定全体を上書きすること、path list の空 / 重複 component、timeout の最小・最大・overflow
 - bundled / custom template の必要 file と logo 省略時の出力
 - custom template の必須 / 重複 / 未知 DOM slot、metadata の text 挿入、未指定 author / series slot の削除、title の許可 tag 以外の拒否、logo 指定と slot 欠落の拒否
 - trusted attribute を保持し、処理した `data-pfpdf-slot` が残らず、`window.pfpdf` の runtime 上書きを code `1` にすること
 - host font が既定で無効であることと font directory の opt-in
 - font scan の決定的な優先順位、symlink cycle、壊れた OpenType offset / length、table / face の 4096 境界、duplicate face、CSS escape、`--font-dir` と direct CSS URL / `data:` font の埋め込み禁止 flag、custom CSS `local()` warning、bundled CSS の `local()` 禁止
-- local / Docker renderer の選択と暗黙 fallback の禁止
-- local / Docker の argv / environment 上限、可変長 Unicode path / proxy / custom CA、user / bundled 原因ごとの code `2` / `1` 分類
+- child process の argv / environment 上限、可変長 Unicode path / proxy / custom CA、user / bundled 原因ごとの code `2` / `1` 分類
 - `SOURCE_DATE_EPOCH` と PDF Info / XMP title・author・language・timestamp policy、catalog `/Lang`、および front matter の `date` があっても epoch 未設定なら再現性 warning を出すこと
 - `SOURCE_DATE_EPOCH` の負数、符号、空白、指数、safe integer / Date 範囲超過を拒否すること
 - PDF header / EOF marker、xref / object offset / incremental update / catalog / page tree、暗号化 / 0 page、symlink / directory output、truncated PDF を commit しないこと
@@ -85,13 +84,13 @@ Linux では browser archive だけでは shared library が揃いません。
 - Markdown と inline / block raw HTML を同じ文書で組み合わせ、HTML 要素、style、必要な script が生成 HTML / PDF の双方へ反映される
 - 相対画像、空白を含むパス、日本語パスを処理できる
 - `..`、absolute path、symlink target を含む trusted local resource を process の権限内で参照できる
-- nested CSS `@import` / `url()`、import cycle、raw HTML の `srcset` / inline style を resource graph に取り込み、local / Docker で同じ logical URL の resource を読める
+- nested CSS `@import` / `url()`、import cycle、raw HTML の `srcset` / inline style を resource graph に取り込み、logical URL の resource を読める
 - fetch / navigation role ごとの relative、`file:`、HTTP(S)、network-path、`data:`、`blob:`、`mailto:`、`tel:`、`javascript:`、未知 scheme の分類と、raw HTML `a[href]` の Markdown file link 書き換えを検査する
-- script が動的に組み立てる local path は両 renderer の保証対象外であることを、誤って静的 resource と成功判定しない
+- script が動的に組み立てる local path は renderer の保証対象外であることを、誤って静的 resource と成功判定しない
 - inline module script と `iframe[srcdoc]` を trusted HTML として保持し、その内部の resource graph は追跡しない
-- 両 renderer の loopback server で、token なし、未知 ID、path traversal、二重 encoding、不正 range、request body、Host / Origin 不一致、header / concurrency 上限を検査し、必要な single range と CORS、no-store / no-referrer / nosniff header を扱い、終了後に port を閉じる。事前検査後の symlink / FIFO 差替えで特殊 file を読まず失敗すること、Docker の server が container 内だけで起動して host network / port 公開に依存しないことも確認する
+- loopback server で、token なし、未知 ID、path traversal、二重 encoding、不正 range、request body、Host / Origin 不一致、header / concurrency 上限を検査し、必要な single range と CORS、no-store / no-referrer / nosniff header を扱い、終了後に port を閉じる。事前検査後の symlink / FIFO 差替えで特殊 file を読まず失敗することも確認する
 - DOM、local stylesheet / script、font、image decode、数式、コードハイライトが完了した後に pagination が始まることを、pinned Vivliostyle CLI と実 browser で検査する。readiness gate の解放前に pagination が始まらず、local resource error、bundled script error、登録 promise の rejection、late registration、完了 signal 不整合が、上流 child の終了 code にかかわらず code `1` になる
-- readiness 未完了、停止 script、停止 child、停止 container が absolute deadline で終了し、graceful / forced cleanup 後も既存出力を保持する
+- readiness 未完了、停止 script、停止 child が absolute deadline で終了し、graceful / forced cleanup 後も既存出力を保持する
 - 読み取り専用の入力ディレクトリから出力できる
 - 既存出力がある状態でビルドに失敗しても既存出力を保持する
 - 最終出力と同じ directory の exclusive な一時 file から成功後に commit し、source size と copy byte 数の不一致、copy 後の切断 / 壊れた xref / page tree、PDF metadata 更新後の破損、rename failure、一時 file の flush failure、中断の fault injection で既存出力を保持する。commit 後の親 directory flush failure は durability warning になることも固定する
@@ -101,20 +100,15 @@ Linux では browser archive だけでは shared library が揃いません。
 - `npm pack` した tarball を新しい一時 project から `npm exec` で実行できる
 - browser がない初回実行で pinned Vivliostyle CLI の標準取得処理が動作するか、上流の診断をそのまま利用者へ示す
 - `PFPDF_BROWSER_PATH` で明示した互換 browser を利用できる
-- 環境変数で renderer、template、browser を設定でき、CLI 引数が常に上書きする
+- 環境変数で template、browser を設定でき、CLI 引数が常に上書きする
 - 現在の pfpdf version に対応する custom template directory を利用できる
 - host font が無効なときは OS の font directory を読み込まない
-- Docker renderer が input、template、logo、font を読み取り専用、一時 output / profile / temp だけを書き込み可能で mount する
-- Docker renderer が静的 resource graph 外の home directory や filesystem root を便宜的に mount せず、mount / argv 上限超過と custom image の protocol 不一致を描画前に code `2` で拒否し、default image の不整合を code `1` にする
-- Docker renderer が最終 output directory を mount せず、non-root / read-only root filesystem で動く
-- Docker renderer の container entrypoint が internal render command に固定され、renderer を再帰実行しない
-- Docker image を明示 pull / inspect した content-addressed ID で起動し、inspect 後の tag 差替えで別 image を実行しない
-- local / Docker renderer が同じ `document.html` を入力にする
+- renderer が integration test で検査したものと同じ `document.html` を入力にする
 - horizontal RTL と vertical writing の fixture で root `dir`、computed writing mode、upstream が生成する PDF reading direction の組合せを確認する
 - 同じ HTML byte 列でも build ごとの origin / port / token が異なることを固定し、生成 HTML に token が混入しないことと、利用者 script が `location` に依存した場合は再現性保証外であることを検査する
 - `--doctor` と `--print-effective-config` が PDF を生成せずに診断結果を返す
 - `--doctor` と `--print-effective-config` の stdout が各 schema の JSON object 1 個だけで parse でき、stderr の log が混ざらず、秘密を含む値が redaction される
-- `--doctor` が browser / mount 検査用の secure temporary profile と diagnostic container を正常時・失敗時・timeout 時に回収し、project / output directory、browser cache、Docker image、OS 設定を変更しない
+- `--doctor` が browser 検査用の secure temporary profile を正常時・失敗時・timeout 時に回収し、project / output directory、browser cache、OS 設定を変更しない
 - child output / renderer diagnostics の UTF-8 code point や token が chunk 境界をまたいでも正しく decode / escape し、AssetServer token や既知 credential を stdout、stderr、保持 workspace のいずれにも生値で残さない
 - 8 MiB を超える child output でも pipe を drain して停止せず、保存 diagnostics だけを上限で truncate し、省略 byte 数を正しく記録する
 - `docs/design.ja/` と `docs/design.en/`、`docs/tutorial.ja/` と `docs/tutorial.en/` の file 集合・番号・相対 path が一致する
@@ -142,7 +136,6 @@ Linux では browser archive だけでは shared library が揃いません。
 - tarball に `npm-shrinkwrap.json` が含まれ、`package-lock.json` は含まれず、空 project へ install した runtime dependency tree / integrity が source lockfile と一致することを 4 環境で確認する
 - 対応 range の最古 Node.js で packed entrypoint を load / 実行でき、range 直外の代表 version では起動時検査が意図した診断を返す
 - 4 つの対応環境で `tests/fixtures/minimal/` の PDF を生成する
-- 公開予定の Docker image で minimal example を生成し、read-only mount の境界を確認する
 
 ## 7.7 property / fuzz / performance test
 

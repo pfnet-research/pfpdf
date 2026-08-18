@@ -44,11 +44,7 @@ pfpdf/
     templates.ts
     workspace.ts
     output.ts
-    renderer/
-      index.ts
-      internal.ts
-      local.ts
-      docker.ts
+    renderer.ts
   resources/
     templates/
       default/
@@ -72,7 +68,6 @@ pfpdf/
   package.json
   package-lock.json
   tsconfig.json
-  Dockerfile
   AGENTS.md
   README.md
   CHANGELOG.md
@@ -112,7 +107,6 @@ The Make targets generate `docs/*.pdf` files as build artifacts. They are listed
 - npm publishing uses GitHub Actions trusted publishing restricted to `.github/workflows/release.yml` and the `release` Environment; repository secrets contain no long-lived npm token. Only the publish job receives `id-token: write`. Stable versions publish under `latest`, and prereleases under `next`
 - After publishing, install the exact version from the public registry into a new temporary project and verify its version and a real PDF smoke test before publishing the draft GitHub Release. Append the public verification, npm tarball SHA-256, Vivliostyle / Chromium / font versions, and four PDF checksums to the release notes
 - npm and GitHub Releases cannot be published atomically. A mid-release failure leaves the GitHub Release as a draft. On a rerun, an npm version whose SHA-1 and integrity match the staged tarball is treated as already published and resumes at verification; a mismatch stops the workflow. Never overwrite or reuse a published artifact; a fix gets a new version
-- Docker image build and publication are outside the release workflow. While Docker renderer code remains in the source tree, an npm release does not depend on Docker registry state and GitHub Release assets contain no Docker artifact
 - Because security fixes for shrinkwrapped transitive dependencies also do not automatically reach the install results of existing releases, they are distributed as a new patch release with an updated lockfile that has passed all smoke tests
 
 The following one-time settings live outside the repository:
@@ -147,8 +141,8 @@ make docs-template-images  # rasterize every page to PNG for visual review
 
 - The CHANGELOG follows Semantic Versioning, and breaking changes in `0.x` are also explicitly noted
 - Record the release tag, source commit, npm tarball checksum, Vivliostyle, Chromium, fonts, checksums of the four PDFs, post-publish verification, and the procedure for security-fix releases
-- Code newly written for pfpdf is under the MIT License. However, do not represent the npm package or Docker image as a whole as consisting solely of MIT-licensed components
-- The Vivliostyle CLI is a direct runtime dependency under AGPL-3.0. Organize the obligations per distribution channel (bundling into npm, Docker images, network services), and record the exact source version, upstream URL, license text, and whether any modifications were made
+- Code newly written for pfpdf is under the MIT License. However, do not represent the npm package as a whole as consisting solely of MIT-licensed components
+- The Vivliostyle CLI is a direct runtime dependency under AGPL-3.0. Organize the obligations per distribution channel (bundling into npm, network services), and record the exact source version, upstream URL, license text, and whether any modifications were made
 - MathJax, highlight.js, fonts, Chromium, Node.js, the GFM parser, the CJK-friendly extension, and the PDF parser/rewriter are likewise listed in `THIRD_PARTY_LICENSES.md` with their versions, licenses, and sources
 - Also pin the version, license, and source of the Unicode and language subtag data used for filename collision handling, heading slugs, and BCP 47 canonicalization, and review compatibility diffs of anchors and existing documents when updating
 - Before release, confirm secret scanning, dependency review, and updates to the third-party license list

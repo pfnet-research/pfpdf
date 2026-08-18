@@ -156,8 +156,8 @@ export class AssetServer {
       fail(403);
       return;
     }
-    // Docker bind targets intentionally omit extensions; the renderer-visible
-    // logical URL is the common MIME contract for local and Docker modes.
+    // Renderer-visible logical URLs are the MIME contract, independent of the
+    // original file name.
     const ext = path.extname(logical).toLowerCase();
     headers['Content-Type'] = MIME[ext] ?? 'application/octet-stream';
 

@@ -98,6 +98,6 @@ file input では Markdown ファイルの親ディレクトリ、directory inpu
 
 一方、CLI 引数(`--input`、`--output`、`--logo` など)の相対パスは、`pfpdf` を実行したカレントディレクトリが基準です。
 
-Markdown、raw HTML、CSS に静的に書いた local URL は local / Docker renderer の双方で解決されます。script が実行時に文字列から作る local path はどちらの renderer でも自動公開されないため、resource は静的な `src` / `href` / CSS `url()` として宣言するか、HTTP(S) URL を使ってください。
+Markdown、raw HTML、CSS に静的に書いた local URL は resource graph を通じて解決されます。script が実行時に文字列から作る local path は自動公開されないため、resource は静的な `src` / `href` / CSS `url()` として宣言するか、HTTP(S) URL を使ってください。
 
 文書内の URL separator は OS にかかわらず `/` です。Windows の absolute path は `file:///C:/docs/image.png`、UNC path は妥当な `file://server/share/...` URL で書きます。CLI 引数の path だけは実行 OS の通常の path 表記を使えます。

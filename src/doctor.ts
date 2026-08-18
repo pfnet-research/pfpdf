@@ -13,13 +13,8 @@ import { ResourceManifest } from './resources.js';
 import { resolveTemplate, type PreparedTemplate } from './template.js';
 import { MIN_NODE, runtimeIsSupported } from './runtime.js';
 import {
-  DEFAULT_DOCKER_IMAGE,
-  DOCKER_PROTOCOL,
-  dockerMount,
   rendererChildEnv,
   resolveVivliostyleCli,
-  parseDockerImageInspection,
-  validateDockerImageReference,
 } from './renderer.js';
 
 interface Check {
@@ -70,28 +65,16 @@ export async function runDoctor(
     addStandaloneLogoCheck(config, add);
   }
 
-  if (config.renderer.value === 'docker') {
-    add('browser', 'not-run', 'local browser is not used by the Docker renderer');
+  const browserPath = config.browserPathAbs ?? await managedBrowserPath();
+  if (browserPath === null) {
+    add('browser', 'warning', 'managed browser is not installed yet; conversion will attempt to download it');
   } else {
-    const browserPath = config.browserPathAbs ?? await managedBrowserPath();
-    if (browserPath === null) {
-      add('browser', 'warning', 'managed browser is not installed yet; conversion will attempt to download it');
-    } else {
-      try {
-        const browser = await probeBrowser(browserPath);
-        add('browser', browser.status, browser.message);
-      } catch (e) {
-        add('browser', 'fail', `browser diagnostic failed: ${(e as Error).message}`);
-      }
+    try {
+      const browser = await probeBrowser(browserPath);
+      add('browser', browser.status, browser.message);
+    } catch (e) {
+      add('browser', 'fail', `browser diagnostic failed: ${(e as Error).message}`);
     }
-  }
-
-  if (config.renderer.value === 'docker') {
-    checkDocker(config, add);
-  } else {
-    add('docker-daemon', 'not-run', 'renderer is local');
-    add('docker-image', 'not-run', 'renderer is local');
-    add('docker-mount', 'not-run', 'renderer is local');
   }
 
   if (config.inputAbs !== null) {
@@ -142,7 +125,7 @@ export async function runDoctor(
   const hasWarning = checks.some((c) => c.status === 'warning');
   const status = hasFail ? 'fail' : hasWarning ? 'warning' : 'pass';
   return {
-    json: JSON.stringify({ schemaVersion: 1, command: 'doctor', status, checks }) + '\n',
+    json: JSON.stringify({ schemaVersion: 2, command: 'doctor', status, checks }) + '\n',
     exitCode: hasFail ? 1 : 0,
   };
 }
@@ -295,78 +278,4 @@ async function probeBrowser(browserPath: string): Promise<Pick<Check, 'status' |
     return { status: 'fail', message: `cannot remove diagnostic browser profile: ${(e as Error).message}` };
   }
   return outcome;
-}
-
-function checkDocker(config: Config, add: (id: string, status: Check['status'], message: string) => void): void {
-  const version = spawnSync('docker', ['version', '--format', '{{.Server.Version}}'], {
-    shell: false, timeout: 10000, encoding: 'utf8', env: rendererChildEnv(),
-  });
-  if (version.status !== 0) {
-    add('docker-daemon', 'fail', 'Docker daemon is not reachable');
-    add('docker-image', 'not-run', 'Docker daemon is not reachable');
-    add('docker-mount', 'not-run', 'Docker daemon is not reachable');
-    return;
-  }
-  add('docker-daemon', 'pass', `Docker server ${version.stdout.trim()}`);
-  const image = config.dockerImage.value ?? DEFAULT_DOCKER_IMAGE;
-  try { validateDockerImageReference(image); } catch (e) {
-    add('docker-image', 'fail', (e as Error).message);
-    add('docker-mount', 'not-run', 'Docker image reference is invalid');
-    return;
-  }
-  const inspect = spawnSync('docker', [
-    'image', 'inspect', '--format', '{{.Id}}\t{{index .Config.Labels "jp.preferred.pfpdf.renderer-protocol"}}', image,
-  ], { shell: false, timeout: 10000, encoding: 'utf8', env: rendererChildEnv() });
-  if (inspect.status !== 0) {
-    add('docker-image', 'warning', `${image} is not present locally; conversion will attempt to pull it`);
-    add('docker-mount', 'not-run', 'Docker image is not present locally');
-    return;
-  }
-  let imageId: string;
-  try {
-    imageId = parseDockerImageInspection(inspect.stdout, image, config.dockerImage.value !== null);
-  } catch (error) {
-    add('docker-image', 'fail', (error as Error).message);
-    add('docker-mount', 'not-run', 'Docker image is incompatible');
-    return;
-  }
-  add('docker-image', 'pass', `${imageId} (renderer protocol ${DOCKER_PROTOCOL})`);
-  try {
-    const mount = probeDockerMount(imageId);
-    add('docker-mount', mount.status, mount.message);
-  } catch (e) {
-    add('docker-mount', 'fail', `Docker mount diagnostic failed: ${(e as Error).message}`);
-  }
-}
-
-function probeDockerMount(imageId: string): Pick<Check, 'status' | 'message'> {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-doctor-docker-'));
-  const probe = path.join(dir, 'probe');
-  fs.writeFileSync(probe, 'ok', { mode: 0o600 });
-  const name = `pfpdf-doctor-${crypto.randomBytes(8).toString('hex')}`;
-  let result: Pick<Check, 'status' | 'message'>;
-  try {
-    const run = spawnSync('docker', [
-      'run', '--rm', '--name', name,
-      '--mount', dockerMount({ type: 'bind', source: dir, target: '/diagnostic', readonly: true }),
-      '--entrypoint', 'node', imageId,
-      '-e', "require('node:fs').accessSync('/diagnostic/probe')",
-    ], { shell: false, timeout: 10000, encoding: 'utf8', env: rendererChildEnv() });
-    result = run.status === 0
-      ? { status: 'pass', message: 'read-only bind mount is usable' }
-      : { status: 'fail', message: 'Docker diagnostic bind mount failed' };
-  } finally {
-    const exists = spawnSync('docker', ['container', 'inspect', name], {
-      shell: false, timeout: 10000, stdio: 'ignore', env: rendererChildEnv(),
-    });
-    if (exists.status === 0) {
-      const removed = spawnSync('docker', ['rm', '--force', name], {
-        shell: false, timeout: 10000, stdio: 'ignore', env: rendererChildEnv(),
-      });
-      if (removed.status !== 0) result = { status: 'fail', message: 'cannot remove diagnostic Docker container' };
-    }
-    try { fs.rmSync(dir, { recursive: true, force: true }); }
-    catch { result = { status: 'fail', message: 'cannot remove diagnostic Docker workspace' }; }
-  }
-  return result!;
 }

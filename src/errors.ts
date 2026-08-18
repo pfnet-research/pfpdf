@@ -9,7 +9,7 @@ export class InputError extends Error {
   }
 }
 
-/** Runtime error: renderer, browser, Docker, internal invariants. Exit code 1. */
+/** Runtime error: renderer, browser, internal invariants. Exit code 1. */
 export class RuntimeError extends Error {
   readonly exitCode = 1 as const;
   constructor(message: string) {

@@ -31,7 +31,7 @@ dir: ltr
 | 02 | 内部 architecture |
 | 03 | Markdown 処理と GFM |
 | 04 | resource、font、template |
-| 05 | renderer(local / Docker) |
+| 05 | renderer |
 | 06 | 配布と release |
 | 07 | 互換性とテスト |
 | 08 | security model |

@@ -94,7 +94,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template-dir m
 
 ## 6.5 フォント
 
-pfpdf には再配布可能な日本語フォント(Noto Sans CJK JP など)が同梱されており、bundled template は既定でこの同梱フォントを明示します。通常の文書は OS の font 探索結果に依存しません。ただし custom / raw CSS が OS 固有の family を直接要求した場合、local Chromium 自体の font discovery まで pfpdf が隔離することはできません。厳密に隔離した build には Docker renderer を使います。
+pfpdf には再配布可能な日本語フォント(Noto Sans CJK JP など)が同梱されており、bundled template は既定でこの同梱フォントを明示します。通常の文書は OS の font 探索結果に依存しません。ただし custom / raw CSS が OS 固有の family を直接要求した場合、Chromium 自体の font discovery まで pfpdf が隔離することはできません。再現性が必要な文書では、custom / raw CSS から OS 固有の family を要求しないでください。
 
 ### host font の利用
 

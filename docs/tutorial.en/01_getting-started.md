@@ -5,7 +5,7 @@
 - Node.js (see the README for the supported semver range) and npm
 - An internet connection (first run only; needed to fetch the npm package and the browser used for PDF rendering)
 
-Python and Docker are not required.
+Python is not required.
 
 > On the first run, pfpdf automatically downloads Chromium for PDF rendering.
 > The download may be several hundred megabytes. Subsequent runs use the cached

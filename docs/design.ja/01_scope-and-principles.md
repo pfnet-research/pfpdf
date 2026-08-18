@@ -16,7 +16,7 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input foo --output foo.pdf
 
 ## 1.2 `v0.1.0` の目標
 
-- Docker を必要とせずに動作する(local renderer が既定)
+- Node.js と同梱の依存関係だけで動作する
 - `npx @pfnet-research/pfpdf` を利用者向け CLI の唯一の正式な導入経路とする
 - 外部の Python installation を要求しない
 - CommonMark を包含する正式な GitHub Flavored Markdown(GFM)の構文を原則すべて扱う
@@ -29,7 +29,7 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input foo --output foo.pdf
 - 入力元ディレクトリを変更せず、一時ファイルを正常終了時と捕捉可能な異常終了時に回収する
 - 異常時は部分的な成果物を成功扱いせず、非 0 の終了コードを返す
 - Markdown file の境界が GFM block の意味を変えないよう各 file を独立 parse し、静的 local resource は renderer-neutral な manifest で解決する
-- renderer の準備、readiness、描画に finite な deadline を設け、停止した image / browser download、script、browser、container を無期限に待たない
+- renderer の準備、readiness、描画に finite な deadline を設け、停止した browser download、script、browser を無期限に待たない
 - macOS aarch64 と Linux x86_64 を主要サポート、Windows x86_64 と Linux aarch64 を追加サポートとし、4 環境すべてを CI で検証する
 
 ## 1.3 `v0.1.0` の非目標
@@ -44,7 +44,7 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input foo --output foo.pdf
 - 単一 file として配布可能な HTML の生成。生成 HTML は PDF renderer への入力とテストにだけ使用する
 - `SIGKILL`、電源断、OS crash の瞬間における workspace や browser process の確実な回収
 - 同一出力先を対象とする複数 process の調停と、`SIGKILL` / 電源断後に出力 directory へ残った sibling 一時 file の自動 crash recovery
-- script が実行時に生成する任意の local path、DOM、network response を事前発見して local / Docker renderer へ公開すること
+- script が実行時に生成する任意の local path、DOM、network response を事前発見して renderer へ公開すること
 - remote resource の完全性、応答時間、内容の snapshot、失敗分類を保証すること
 - Nix Flake、Nix package、Nix 固有の再現環境の提供
 
@@ -71,7 +71,7 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input foo --output foo.pdf
 
 ## 1.5 CLI の配布経路は npm に限定する
 
-`v0.1.0` の利用者向け CLI の正式な導入経路は npm / npx だけとします。Docker image は Docker renderer 用の補助配布物です。source / CI の dependency tree は `package-lock.json`、公開 CLI の dependency tree は tarball 内の `npm-shrinkwrap.json` で固定し、検証済み Node.js range と合わせて再現性を確保します。
+`v0.1.0` の利用者向け CLI の正式な導入経路は npm / npx だけとします。source / CI の dependency tree は `package-lock.json`、公開 CLI の dependency tree は tarball 内の `npm-shrinkwrap.json` で固定し、検証済み Node.js range と合わせて再現性を確保します。
 
 ## 1.6 組み込み機能は browser 取得後にオフラインで使えるようにする
 
@@ -82,7 +82,7 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input foo --output foo.pdf
 - 利用者自身が記述したリモート画像、stylesheet、script については利用者の責任でネットワークへアクセスする
 - bundled MathJax による typeset と highlight.js による code highlight は build-time transform として HTML assembly 前に完了させ、変換済みの HTML だけを Vivliostyle が pagination することを integration test で確認する
 - bundled MathJax / highlight.js の初期化・変換失敗と、利用者が document readiness contract へ登録した promise の rejection は成功扱いしない。利用者が指定した remote resource の timeout、DNS、TLS、HTTP error は pfpdf が分類・保証せず、出力の安定性を含めて利用者の責任とする
-- Docker image / browser の確認と取得、readiness、PDF 描画・後処理・構造検査には既定 300 秒の共通 deadline を適用し、必要な文書だけ明示的に上書きできるようにする。timeout を無期限にする値は提供しない
+- browser の確認と取得、readiness、PDF 描画・後処理・構造検査には既定 300 秒の共通 deadline を適用し、必要な文書だけ明示的に上書きできるようにする。timeout を無期限にする値は提供しない
 
 ## 1.7 設定は CLI 引数と環境変数に限定する
 
@@ -94,7 +94,7 @@ project config file は設けません。repository ごとの繰り返し設定�
 明示的な CLI 引数 > 環境変数 > 組み込み既定値
 ```
 
-同じ項目が CLI と環境変数の双方にあれば、値の種類にかかわらず CLI を常に採用します。boolean の `--no-toc` / `--no-host-fonts` のような明示的な否定は CLI の値 `false` として環境変数より優先します。logo、追加 font directory、browser path、Docker image、workspace 保持には専用の CLI reset flag を設け、対応する環境変数を 1 回の実行だけ無効化できます。reset flag を定義していない設定を組み込み既定へ戻す場合は、不要な環境変数を実行環境から外すか、既定値を CLI で明示します。
+同じ項目が CLI と環境変数の双方にあれば、値の種類にかかわらず CLI を常に採用します。boolean の `--no-toc` / `--no-host-fonts` のような明示的な否定は CLI の値 `false` として環境変数より優先します。logo、追加 font directory、browser path、workspace 保持には専用の CLI reset flag を設け、対応する環境変数を 1 回の実行だけ無効化できます。reset flag を定義していない設定を組み込み既定へ戻す場合は、不要な環境変数を実行環境から外すか、既定値を CLI で明示します。
 
 ## 1.8 正典と翻訳の契約
 

@@ -46,8 +46,8 @@ export const en = {
         body: 'No dependency on OS fonts by default; host fonts are an explicit opt-in.',
       },
       {
-        title: 'Local and Docker renderers',
-        body: 'Local rendering is the default; CI systems can select the public Docker image explicitly.',
+        title: 'Managed rendering',
+        body: 'Uses the bundled Vivliostyle CLI and its standard browser management, with an optional explicit browser path.',
       },
       {
         title: 'CI-verified on 4 environments',

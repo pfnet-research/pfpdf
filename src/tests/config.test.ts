@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { resolveConfig, validateConfigForMode } from '../config.js';
+import { effectiveConfigJson, resolveConfig, validateConfigForMode } from '../config.js';
 import { InputError } from '../errors.js';
 
 const cwd = '/tmp';
@@ -19,9 +19,14 @@ test('CLI overrides environment', () => {
 });
 
 test('environment applies when CLI is absent', () => {
-  const c = resolveConfig(['--input', 'a.md', '--output', 'a.pdf'], { PFPDF_RENDERER: 'docker', PFPDF_TOC: 'false' }, cwd);
-  assert.equal(c.renderer.value, 'docker');
+  const c = resolveConfig(['--input', 'a.md', '--output', 'a.pdf'], { PFPDF_TOC: 'false' }, cwd);
   assert.equal(c.toc.value, false);
+});
+
+test('effective configuration uses schema version 2', () => {
+  const config = resolveConfig(['--input', 'a.md', '--output', 'a.pdf'], {}, cwd);
+  const result = JSON.parse(effectiveConfigJson(config)) as { schemaVersion: number };
+  assert.equal(result.schemaVersion, 2);
 });
 
 test('positive/negative pair conflict is code 2', () => {

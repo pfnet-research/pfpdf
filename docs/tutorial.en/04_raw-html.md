@@ -87,6 +87,6 @@ During conversion, `window.location` contains a loopback port that differs on ev
 - Static URLs in raw HTML `src` / `href` / `srcset` attributes, inline styles, and `<style>` are resolved against the input's resource base
 - Any local file readable by the pfpdf process can be referenced — even via absolute paths or paths containing `..` — as long as it is written statically
 - CSS `@import` and `url()` are resolved recursively against the CSS file itself. Circular `@import`s are each parsed once and do not cause infinite loops
-- Local paths that a script assembles at runtime fall outside the scope of static resources and are not guaranteed to work on either the local or the Docker renderer
+- Local paths that a script assembles at runtime fall outside the scope of static resources and are not guaranteed to work
 - JavaScript local module graphs and resource graphs inside nested HTML documents are not analyzed. Inline modules and `iframe[srcdoc]` themselves are preserved, but relative local resources inside them are not guaranteed to resolve
 - Remote `https:` images, stylesheets, and scripts are fetched directly by the browser; pfpdf does not guarantee that the fetch succeeds or is reproducible. For reproducible documents, avoid remote resources and keep the files in the repository

@@ -87,6 +87,6 @@ document の parse が終わった後からの登録は error です。登録し
 - raw HTML の `src` / `href` / `srcset`、inline style、`<style>` の静的 URL は input の resource base を基準に解決されます
 - pfpdf の process が読めるローカルファイルは、静的に記述すれば絶対パスや `..` を含むパスでも参照できます
 - CSS の `@import` と `url()` は CSS ファイル自身を基準に再帰解決されます。循環する `@import` は 1 回ずつ解析され、無限 loop にはなりません
-- script が実行時に組み立てる local path は静的 resource の対象外で、local / Docker のどちらでも利用できる保証がありません
+- script が実行時に組み立てる local path は静的 resource の対象外で、利用できる保証がありません
 - JavaScript の local module graph や nested HTML document 内の resource graphは解析しません。inline module や `iframe[srcdoc]` 自体は保持されますが、その内部の relative local resource が解決される保証はありません
 - `https:` のリモート画像・stylesheet・script は browser が直接取得します。取得の成否や再現性は pfpdf は保証しません。再現性が必要な文書ではリモートリソースを使わず、ファイルを repository に置いてください
