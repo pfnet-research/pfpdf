@@ -58,9 +58,8 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output docs.pdf
   `--logo PATH` or `PFPDF_LOGO` (when omitted, the logo area is hidden)
 - **Redistributable bundled fonts** — no dependency on OS fonts by default;
   host fonts are an explicit opt-in via `--host-fonts` / `--font-dir`
-- **Local and Docker renderers** — local rendering is the default; servers and
-  CI systems can use `--renderer docker` to select the public Docker image
-  explicitly
+- **Managed rendering** — uses the bundled Vivliostyle CLI and its standard
+  browser management, with an optional explicit browser path
 
 ## Supported environments
 

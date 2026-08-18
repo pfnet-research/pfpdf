@@ -15,9 +15,8 @@ pfpdf bundles redistributable Japanese fonts in multiple weights, including Noto
 - `--host-fonts` scans the standard OS font directories, and repeated `--font-dir PATH` options add scan locations
 - `--font-dir` itself is also treated as an explicit opt-in limited to that directory, usable without `--host-fonts`
 - On macOS, the standard scan candidates are `~/Library/Fonts`, `/Library/Fonts`, `/System/Library/Fonts`, and `/System/Library/Fonts/Supplemental`
-- The local renderer serves permitted font files from the loopback `AssetServer`; the Docker renderer bind-mounts the same directories read-only and serves them from the `AssetServer` inside the container
-- User-specified host font files are never copied into the package, Docker image, workspace, or cache. Only a temporary font index, `@font-face` CSS, and fontconfig metadata for Linux are generated
-- The ability to use macOS system fonts from Docker Desktop remains Experimental until mountability, font formats, and licensing have been verified
+- The renderer serves permitted font files from the loopback `AssetServer`
+- User-specified host font files are never copied into the package, workspace, or cache. Only a temporary font index, `@font-face` CSS, and fontconfig metadata for Linux are generated
 - Fonts that can be determined from OpenType `OS/2.fsType` and similar data to prohibit embedding in PDFs are excluded from the candidates. If static CSS demands that family or face and no fallback is possible: exit code `2` for a user-specified font, or `1` — a package inconsistency — for a bundled font. Unused candidates, and formats whose restrictions cannot be determined, produce warnings; permission is never assumed
 - The same embedding check applies not only to candidates discovered via `--font-dir` but to every local or `data:` font discovered in a font role among the static URLs in templates, Markdown, raw HTML, and CSS. Remote font licenses and contents cannot be inspected, just as fetching them cannot be guaranteed, so they are the user's responsibility; do not use them in reproducible standard documents
 - Technical support for referencing a host font does not imply permission to embed it in a PDF; users must verify each font's license terms
@@ -29,7 +28,7 @@ pfpdf bundles redistributable Japanese fonts in multiple weights, including Noto
 - Builds the set of permitted directories from `--host-fonts` and any explicitly given `--font-dir`
 - The scan priority is: the effective list of additional font directories, then the fixed order of standard OS directories added by `--host-fonts`, then the bundled fallback. The additional list uses only the CLI `--font-dir` order if at least one is given, and otherwise the order of the `PFPDF_FONT_DIRS` environment variable
 - Reads family, weight, style, and stretch from the OpenType name table and generates temporary `@font-face` CSS that references each adopted face by logical font URL. `--font-dir` is not an option that automatically selects fonts into the body; it adds candidates that template and document CSS can select by family name
-- For both the local and Docker renderers, generates CSS with font URLs reachable from the execution environment, and passes renderer-internal fontconfig metadata only where needed
+- Generates CSS with font URLs reachable from the renderer's execution environment, and passes renderer-internal fontconfig metadata only where needed
 - Extracts the non-generic families demanded by the bundled templates' static CSS and enables only the faces that are found. Families that are not found become warnings with source locations, and template tests guarantee that the bundled fallback appears at the end of the font-family list. Selected fonts are not guaranteed for dynamic properties in custom or raw CSS
 - Only formats verified with Chromium — TTF, OTF, TTC, WOFF2, and so on — are targeted. TTC face indices, variable font axes, and weight/style mappings are verified by fixtures, and unsupported formats or faces are reported with reasons in `--doctor`
 - Directories are traversed recursively in deterministic file name order, but symlinked directories are not followed. Symlinked files are candidates only if their resolution target is a regular file, deduplicated by canonical path
@@ -38,7 +37,7 @@ pfpdf bundles redistributable Japanese fonts in multiple weights, including Noto
 - Family names and logical font URLs are escaped as CSS string and URL tokens; font metadata is never concatenated raw into CSS source
 - Font files are not copied; the temporary CSS, index, and fontconfig metadata are deleted on exit
 - The font families, the files actually selected, and the results of the embedding restriction checks can be inspected via the debug log and `--doctor`
-- Since local Chromium can itself access OS fonts, the default guarantee extends only to pfpdf not scanning host directories and bundled templates not demanding host families. For strict isolation from host fonts, use the Docker renderer
+- Since Chromium can itself access OS fonts, the default guarantee extends only to pfpdf not scanning host directories and bundled templates not demanding host families. Documents that require reproducibility do not request OS-specific families from custom or raw CSS
 - `local()` sources in custom or raw CSS go through the browser's own discovery, so the actual file and its embedding flag cannot be identified in advance; a warning is emitted when they are used. In bundled templates, `local()` is forbidden; only checked logical font URLs and generic fallbacks are used
 
 ## 4.4 Separation of templates and logos
@@ -80,7 +79,7 @@ resources/templates/
 - Select a bundled template with `--template academic|book|compact|default|notebook|pfn|technical`
 - Templates contain no logo; the file specified with `--logo PATH` or `PFPDF_LOGO` is inserted into the placeholder
 - If no logo is specified, the logo placeholder itself is not emitted. No broken image placeholder is left behind
-- A relative logo path is resolved against the current directory, and the Docker renderer mounts it read-only
+- A relative logo path is resolved against the current directory
 - The logo and template are trusted input; only their existence and readability are pre-checked. Their content is not sandboxed
 
 ## 4.5 Custom templates
@@ -138,6 +137,6 @@ resources/templates/
 
 ## 4.8 Bibliography input and style
 
-The `.bib` files referenced by front matter are build inputs read in full. Unlike images, CSS, and fonts, they do not enter the browser's resource graph. They therefore require no AssetServer logical URL, additional Docker mount, or readiness fetch. Relative paths are resolved against the parent directory of the source file containing the front matter. Absolute paths and `..` are allowed under the trusted-input policy, although the tutorial recommends a portable relative layout.
+The `.bib` files referenced by front matter are build inputs read in full. Unlike images, CSS, and fonts, they do not enter the browser's resource graph. They therefore require no AssetServer logical URL or readiness fetch. Relative paths are resolved against the parent directory of the source file containing the front matter. Absolute paths and `..` are allowed under the trusted-input policy, although the tutorial recommends a portable relative layout.
 
 Citation.js, citeproc-js, and the CSL style and locale in use are pinned in the lockfile and the published shrinkwrap, with licenses and sources recorded in `THIRD_PARTY_LICENSES.md`. The HTML returned by CSL is not inserted as a document wrapper but parsed into HAST fragments, and pfpdf attaches stable classes, IDs, ARIA roles, and backlinks. All bundled templates share the structural rules in `common.css` / `common-vivliostyle.css`, and no template-specific CSS adds bibliography semantics or fixed labels.

@@ -31,7 +31,7 @@ For user-facing setup instructions and examples, see `docs/tutorial.en/`. The RE
 | 02 | Internal architecture |
 | 03 | Markdown processing and GFM |
 | 04 | Resources, fonts, and templates |
-| 05 | Local and Docker renderers |
+| 05 | Renderer |
 | 06 | Distribution and releases |
 | 07 | Compatibility and testing |
 | 08 | Security model |

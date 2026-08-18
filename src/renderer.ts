@@ -1,12 +1,10 @@
-/** Renderers: LocalRenderer (Vivliostyle CLI child process) and DockerRenderer. */
+/** Vivliostyle CLI renderer and bounded child-process coordination. */
 import { spawn } from 'node:child_process';
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { StringDecoder } from 'node:string_decoder';
 import { InputError, RuntimeError } from './errors.js';
-import { validateLogicalPath, writeLogicalFile } from './workspace.js';
 import { AssetServer } from './assetserver.js';
 import type { ResourceManifest } from './resources.js';
 
@@ -19,8 +17,6 @@ export interface RenderJob {
   diagnosticsPath: string;
   /** Child cwd, kept outside the output subtree for Vivliostyle path checks. */
   processCwd?: string | undefined;
-  /** Docker's standard seccomp profile cannot run Chromium's nested sandbox. */
-  browserSandbox?: boolean;
   warn: (msg: string) => void;
   info: (msg: string) => void;
   signal?: AbortSignal | undefined;
@@ -33,24 +29,14 @@ export interface RenderResult {
 }
 
 export interface DocumentRenderJob extends Omit<RenderJob, 'documentUrl'> {
-  renderer: 'local' | 'docker';
-  dockerImage: string | null;
   manifest: ResourceManifest;
   generated: Map<string, Buffer>;
   workspaceDir: string;
   controller: AbortController;
 }
 
-/** Select a renderer adapter; both consume the same prepared document graph. */
+/** Serve the prepared document graph and render it with Vivliostyle. */
 export async function renderDocument(job: DocumentRenderJob): Promise<RenderResult> {
-  if (job.renderer === 'docker') {
-    return renderDocker({
-      ...job,
-      documentUrl: '',
-      browserPath: null,
-      manifestEntries: job.manifest.list(),
-    });
-  }
   const server = new AssetServer(job.manifest, job.generated);
   // Vivliostyle uses its cwd as the context for remote URL inputs. Keep that
   // context beside the output subtree so Windows never compares paths across
@@ -136,7 +122,7 @@ export async function renderLocal(job: RenderJob): Promise<RenderResult> {
     '--log-level',
     job.logLevel === 'debug' ? 'debug' : 'info',
   ];
-  if (job.browserSandbox !== false) args.push('--sandbox');
+  args.push('--sandbox');
   if (job.browserPath !== null) {
     args.push('--executable-browser', job.browserPath);
   }
@@ -310,186 +296,6 @@ function flushDecoder(decoder: StringDecoder, stream: boolean): void {
   if (!stream) return;
   const decoded = decoder.end();
   if (decoded !== '') process.stderr.write(decoded);
-}
-
-export interface DockerRenderJob extends RenderJob {
-  dockerImage: string | null;
-  manifestEntries: Array<[string, string]>;
-  generated: Map<string, Buffer>;
-  workspaceDir: string;
-}
-
-export const DEFAULT_DOCKER_IMAGE = 'ghcr.io/pfnet-research/pfpdf:0.1.0';
-export const DOCKER_PROTOCOL = '1';
-
-export function validateDockerImageReference(image: string): void {
-  if (image === '' || image.startsWith('-') || /[\0\r\n]/.test(image)) {
-    throw new InputError(`invalid Docker image reference: ${JSON.stringify(image)}`);
-  }
-}
-
-export async function renderDocker(job: DockerRenderJob): Promise<RenderResult> {
-  const started = Date.now();
-  const image = job.dockerImage ?? DEFAULT_DOCKER_IMAGE;
-  validateDockerImageReference(image);
-  const inspected = await dockerCommand(
-    ['image', 'inspect', '--format', '{{.Id}}\t{{index .Config.Labels "jp.preferred.pfpdf.renderer-protocol"}}', image],
-    job,
-  );
-  if (inspected.code !== 0) {
-    const pulled = await dockerCommand(['pull', image], job);
-    if (pulled.code !== 0) {
-      throw new RuntimeError(processFailureMessage(`cannot pull Docker image ${image}`, pulled.output));
-    }
-  }
-  const finalInspect = inspected.code === 0
-    ? inspected
-    : await dockerCommand(
-      ['image', 'inspect', '--format', '{{.Id}}\t{{index .Config.Labels "jp.preferred.pfpdf.renderer-protocol"}}', image],
-      job,
-    );
-  if (finalInspect.code !== 0) {
-    throw new RuntimeError(processFailureMessage(`cannot inspect Docker image ${image}`, finalInspect.output));
-  }
-  const verifiedImageId = parseDockerImageInspection(finalInspect.output, image, job.dockerImage !== null);
-
-  const generatedRoot = path.join(job.workspaceDir, 'docker-generated');
-  fs.mkdirSync(generatedRoot, { recursive: true, mode: 0o700 });
-  const generatedFiles: Record<string, string> = {};
-  for (const [logical, content] of job.generated) {
-    writeLogicalFile(generatedRoot, logical, content);
-    generatedFiles[logical] = `/work/docker-generated/${logical}`;
-  }
-  const manifest: Record<string, string> = {};
-  const mountArgs: string[] = [];
-  for (let i = 0; i < job.manifestEntries.length; i++) {
-    const [logical, hostPath] = job.manifestEntries[i]!;
-    validateLogicalPath(logical);
-    const target = `/pfpdf-assets/${String(i + 1).padStart(4, '0')}`;
-    manifest[logical] = target;
-    mountArgs.push('--mount', dockerMount({ type: 'bind', source: hostPath, target, readonly: true }));
-  }
-  const timeoutMs = job.deadline - Date.now();
-  if (timeoutMs <= 0) throw new RuntimeError('render deadline exceeded before Docker start');
-  const internalJob = {
-    schemaVersion: 1,
-    timeoutMs,
-    outputPath: '/work/renderer-output/output.pdf',
-    diagnosticsPath: '/work/renderer-diagnostics.log',
-    logLevel: job.logLevel,
-    browserPath: '/usr/bin/chromium',
-    browserSandbox: false,
-    manifest,
-    generated: generatedFiles,
-  };
-  const jobPath = path.join(job.workspaceDir, 'docker-job.json');
-  fs.writeFileSync(jobPath, JSON.stringify(internalJob), { mode: 0o600 });
-
-  const containerName = `pfpdf-${crypto.randomBytes(8).toString('hex')}`;
-  const args = [
-    'run', '--rm', '--init', '--name', containerName, '--read-only', '--shm-size', '1g',
-    '--tmpfs', '/tmp:rw,exec,nosuid,size=2g',
-    '--mount', dockerMount({ type: 'bind', source: job.workspaceDir, target: '/work', readonly: false }),
-    ...mountArgs,
-  ];
-  if (typeof process.getuid === 'function' && typeof process.getgid === 'function') {
-    args.push('--user', `${process.getuid()}:${process.getgid()}`, '--env', 'HOME=/tmp/home');
-  }
-  args.push(verifiedImageId, '--internal-render-job', '/work/docker-job.json');
-  const argvBytes = args.reduce((sum, value) => sum + Buffer.byteLength(value) + 1, 0);
-  if (argvBytes > 128 * 1024) {
-    throw new InputError(`Docker renderer argument list is too large (${argvBytes} bytes)`);
-  }
-  job.info(`starting Docker renderer ${verifiedImageId}`);
-  let result: DockerCommandResult;
-  try {
-    result = await dockerCommand(args, job);
-  } catch (e) {
-    await removeDockerContainer(containerName);
-    throw e;
-  }
-  try {
-    fs.writeFileSync(
-      path.join(job.workspaceDir, 'docker-diagnostics.log'),
-      result.output,
-      { mode: 0o600 },
-    );
-  } catch {
-    // diagnostics are best effort
-  }
-  if (result.code !== 0) {
-    await removeDockerContainer(containerName);
-    throw new RuntimeError(processFailureMessage(
-      `Docker renderer failed with exit code ${result.code}`,
-      result.output,
-    ));
-  }
-  const st = validateRendererOutput(job.outputPath);
-  return { outputPath: job.outputPath, byteSize: st.size, elapsedMs: Date.now() - started };
-}
-
-export function parseDockerImageInspection(output: string, image: string, configured: boolean): string {
-  const [imageId, protocol = ''] = output.trim().split('\t');
-  if (!/^sha256:[0-9a-f]{64}$/i.test(imageId ?? '')) {
-    throw new RuntimeError(`Docker returned an invalid content ID for image ${image}`);
-  }
-  if (protocol !== DOCKER_PROTOCOL) {
-    const message = `Docker image protocol mismatch: expected ${DOCKER_PROTOCOL}, got ${protocol || 'missing'}`;
-    if (!configured) throw new RuntimeError(`default ${message}`);
-    throw new InputError(message);
-  }
-  return imageId!;
-}
-
-/** Best-effort cleanup with a fresh deadline because the render deadline has normally expired. */
-async function removeDockerContainer(containerName: string): Promise<void> {
-  const child = spawn('docker', ['rm', '--force', containerName], {
-    shell: false,
-    env: rendererChildEnv(),
-    stdio: 'ignore',
-  });
-  await new Promise<void>((resolve) => {
-    let settled = false;
-    const finish = (): void => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve();
-    };
-    const timer = setTimeout(() => {
-      try { child.kill('SIGKILL'); } catch { /* already gone */ }
-      finish();
-    }, 10000);
-    child.once('error', finish);
-    child.once('close', finish);
-  });
-}
-
-interface DockerCommandResult { code: number; output: string }
-
-async function dockerCommand(args: string[], job: RenderJob): Promise<DockerCommandResult> {
-  const result = await runBoundedProcess('docker', args, {
-    deadline: job.deadline,
-    signal: job.signal,
-    startError: 'failed to start Docker',
-  });
-  if (result.code === null) {
-    const summary = result.stopReason === 'signal'
-      ? 'Docker renderer interrupted by a signal'
-      : 'Docker renderer timed out';
-    throw new RuntimeError(processFailureMessage(summary, result.output));
-  }
-  return { code: result.code, output: result.output.toString('utf8') };
-}
-
-export function dockerMount(options: { type: 'bind'; source: string; target: string; readonly: boolean }): string {
-  const fields = [`type=${options.type}`, `source=${options.source}`, `target=${options.target}`];
-  if (options.readonly) fields.push('readonly');
-  return fields.map((field) => csvField(field)).join(',');
-}
-
-function csvField(value: string): string {
-  return /[",]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
 export function validateRendererOutput(outputPath: string): fs.Stats {

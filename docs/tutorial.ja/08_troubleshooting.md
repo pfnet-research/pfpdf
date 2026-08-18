@@ -8,9 +8,9 @@
 npx @pfnet-research/pfpdf@latest --doctor
 ```
 
-Node.js の version、browser の有無、Docker daemon、フォント、出力先の権限などを検査し、問題を対処方法とともに報告します。`--input` / `--output` を付けて実行すると、その文書のリソースと書き込み先まで検査します。stdout は versioned schema の JSON object 1 個なので、CI からも parse できます。通常 log は stderr に分離されます。
+Node.js の version、browser の有無、フォント、出力先の権限などを検査し、問題を対処方法とともに報告します。`--input` / `--output` を付けて実行すると、その文書のリソースと書き込み先まで検査します。stdout は versioned schema の JSON object 1 個なので、CI からも parse できます。通常 log は stderr に分離されます。
 
-`--doctor` は browser の download、Docker image の pull、project / output directory の作成、OS 設定変更を行いません。実起動や mount の検査には隔離した一時 profile / container を使い、検査後に削除します。各外部 check は cleanup を含めて 10 秒、全体は 60 秒で timeout します。
+`--doctor` は browser の download、project / output directory の作成、OS 設定変更を行いません。実起動の検査には隔離した一時 profile を使い、検査後に削除します。各外部 check は cleanup を含めて 10 秒、全体は 60 秒で timeout します。
 
 設定が意図どおりに効いているか確認したいときは `--print-effective-config` を使います。各設定値と、それが CLI・環境変数・既定値のどれから来たかが JSON で表示されます。
 
@@ -35,7 +35,7 @@ pfpdf が root 権限で package を自動 install することはありませ�
 
 shared library が揃っていても、Ubuntu 23.10 以降の unprivileged user namespace 制限などにより Chromium sandbox を起動できない環境があります。これは library 不足とは別の問題で、pfpdf の診断でも区別して報告されます。
 
-回避には root 権限での設定変更が必要です。例として Ubuntu では、Chromium の実行ファイルに対する AppArmor profile を追加する方法が知られています。root 作業が難しい環境では、Docker renderer の利用を検討してください。
+回避には root 権限での設定変更が必要です。例として Ubuntu では、Chromium の実行ファイルに対する AppArmor profile を追加する方法が知られています。変更できない環境では、sandbox を利用できる別の対応環境で変換してください。
 
 ## 8.6 日本語が豆腐(□)になる / フォントが意図と違う
 
@@ -51,19 +51,12 @@ shared library が揃っていても、Ubuntu 23.10 以降の unprivileged user 
 
 ## 8.8 描画が timeout になる
 
-- 既定の timeout は Docker image / browser の準備、readiness、描画、PDF 後処理 / 構造検査を合わせて 5 分です。debug log でどの phase に時間を使ったか確認してください
+- 既定の timeout は browser の準備、readiness、描画、PDF 後処理 / 構造検査を合わせて 5 分です。debug log でどの phase に時間を使ったか確認してください
 - remote resource、未完了の登録 promise、script の無限 loop、巨大画像、過度に複雑な CSS がないか確認します
 - 正常だが大きい文書だけが超過する場合は `--render-timeout-ms` を増やせます。`0` で無期限にはできません
-- timeout 後に既存 PDF は上書きされません。child / container の強制終了まで短い猶予があるため、CLI の終了を待ってから再実行してください
+- timeout 後に既存 PDF は上書きされません。child process の強制終了まで短い猶予があるため、CLI の終了を待ってから再実行してください
 
-## 8.9 Docker renderer のエラー
-
-- Docker daemon が起動しているか `--doctor` で確認してください
-- Docker Desktop では、入力やロゴのある directory が file sharing の対象になっている必要があります。共有されていない場合、実行前の診断が mount 手順を含むエラーを表示します
-- image は固定 tag で取得されます。別 version を使う場合は `--docker-image` を指定してください
-- custom image の internal renderer protocol が現在の pfpdf と一致しない場合は、同じ version の image を指定してください
-
-## 8.10 出力ファイルが更新されない
+## 8.9 出力ファイルが更新されない
 
 変換に失敗した場合、既存の出力 PDF は上書きされずそのまま残ります。終了 code を確認してください(`0` 以外は失敗です)。CI では `pfpdf` の終了 code をそのまま判定に使えます。
 
@@ -71,7 +64,7 @@ PDF header や最後の `%%EOF` がない切断出力だけでなく、xref / ca
 
 `SIGKILL` や電源断の直後には、出力 directory に `.pfpdf-...tmp` が残る場合があります。pfpdf は別 process の file を誤って消さないよう自動回収しません。pfpdf process が動いていないことを確認してから手動で削除してください。
 
-## 8.11 それでも解決しないとき
+## 8.10 それでも解決しないとき
 
 - `--log-level debug` で詳細 log と stack trace を確認する
 - `--keep-work-dir` で workspace を残し、生成された `document.html`、resource manifest、renderer diagnostics を確認する

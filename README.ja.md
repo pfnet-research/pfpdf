@@ -37,7 +37,7 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output docs.pdf
 - **raw HTML** — 信頼済み文書向けに inline / block の HTML を保持し、レイアウトの自由度を確保します
 - **template とロゴの注入** — 研究報告向け `academic`、長文向け `book`、短い資料向け `compact`、中立な `default`、カジュアルな小冊子向け `notebook`、企業文書向け `pfn`、高密度な技術文書向け `technical` の 7 つの template を同梱。ロゴは同梱せず、`--logo PATH` または `PFPDF_LOGO` で利用側のファイルを注入します(未指定ならロゴ領域は表示されません)
 - **再配布可能な同梱フォント** — 既定では OS のフォントに依存しません。host font は `--host-fonts` / `--font-dir` による明示的な opt-in です
-- **local / Docker renderer** — 既定はローカル実行。サーバーや CI 向けに `--renderer docker` で公開 Docker image へ明示的に切り替えられます
+- **管理された renderer** — 同梱 Vivliostyle CLI と標準の browser 管理を使い、必要なら browser path を明示できます
 
 ## 対応環境
 

@@ -8,11 +8,7 @@ if (!runtimeIsSupported(process.versions.node)) {
   );
   process.exitCode = 1;
 } else {
-  const args = process.argv.slice(2);
-  const entry = args[0] === '--internal-render-job' && args.length === 2
-    ? import('./internal-render.js').then(({ internalRenderMain }) => internalRenderMain(args[1]!))
-    : import('./cli.js').then(({ main }) => main());
-  entry
+  import('./cli.js').then(({ main }) => main())
     .then((code) => {
       process.exitCode = code;
     })

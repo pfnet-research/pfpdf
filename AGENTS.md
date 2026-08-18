@@ -47,8 +47,7 @@ design docs, not here.
   licenses have not been verified. The `pfn` template must keep working without
   a logo; logos are injected by users via `--logo` / `PFPDF_LOGO`.
 - Treat inputs as trusted documents: no sanitization of raw HTML, no sandbox
-  claims. Do not present the asset server or Docker mounts as security
-  boundaries.
+  claims. Do not present the asset server as a security boundary.
 
 ## Testing
 

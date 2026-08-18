@@ -94,7 +94,7 @@ Reference local files such as images and stylesheets with paths relative to the 
 
 ## 6.5 Fonts
 
-pfpdf includes redistributable Japanese fonts, including Noto Sans CJK JP, and its templates use those fonts by default. Ordinary documents therefore do not depend on system font discovery. Custom or raw CSS can still request an OS-specific family, however, and pfpdf cannot prevent local Chromium from discovering it. Use the Docker renderer when builds must be strictly isolated from host fonts.
+pfpdf includes redistributable Japanese fonts, including Noto Sans CJK JP, and its templates use those fonts by default. Ordinary documents therefore do not depend on system font discovery. Custom or raw CSS can still request an OS-specific family, however, and pfpdf cannot prevent Chromium from discovering it. Documents that require reproducibility should not request OS-specific families from custom or raw CSS.
 
 ### Using host fonts
 

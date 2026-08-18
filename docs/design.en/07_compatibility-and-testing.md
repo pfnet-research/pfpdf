@@ -58,14 +58,13 @@ On Linux, the browser archive alone does not provide all the required shared lib
 - Workspace cleanup on normal termination, ordinary errors, and catchable interruptions
 - Precedence of CLI, environment, and defaults, with the CLI always winning
 - Strict parsing of environment variable booleans, enums, numbers, and path lists
-- Simultaneous use of mutually exclusive flags; duplicate options other than `--font-dir`; unknown options, positional arguments, and missing values; explicit resets of the template selector and of the logo / font directory / managed browser / default Docker image / workspace retention overriding the entire logical configuration from environment variables; empty or duplicate components in path lists; and timeout minimum / maximum / overflow
+- Simultaneous use of mutually exclusive flags; duplicate options other than `--font-dir`; unknown options, positional arguments, and missing values; explicit resets of the template selector and of the logo / font directory / managed browser / workspace retention overriding the entire logical configuration from environment variables; empty or duplicate components in path lists; and timeout minimum / maximum / overflow
 - Required files of bundled and custom templates, and the output when the logo is omitted
 - Required, duplicate, and unknown DOM slots in custom templates; text insertion of metadata; removal of unspecified author / series slots; rejection of anything but permitted tags in titles; rejection of a logo specification when the slot is missing
 - Trusted attributes are preserved, no processed `data-pfpdf-slot` remains, and a runtime overwrite of `window.pfpdf` results in code `1`
 - Host fonts are disabled by default and font directories are opt-in
 - Deterministic priority of the font scan, symlink cycles, broken OpenType offsets / lengths, the 4096 boundary for tables / faces, duplicate faces, CSS escaping, the no-embedding flag for `--font-dir` and direct CSS URL / `data:` fonts, the custom CSS `local()` warning, and the prohibition of `local()` in bundled CSS
-- Selection of the local or Docker renderer and prohibition of implicit fallback
-- argv / environment limits for local and Docker, variable-length Unicode paths / proxies / custom CAs, and classification into code `2` / `1` by user versus bundled cause
+- Child-process argv / environment limits, variable-length Unicode paths / proxies / custom CAs, and classification into code `2` / `1` by user versus bundled cause
 - `SOURCE_DATE_EPOCH` and the PDF Info / XMP title, author, language, and timestamp policy, the catalog `/Lang`, and emitting a reproducibility warning when front matter has a `date` but the epoch is unset
 - Rejecting negative values, signs, whitespace, exponents, and values exceeding the safe integer / Date range for `SOURCE_DATE_EPOCH`
 - Never committing PDFs with bad header / EOF markers, xref / object offset / incremental update / catalog / page tree problems, encryption, 0 pages, symlink or directory outputs, or truncation
@@ -85,13 +84,13 @@ On Linux, the browser archive alone does not provide all the required shared lib
 - When Markdown is combined with inline and block raw HTML in the same document, the HTML elements, styles, and required scripts are reflected in both the generated HTML and the PDF
 - Relative images, paths containing spaces, and Japanese paths are handled
 - Trusted local resources containing `..`, absolute paths, and symlink targets can be referenced within the process's privileges
-- Nested CSS `@import` / `url()`, import cycles, and raw HTML `srcset` / inline styles are captured in the resource graph, and resources at the same logical URL can be read under both local and Docker
+- Nested CSS `@import` / `url()`, import cycles, and raw HTML `srcset` / inline styles are captured in the resource graph, and resources at logical URLs can be read
 - The classification of relative, `file:`, HTTP(S), network-path, `data:`, `blob:`, `mailto:`, `tel:`, `javascript:`, and unknown schemes is inspected per fetch / navigation role, along with the rewriting of raw HTML `a[href]` links to Markdown files
-- Local paths dynamically assembled by scripts fall outside both renderers' guarantees; they must not be mistakenly judged successful as static resources
+- Local paths dynamically assembled by scripts fall outside the renderer's guarantees; they must not be mistakenly judged successful as static resources
 - Inline module scripts and `iframe[srcdoc]` are preserved as trusted HTML, and the resource graph inside them is not traversed
-- On both renderers' loopback servers, test missing tokens, unknown IDs, path traversal, double encoding, invalid ranges, request bodies, Host / Origin mismatches, and header / concurrency limits; handle the required single range and CORS, plus no-store / no-referrer / nosniff headers; and close the port after completion. Also confirm that a symlink or FIFO swapped in after the pre-check fails without the special file being read, and that the Docker server starts only inside the container and does not depend on host networking or port publishing
+- On the loopback server, test missing tokens, unknown IDs, path traversal, double encoding, invalid ranges, request bodies, Host / Origin mismatches, and header / concurrency limits; handle the required single range and CORS, plus no-store / no-referrer / nosniff headers; and close the port after completion. Also confirm that a symlink or FIFO swapped in after the pre-check fails without the special file being read
 - Verify with the pinned Vivliostyle CLI and a real browser that pagination starts only after the DOM, local stylesheets / scripts, fonts, image decoding, math, and code highlighting are complete. Pagination never starts before the readiness gate is released, and local resource errors, bundled script errors, rejections of registered promises, late registration, and completion-signal inconsistencies result in code `1` regardless of the upstream child's exit code
-- Incomplete readiness, a stalled script, a stalled child, or a stalled container terminates at the absolute deadline, and the existing output survives graceful and forced cleanup
+- Incomplete readiness, a stalled script, or a stalled child terminates at the absolute deadline, and the existing output survives graceful and forced cleanup
 - Output is possible from a read-only input directory
 - When a build fails while existing output is present, the existing output is preserved
 - The commit after success happens from an exclusively created temporary file in the same directory as the final output, and the existing output survives fault injection of source-size / copied-byte-count mismatch, post-copy truncation and broken xref / page tree, corruption after PDF metadata updates, rename failure, temporary-file flush failure, and interruption. A parent-directory flush failure after commit is fixed as a durability warning only
@@ -101,20 +100,15 @@ On Linux, the browser archive alone does not provide all the required shared lib
 - The tarball produced by `npm pack` runs from a fresh temporary project via `npm exec`
 - On a first run without a browser, the pinned Vivliostyle CLI's standard acquisition works, or the upstream diagnostics are shown to the user as-is
 - A compatible browser explicitly specified via `PFPDF_BROWSER_PATH` can be used
-- The renderer, template, and browser can be configured via environment variables, and CLI arguments always override them
+- The template and browser can be configured via environment variables, and CLI arguments always override them
 - A custom template directory targeting the current pfpdf version can be used
 - When host fonts are disabled, the OS font directories are not read
-- The Docker renderer mounts inputs, templates, logos, and fonts read-only, with only the temporary output, profile, and temp directories writable
-- The Docker renderer does not mount the home directory or the filesystem root outside the static resource graph for convenience; it rejects mount / argv limit overruns and custom image protocol mismatches with code `2` before rendering, and treats default image inconsistencies as code `1`
-- The Docker renderer does not mount the final output directory, and runs as non-root with a read-only root filesystem
-- The Docker renderer's container entrypoint is fixed to the internal render command and does not recursively execute the renderer
-- The Docker image is started from the content-addressed ID obtained by an explicit pull / inspect, so a tag swap after inspect cannot run a different image
-- The local and Docker renderers take the same `document.html` as input
+- The renderer takes the same `document.html` inspected by the integration tests as input
 - With horizontal RTL and vertical writing fixtures, verify the combinations of the root `dir`, the computed writing mode, and the PDF reading direction generated by upstream
 - The origin, port, and token differ per build even for the same HTML byte sequence; verify that no token leaks into the generated HTML, and confirm that user scripts depending on `location` fall outside the reproducibility guarantee
 - `--doctor` and `--print-effective-config` return diagnostic results without generating a PDF
 - The stdout of `--doctor` and `--print-effective-config` parses as exactly one JSON object of the respective schema, stderr logs do not intermix, and secret-bearing values are redacted
-- `--doctor` reclaims the secure temporary profile and diagnostic container used for browser / mount checks in success, failure, and timeout cases, and does not modify the project or output directory, the browser cache, Docker images, or OS settings
+- `--doctor` reclaims the secure temporary profile used for browser checks in success, failure, and timeout cases, and does not modify the project or output directory, the browser cache, or OS settings
 - UTF-8 code points and tokens in child output and renderer diagnostics are decoded and escaped correctly even across chunk boundaries, and AssetServer tokens and known credentials are never left in raw form in stdout, stderr, or a retained workspace
 - With child output exceeding 8 MiB, the pipe is drained without stalling, only the saved diagnostics are truncated at the cap, and the number of omitted bytes is recorded correctly
 - The file sets, numbering, and relative paths of `docs/design.ja/` and `docs/design.en/`, and of `docs/tutorial.ja/` and `docs/tutorial.en/`, match
@@ -142,7 +136,6 @@ Independently of the structural inspection in normal runs, the smoke tests also 
 - Confirm in the four environments that the tarball contains `npm-shrinkwrap.json` but not `package-lock.json`, and that the runtime dependency tree and integrity installed into an empty project match the source lockfile
 - The packed entrypoint loads and runs on the oldest Node.js in the supported range, and on representative versions just outside the range the startup check returns the intended diagnostic
 - Generate the PDF for `tests/fixtures/minimal/` in the four supported environments
-- Generate the minimal example with the Docker image intended for publication and verify the read-only mount boundaries
 
 ## 7.7 Property, fuzz, and performance tests
 

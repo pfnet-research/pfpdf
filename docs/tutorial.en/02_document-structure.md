@@ -98,6 +98,6 @@ With file input, relative paths are resolved against the Markdown file's parent 
 
 By contrast, relative paths in CLI arguments such as `--input`, `--output`, and `--logo` are resolved from the directory in which you run `pfpdf`.
 
-Local URLs written statically in Markdown, raw HTML, and CSS are resolved by both the local and Docker renderers. Local paths that a script builds from strings at runtime are not automatically exposed by either renderer, so declare resources with static `src` / `href` / CSS `url()`, or use HTTP(S) URLs.
+Local URLs written statically in Markdown, raw HTML, and CSS are resolved through the resource graph. Local paths that a script builds from strings at runtime are not automatically exposed, so declare resources with static `src` / `href` / CSS `url()`, or use HTTP(S) URLs.
 
 The URL separator inside documents is `/` regardless of OS. A Windows absolute path is written as `file:///C:/docs/image.png`, and a UNC path as a valid `file://server/share/...` URL. Only paths in CLI arguments may use the native path notation of the OS you are running on.

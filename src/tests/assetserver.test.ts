@@ -37,7 +37,7 @@ test('asset server serves exact files and ranges', async () => {
   const manifest = new ResourceManifest();
   const logical = manifest.add(file);
   const emptyLogical = manifest.add(empty);
-  const dockerStyleLogical = manifest.addExplicit('assets/image.svg', file);
+  const explicitLogical = manifest.addExplicit('assets/image.svg', file);
   const server = new AssetServer(manifest, new Map([['document.html', Buffer.from('<p>ok</p>')]]));
   await server.start();
   try {
@@ -51,8 +51,8 @@ test('asset server serves exact files and ranges', async () => {
     assert.equal(ranged.body.toString(), 'bcd');
     assert.equal(ranged.headers['content-range'], 'bytes 1-3/6');
 
-    const dockerStyle = await request(new URL(dockerStyleLogical, server.documentUrl).href);
-    assert.equal(dockerStyle.headers['content-type'], 'image/svg+xml');
+    const explicit = await request(new URL(explicitLogical, server.documentUrl).href);
+    assert.equal(explicit.headers['content-type'], 'image/svg+xml');
 
     const emptyResponse = await request(new URL(emptyLogical, server.documentUrl).href);
     assert.equal(emptyResponse.status, 200);

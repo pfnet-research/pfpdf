@@ -17,14 +17,11 @@ pfpdf CLI
   ├── AssetServer
   ├── OutputCommitter
   └── Renderer
-        ├── LocalRenderer
-        │     └── Vivliostyle CLI
-        │           └── Chromium
-        └── DockerRenderer
-              └── public pfpdf image
+        └── Vivliostyle CLI
+              └── Chromium
 ```
 
-CLI と変換処理は TypeScript で実装します。npm package と Docker image は同じ JavaScript build artifact を実行し、配布経路ごとの変換差を作らない方針とします。
+CLI と変換処理は TypeScript で実装し、npm package の compiled JavaScript を実行します。
 
 ## 2.2 `ConfigResolver`
 
@@ -61,7 +58,7 @@ front matter は既存 YAML library の JSON schema で 1 document の mapping �
 
 ## 2.4 `ResourceResolver`
 
-`ResourceResolver` は、local / Docker のどちらでも同じ `document.html` を使えるよう、静的に記述された local resource を logical URL へ変換します。
+`ResourceResolver` は、静的に記述された local resource を renderer-neutral な logical URL へ変換します。
 
 - Markdown とその inline raw HTML は input の resource base、template HTML は template directory、各外部 CSS はその file の親 directory を基準にする。CLI で指定した logo / font は ConfigResolver が解決した絶対 path を起点にし、異なる基準を暗黙に混ぜない
 - Markdown AST の link / image、raw HTML の URL 属性と `srcset`、inline style、`<style>`、template、外部 CSS の `url()` / `@import` を、それぞれ HTML / CSS parser の token 上で処理する。正規表現だけで HTML や CSS を書き換えない
@@ -74,10 +71,10 @@ front matter は既存 YAML library の JSON schema で 1 document の mapping �
 - navigation role の文書内 fragment、HTTP(S)、`mailto:`、`tel:`、absolute `file:`、raw HTML に明示された `javascript:` / custom scheme は local resource graph へ入れず、trusted link として保持する。scheme のない relative navigation は後述の document link 規則で処理する。URL parser が scheme と判断した値を local path として再解釈しない
 - symlink は許可するが、canonical path で重複排除と循環検出を行う。build 中の file 内容変更を snapshot として固定することまでは保証しない
 - local resource は regular file または regular file への symlink だけを許可する。directory、FIFO、socket、device は描画前に code `2` で拒否し、resource discovery や response で特殊 file を開いて停止しない
-- script が実行時に組み立てる path、runtime に追加される DOM、network response 内の参照は静的 resource graph の対象外とし、local / Docker のどちらでも動的な local path を参照できることを保証しない
+- script が実行時に組み立てる path、runtime に追加される DOM、network response 内の参照は静的 resource graph の対象外とし、動的な local path を参照できることを保証しない
 - JavaScript module graph と nested HTML document 内の resource graph は解析しない。inline module、`iframe[srcdoc]` などの trusted HTML は保持するが、その内部で参照される relative local resource の解決は保証しない。必要なら利用者が bundle または absolute / remote URL を使う
 
-この graph は local file を単一 HTML へ埋め込むためではなく、URL 書き換え、Docker の read-only mount、request routing を一貫させるために使います。元 asset の byte 列は workspace へ複製せず、書き換えが必要な CSS だけを generated asset として出力します。
+この graph は local file を単一 HTML へ埋め込むためではなく、URL 書き換えと request routing を一貫させるために使います。元 asset の byte 列は workspace へ複製せず、書き換えが必要な CSS だけを generated asset として出力します。
 
 ## 2.5 `Workspace`
 
@@ -111,7 +108,7 @@ front matter は既存 YAML library の JSON schema で 1 document の mapping �
 
 ## 2.6 `AssetServer`
 
-- local / Docker renderer の双方で同じ `AssetServer` 実装を renderer 側に起動し、Vivliostyle CLI には file path ではなく document URL を渡す。local では host process、Docker では internal render command が container 内で server を起動し、それぞれ browser と同じ network namespace の `127.0.0.1` にある OS 割当 port だけへ bind する。host の loopback port を container へ公開したり、IPv4 loopback 以外の interface へ bind したりしない
+- renderer と同じ host process で `AssetServer` を起動し、Vivliostyle CLI には file path ではなく document URL を渡す。browser と同じ host の `127.0.0.1` にある OS 割当 port だけへ bind し、IPv4 loopback 以外の interface へ bind しない
 - HTML byte 列と logical asset path は決定的でも、browser から見える port は build ごとに異なる。利用者 script が `location.href` / `origin`、時刻、乱数から描画内容を作る場合の再現性は保証しない
 - `ResourceResolver` の manifest が公開対象として列挙した exact file と generated file だけを logical ID で配信し、manifest 自体、browser profile、renderer output は配信しない。任意 path の静的 file server や directory listing にもしない
 - request ごとに manifest の target を open し、regular file であることを確認して配信する。build 中の file 変更は trust model 上の非保証とする
@@ -133,7 +130,7 @@ pfpdf は信頼済みのローカル文書を処理する tool とし、local re
 - Markdown AST の link と raw HTML の `a[href]` が同一文書へ結合される Markdown file を相対指定した場合は、file anchor または指定 fragment へ書き換える。それ以外の navigation link は trusted input として保持し、存在確認や可搬性の判定は行わない
 - remote image、stylesheet、script は browser に直接取得させる。timeout、DNS、TLS、HTTP error を pfpdf が監視・分類して build 成否へ反映することは保証しない
 
-`HtmlDocumentBuilder` は workspace に `document.html` を 1 つ生成し、`AssetServer` がその byte 列を変更せず配信した URL を Vivliostyle CLI へ渡します。HTML を公開出力形式にはせず、asset の data URL 化、font subset、単一 file 化を行いません。HTML の integration test は別の出力 pipeline を作らず、renderer が実際に URL から消費する `document.html` と同じ builder 出力を保存・比較します。renderer 固有の host path や port は manifest / 起動引数側で解決し、HTML byte 列を local / Docker ごとに作り直しません。
+`HtmlDocumentBuilder` は workspace に `document.html` を 1 つ生成し、`AssetServer` がその byte 列を変更せず配信した URL を Vivliostyle CLI へ渡します。HTML を公開出力形式にはせず、asset の data URL 化、font subset、単一 file 化を行いません。HTML の integration test は別の出力 pipeline を作らず、renderer が実際に URL から消費する `document.html` と同じ builder 出力を保存・比較します。host path や port は manifest / 起動引数側で解決し、HTML byte 列を作り直しません。
 
 `pfpdf-file-` で始まる ID、`data-pfpdf-*` attribute、`window.pfpdf` は内部 contract でも利用しますが、trusted HTML との衝突を事前検査して拒否しません。builder は処理した `data-pfpdf-slot` を除去します。利用者 script による `window.pfpdf` の上書きを防止・検出する専用処理は持ちません。登録 API を利用する script はその名前を保持する必要があります。
 
@@ -146,8 +143,8 @@ document の `<head>` で最初に readiness coordinator を初期化し、font�
 - 利用者 script は `window.pfpdf.registerReady(promise)` で pagination 前に待つ処理を登録できる。登録は document の parse 完了までに行い、それ以降の登録は error にする
 - coordinator は `window.pfpdf` に frozen API object を公開し、`registerReady` の引数を `Promise.resolve` 相当で同化する。trusted scriptによるnamespaceの改変を防ぐproperty descriptorや改変検出は設けない
 - `error` と `unhandledrejection` は readiness 完了までは build error とする。完了後に timer や event handler が起こす処理までは PDF の成否へ反映できない
-- renderer は readiness の成功を確認してから pagination を開始し、`--render-timeout-ms` の deadline を renderer が最初の外部 process を起動する直前から Docker image / browser の確認と取得、readiness、PDF 生成・後処理・構造検査の全体へ適用する
-- child process として呼ぶ pinned Vivliostyle CLI との readiness 接続方法を release 前に固定する。上流に pagination 前の hook がある場合はその正式 API を使う。ない場合は、document load を保留する専用 gate resource と、coordinator から loopback serverへの単一完了通知を使う。通知は成功・失敗と短い診断を伝え、gateは成功時だけ解放する。localではhost側、Dockerではinternal render command側の同じcoordinatorがrejection、resource error、timeoutを記録し、上流childがcode `0`を返してもbuildを失敗させる。この接続をlocal / Dockerのpinned browserで実証できない限りreleaseしない
+- renderer は readiness の成功を確認してから pagination を開始し、`--render-timeout-ms` の deadline を renderer が最初の外部 process を起動する直前から browser の確認と取得、readiness、PDF 生成・後処理・構造検査の全体へ適用する
+- child process として呼ぶ pinned Vivliostyle CLI との readiness 接続方法を release 前に固定する。上流に pagination 前の hook がある場合はその正式 API を使う。ない場合は、document load を保留する専用 gate resource と、coordinator から loopback serverへの単一完了通知を使う。通知は成功・失敗と短い診断を伝え、gateは成功時だけ解放する。host側のcoordinatorがrejection、resource error、timeoutを記録し、上流childがcode `0`を返してもbuildを失敗させる。この接続をpinned browserで実証できない限りreleaseしない
 
 remote image / stylesheet / script の欠落や利用者 script が登録しなかった非同期処理まで完全に検出する契約ではありません。再現可能な文書では local resource を使い、pagination に影響する非同期処理を必ず登録します。
 
@@ -168,21 +165,18 @@ Options:
   --template NAME          bundled template 名。既定値は default
   --template-dir PATH      custom template directory
   --logo PATH / --no-logo  template に渡す logo file / 環境変数の logo を無効化
-  --renderer MODE          local または docker。既定値は local
   --host-fonts             OS 標準の font directory を使用する
   --no-host-fonts          環境変数の host font 指定を無効化する
   --font-dir PATH          追加 font directory。複数回指定可能
   --no-font-dirs           環境変数の追加 font directory を無効化
-  --browser-path PATH      local renderer が使う browser
+  --browser-path PATH      renderer が使う browser
   --managed-browser        環境変数の browser path を無効化
-  --docker-image IMAGE     Docker renderer が使う image と tag
-  --default-docker-image   環境変数の Docker image を無効化
   --render-timeout-ms N    renderer 準備から PDF 検査完了まで。既定は 300000
   --keep-work-dir / --no-keep-work-dir
                            一時 workspace の保持 / 環境変数の保持指定を無効化
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config 適用後の設定と設定元を表示して終了する
-  --doctor                 renderer、browser、mount、asset を診断する
+  --doctor                 renderer、browser、asset を診断する
   --version                バージョンを表示する
   -h, --help               ヘルプを表示する
 ```
@@ -230,15 +224,13 @@ Options:
 
 | 環境変数 | 値 | 用途 |
 |---|---|---|
-| `PFPDF_RENDERER` | `local` / `docker` | renderer の切替 |
 | `PFPDF_TOC` | boolean | 目次生成の有効 / 無効 |
 | `PFPDF_HOST_FONTS` | boolean | OS 標準 font directory の利用可否 |
 | `PFPDF_FONT_DIRS` | path list | 追加 font directory。区切りは Node.js の `path.delimiter` |
 | `PFPDF_TEMPLATE` | template 名 | bundled template の選択 |
 | `PFPDF_TEMPLATE_DIR` | path | custom template directory |
 | `PFPDF_LOGO` | path | template に渡す logo file |
-| `PFPDF_BROWSER_PATH` | path | local renderer が使う browser |
-| `PFPDF_DOCKER_IMAGE` | image reference | Docker image と固定 tag |
+| `PFPDF_BROWSER_PATH` | path | renderer が使う browser |
 | `PFPDF_RENDER_TIMEOUT_MS` | decimal integer | renderer 準備から PDF 検査完了までの timeout。`1000` 以上 `3600000` 以下 |
 | `PFPDF_KEEP_WORK_DIR` | boolean | 一時 workspace の保持 |
 | `PFPDF_LOG_LEVEL` | `error` / `warn` / `info` / `debug` | log 詳細度 |
@@ -249,30 +241,30 @@ Options:
 - `PFPDF_FONT_DIRS` は `path.delimiter` で分割し、空 component を current directory と解釈せず code `2` にする。同じ canonical directory が複数回現れた場合は最初の順位だけを残して warning にする
 - child process は通常の CLI tool と同様に呼出元の環境変数を継承する
 - `--print-effective-config` は versioned schema を持つ JSON object を 1 個だけ stdout へ表示し、各値と、その設定元が CLI、environment、default のどれかを含める。token、credential、環境変数の生値は含めず、秘密を含み得る proxy URL と custom CA の内容は表示しない
-- `--doctor` は effective config に基づき、Node.js、browser、Docker daemon、image、template、logo、font directory、mount 可否、出力権限を検査する
+- `--doctor` は effective config に基づき、Node.js、browser、template、logo、font directory、出力権限を検査する
 - `--doctor` と `--print-effective-config` は PDF を生成せず、診断で秘密情報や環境変数全体を表示しない
-- `--doctor` は browser download、Docker image pull、利用者の project / output directory 作成、設定変更を行わない。browser 実起動や mount 可否の検査に必要な場合だけ、OS の secure temporary directory に専用 profile / workspace を作り、予測不能な名前の diagnostic container とともに `finally` で回収する。cleanup 失敗は check の `fail` として残す。出力権限は既存の最寄り親 directory から best effort で判定し、実際の create / rename 成功を保証しない。外部 process / daemon の各 check は cleanup を含めて 10 秒、command 全体は 60 秒で打ち切り、timeout を `fail` として報告する
+- `--doctor` は browser download、利用者の project / output directory 作成、設定変更を行わない。browser 実起動の検査に必要な場合だけ、OS の secure temporary directory に専用 profile / workspace を作り、`finally` で回収する。cleanup 失敗は check の `fail` として残す。出力権限は既存の最寄り親 directory から best effort で判定し、実際の create / rename 成功を保証しない。外部 process の各 check は cleanup を含めて 10 秒、command 全体は 60 秒で打ち切り、timeout を `fail` として報告する
 - `--doctor` と `--print-effective-config` の実行時は `--input` と `--output` を必須にしない
 - input / output なしの `--doctor` は runtime と global setting だけを検査し、指定された場合だけ document resource と書込先まで検査する。未指定項目を成功確認済みと表示しない
 - `--doctor` は versioned schema の JSON object を stdout へ出し、検査ごとに `pass` / `warning` / `fail` / `not-run` と根拠を持たせる。問題を検出した場合に終了 code `1`、warning のみまたは問題なしの場合は `0` を返す
 - scalar と list は、CLI に値があれば CLI 全体、なければ環境変数、どちらにもなければ組み込み既定値を採用する。source 間で list を暗黙連結しない
-- `--no-logo`、`--no-font-dirs`、`--managed-browser`、`--default-docker-image`、`--no-keep-work-dir` は「未指定」ではなく明示的な CLI reset 値であり、対応する環境変数を無効化する。effective config では `null` / 空 list / default 値と `source: "cli"` を区別して表示する
+- `--no-logo`、`--no-font-dirs`、`--managed-browser`、`--no-keep-work-dir` は「未指定」ではなく明示的な CLI reset 値であり、対応する環境変数を無効化する。effective config では `null` / 空 list / default 値と `source: "cli"` を区別して表示する
 
-JSON schema の top-level は少なくとも `schemaVersion: 1` と `command` を持ちます。effective config は `config.<name> = {"value": ..., "source": "cli|environment|default"}`、doctor は全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。全体 status は 1 個でも fail があれば fail、なければ warning があれば warning、実行対象が 1 個以上すべて pass なら pass とします。key と check の出力順を固定し、UTF-8 の compact JSON 1 行と末尾 LF だけを stdout へ書きます。将来の optional field 追加は同じ schemaVersion で許可しますが、既存 field の意味・型の変更や削除では version を上げます。
+JSON schema の top-level は少なくとも `schemaVersion: 2` と `command` を持ちます。effective config は `config.<name> = {"value": ..., "source": "cli|environment|default"}`、doctor は全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。全体 status は 1 個でも fail があれば fail、なければ warning があれば warning、実行対象が 1 個以上すべて pass なら pass とします。key と check の出力順を固定し、UTF-8 の compact JSON 1 行と末尾 LF だけを stdout へ書きます。将来の optional field 追加は同じ schemaVersion で許可しますが、既存 field の意味・型の変更や削除では version を上げます。
 
 ### 2.9.4 終了コード
 
 | code | 意味 |
 |---:|---|
 | `0` | 成功 |
-| `1` | renderer、browser、Docker、その他の実行時エラーまたは内部エラー |
+| `1` | renderer、browser、その他の実行時エラーまたは内部エラー |
 | `2` | CLI 引数、入力、front matter のエラー |
 
 help、version、`--doctor`、`--print-effective-config` など command が要求された結果だけを stdout へ出し、通常の PDF build は stdout へ何も出しません。進捗、通常 log、警告、エラーと child process の出力は stderr へ送ります。例外 stack trace は標準では表示せず、`--log-level debug` の場合だけ表示します。commit 前の中断 code は Node.js と各 OS の慣例に従い、platform をまたぐ独自 code へ正規化しません。commit critical section 後の signal は前節の規則で遅延し、成功済み build を中断へ戻しません。
 
 診断には可能な限り source file と 1-origin の line / column、該当 CLI option / environment 名、処理 phase を含めます。trusted input 前提のため human-readable log の内容は sanitize / redact せず、JSON は serializer の通常の escape に任せます。
 
-利用者が指定した CLI / environment の値、Markdown、front matter、custom template、logo、font、静的 local resource の不正・不存在・読取り不能は code `2` とします。browser / Docker / renderer の失敗、timeout、出力先への write / rename 失敗、bundled resource の欠落、内部 invariant 違反は code `1` とします。同じ検査でも bundled template / font の破損は利用者入力ではないため code `1` です。cleanup が commit 前に失敗した場合も code `1` として既存出力を維持します。
+利用者が指定した CLI / environment の値、Markdown、front matter、custom template、logo、font、静的 local resource の不正・不存在・読取り不能は code `2` とします。browser / renderer の失敗、timeout、出力先への write / rename 失敗、bundled resource の欠落、内部 invariant 違反は code `1` とします。同じ検査でも bundled template / font の破損は利用者入力ではないため code `1` です。cleanup が commit 前に失敗した場合も code `1` として既存出力を維持します。
 
 ## 2.10 計算量と resource 上限
 

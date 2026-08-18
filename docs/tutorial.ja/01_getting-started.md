@@ -5,7 +5,7 @@
 - Node.js(対応する semver range は README を参照)と npm
 - インターネット接続(初回のみ。npm package と PDF 描画用 browser の取得に使います)
 
-Python や Docker は必要ありません。
+Python は必要ありません。
 
 > 初回実行時には PDF 描画のための Chromium が自動で download されるため、数百 MB の通信が発生することがあります。2 回目以降は cache が使われます。Linux では Chromium の実行に OS の shared library が必要です(08 章参照)。
 

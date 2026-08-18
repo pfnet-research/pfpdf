@@ -4,24 +4,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-  DOCKER_PROTOCOL,
-  parseDockerImageInspection,
   processFailureMessage,
   resolveVivliostyleCli,
   runBoundedProcess,
 } from '../renderer.js';
-import { InputError, RuntimeError } from '../errors.js';
 
 test('pinned Vivliostyle CLI entry point resolves to a file', () => {
   assert.equal(fs.statSync(resolveVivliostyleCli()).isFile(), true);
-});
-
-test('Docker renderer and doctor share image inspection validation', () => {
-  const id = `sha256:${'a'.repeat(64)}`;
-  assert.equal(parseDockerImageInspection(`${id}\t${DOCKER_PROTOCOL}\n`, 'image', true), id);
-  assert.throws(() => parseDockerImageInspection('bad\t1', 'image', true), RuntimeError);
-  assert.throws(() => parseDockerImageInspection(`${id}\twrong`, 'image', true), InputError);
-  assert.throws(() => parseDockerImageInspection(`${id}\twrong`, 'image', false), RuntimeError);
 });
 
 test('bounded child process classifies timeout and abort consistently', async () => {

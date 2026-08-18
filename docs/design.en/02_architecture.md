@@ -17,14 +17,11 @@ pfpdf CLI
   ├── AssetServer
   ├── OutputCommitter
   └── Renderer
-        ├── LocalRenderer
-        │     └── Vivliostyle CLI
-        │           └── Chromium
-        └── DockerRenderer
-              └── public pfpdf image
+        └── Vivliostyle CLI
+              └── Chromium
 ```
 
-The CLI and conversion logic are implemented in TypeScript. Both the npm package and Docker image run the same compiled JavaScript, so the distribution channel does not affect conversion results.
+The CLI and conversion logic are implemented in TypeScript and run as compiled JavaScript from the npm package.
 
 ## 2.2 `ConfigResolver`
 
@@ -61,7 +58,7 @@ The `BibliographyFormatter` uses Citation.js to convert BibTeX and BibLaTeX to C
 
 ## 2.4 `ResourceResolver`
 
-`ResourceResolver` converts statically written local resources into logical URLs so that the same `document.html` can be used with either the local or the Docker renderer.
+`ResourceResolver` converts statically written local resources into renderer-neutral logical URLs.
 
 - Markdown and its inline raw HTML use the input's resource base, template HTML uses the template directory, and each external CSS file uses its own parent directory as its base. Logo and font paths specified on the CLI start from the absolute path resolved by ConfigResolver; different bases are never implicitly mixed
 - Links and images in the Markdown AST, URL attributes and `srcset` in raw HTML, inline styles, `<style>`, templates, and `url()` / `@import` in external CSS are each processed on HTML / CSS parser tokens. HTML and CSS are never rewritten with regular expressions alone
@@ -74,10 +71,10 @@ The `BibliographyFormatter` uses Citation.js to convert BibTeX and BibLaTeX to C
 - In navigation roles, in-document fragments, HTTP(S), `mailto:`, `tel:`, absolute `file:`, and `javascript:` / custom schemes explicitly written in raw HTML do not enter the local resource graph and are preserved as trusted links. Scheme-less relative navigation is handled by the document link rules described later. A value the URL parser identifies as having a scheme is never reinterpreted as a local path
 - Symlinks are allowed, but deduplication and cycle detection use canonical paths. Snapshotting file contents against modification during the build is not guaranteed
 - Local resources may only be regular files or symlinks to regular files. Directories, FIFOs, sockets, and devices are rejected with code `2` before rendering; special files are never opened during resource discovery or responses in a way that could hang
-- Paths a script assembles at runtime, DOM added at runtime, and references inside network responses are outside the static resource graph; the ability to reference dynamic local paths is not guaranteed under either the local or the Docker renderer
+- Paths a script assembles at runtime, DOM added at runtime, and references inside network responses are outside the static resource graph; the ability to reference dynamic local paths is not guaranteed
 - The JavaScript module graph and resource graphs inside nested HTML documents are not analyzed. Trusted HTML such as inline modules and `iframe[srcdoc]` is preserved, but resolution of relative local resources referenced inside them is not guaranteed. Where needed, the user should bundle, or use absolute or remote URLs
 
-The graph does not embed local files in a single HTML document. Instead, it keeps URL rewriting, read-only Docker mounts, and request routing consistent. Original asset bytes are not copied into the workspace; only CSS that requires rewriting is emitted as a generated asset.
+The graph does not embed local files in a single HTML document. Instead, it keeps URL rewriting and request routing consistent. Original asset bytes are not copied into the workspace; only CSS that requires rewriting is emitted as a generated asset.
 
 ## 2.5 `Workspace`
 
@@ -111,7 +108,7 @@ To leave the input directory untouched, pfpdf creates a build workspace in the s
 
 ## 2.6 `AssetServer`
 
-- For both the local and Docker renderers, the same `AssetServer` implementation is started on the renderer side, and the Vivliostyle CLI is given a document URL rather than a file path. Locally the host process starts the server; in Docker, the internal render command inside the container does, binding only to an OS-assigned port on `127.0.0.1` in the same network namespace as the browser. Host loopback ports are never exposed to the container, and no interface other than the IPv4 loopback is bound
+- The host process starts the `AssetServer`, and the Vivliostyle CLI receives a document URL rather than a file path. The server binds only to an OS-assigned port on `127.0.0.1` on the same host as the browser, and no interface other than the IPv4 loopback is bound
 - Even though the HTML bytes and logical asset paths are deterministic, the port visible to the browser differs per build. Reproducibility is not guaranteed for user scripts that derive rendered content from `location.href` / `origin`, the current time, or randomness
 - Only the exact files and generated files the `ResourceResolver` manifest enumerates as publishable are served, by logical ID; the manifest itself, the browser profile, and the renderer output are not served. The server is likewise never turned into an arbitrary-path static file server or a directory listing
 - For each request, the manifest target is opened and verified to be a regular file before it is served. Changes to files during the build are non-guarantees under the trust model
@@ -133,7 +130,7 @@ pfpdf processes trusted local documents and does not sandbox local resources.
 - If a Markdown AST link or a raw HTML `a[href]` refers relatively to a Markdown file that is merged into the same document, it is rewritten to the file's anchor or the specified fragment. Other navigation links are preserved as trusted input, with no existence checks or portability judgments
 - Remote images, stylesheets, and scripts are fetched directly by the browser. pfpdf does not guarantee that it monitors and classifies timeouts, DNS, TLS, and HTTP errors or reflects them in build success or failure
 
-`HtmlDocumentBuilder` generates one `document.html` file in the workspace. The Vivliostyle CLI receives the URL from which `AssetServer` serves those exact bytes. HTML is not a published output format: assets do not become data URLs, fonts are not subset, and pfpdf produces no single-file HTML build. Integration tests use the same builder output as the `document.html` that the renderer consumes; they do not create a separate HTML pipeline. Renderer-specific host paths and ports are resolved through the manifest and launch arguments, without rebuilding the HTML for local and Docker renderers.
+`HtmlDocumentBuilder` generates one `document.html` file in the workspace. The Vivliostyle CLI receives the URL from which `AssetServer` serves those exact bytes. HTML is not a published output format: assets do not become data URLs, fonts are not subset, and pfpdf produces no single-file HTML build. Integration tests use the same builder output as the `document.html` that the renderer consumes; they do not create a separate HTML pipeline. Host paths and ports are resolved through the manifest and launch arguments, without rebuilding the HTML.
 
 IDs beginning with `pfpdf-file-`, `data-pfpdf-*` attributes, and `window.pfpdf` are also used in internal contracts, but collisions with trusted HTML are not detected and rejected up front. The builder removes the `data-pfpdf-slot` attributes it has processed. There is no dedicated logic to prevent or detect user scripts overwriting `window.pfpdf`; scripts that use the registration API must preserve that name.
 
@@ -146,8 +143,8 @@ The readiness coordinator is initialized first in the document `<head>`, aggrega
 - User scripts can register work to be awaited before pagination via `window.pfpdf.registerReady(promise)`. Registration must happen by the time document parsing completes; later registrations are errors
 - The coordinator exposes a frozen API object on `window.pfpdf` and assimilates the `registerReady` argument via the equivalent of `Promise.resolve`. No property descriptors or tamper detection guard the namespace against modification by trusted scripts
 - `error` and `unhandledrejection` are build errors until readiness completes. Work triggered by timers or event handlers after completion cannot be reflected in PDF success or failure
-- The renderer confirms readiness success before starting pagination, and the `--render-timeout-ms` deadline applies, from just before the renderer starts its first external process, to the whole of Docker image / browser verification and acquisition, readiness, and PDF generation, post-processing, and structural inspection
-- How readiness is connected to the pinned Vivliostyle CLI, invoked as a child process, is fixed before release. If upstream offers a pre-pagination hook, its official API is used. Otherwise, a dedicated gate resource that holds up document load, plus a single completion notification from the coordinator to a loopback server, are used. The notification conveys success or failure and a short diagnostic, and the gate is released only on success. On the host side locally, and on the internal render command side in Docker, the same coordinator records rejections, resource errors, and timeouts, failing the build even if the upstream child returns code `0`. No release is made unless this connection is demonstrated with the pinned browser both locally and in Docker
+- The renderer confirms readiness success before starting pagination, and the `--render-timeout-ms` deadline applies, from just before the renderer starts its first external process, to the whole of browser verification and acquisition, readiness, and PDF generation, post-processing, and structural inspection
+- How readiness is connected to the pinned Vivliostyle CLI, invoked as a child process, is fixed before release. If upstream offers a pre-pagination hook, its official API is used. Otherwise, a dedicated gate resource that holds up document load, plus a single completion notification from the coordinator to a loopback server, are used. The notification conveys success or failure and a short diagnostic, and the gate is released only on success. The host-side coordinator records rejections, resource errors, and timeouts, failing the build even if the upstream child returns code `0`. No release is made unless this connection is demonstrated with the pinned browser
 
 This is not a contract to fully detect missing remote images / stylesheets / scripts, or asynchronous work the user's script did not register. Reproducible documents should use local resources and always register any asynchronous work that affects pagination.
 
@@ -168,21 +165,18 @@ Options:
   --template NAME          bundled template name. Default is default
   --template-dir PATH      custom template directory
   --logo PATH / --no-logo  logo file passed to the template / disable the environment logo
-  --renderer MODE          local or docker. Default is local
   --host-fonts             use the OS standard font directories
   --no-host-fonts          disable the host font setting from the environment
   --font-dir PATH          additional font directory. May be repeated
   --no-font-dirs           disable additional font directories from the environment
-  --browser-path PATH      browser used by the local renderer
+  --browser-path PATH      browser used by the renderer
   --managed-browser        disable the browser path from the environment
-  --docker-image IMAGE     image and tag used by the Docker renderer
-  --default-docker-image   disable the Docker image from the environment
   --render-timeout-ms N    from renderer preparation to PDF inspection completion. Default is 300000
   --keep-work-dir / --no-keep-work-dir
                            keep the temporary workspace / disable keeping it from the environment
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config print the applied configuration and its sources, then exit
-  --doctor                 diagnose the renderer, browser, mounts, and assets
+  --doctor                 diagnose the renderer, browser, and assets
   --version                print the version
   -h, --help               print help
 ```
@@ -230,15 +224,13 @@ Options:
 
 | Environment variable | Value | Purpose |
 |---|---|---|
-| `PFPDF_RENDERER` | `local` / `docker` | Renderer selection |
 | `PFPDF_TOC` | boolean | Enable / disable table of contents generation |
 | `PFPDF_HOST_FONTS` | boolean | Whether OS standard font directories may be used |
 | `PFPDF_FONT_DIRS` | path list | Additional font directories. Separator is Node.js `path.delimiter` |
 | `PFPDF_TEMPLATE` | template name | Bundled template selection |
 | `PFPDF_TEMPLATE_DIR` | path | Custom template directory |
 | `PFPDF_LOGO` | path | Logo file passed to the template |
-| `PFPDF_BROWSER_PATH` | path | Browser used by the local renderer |
-| `PFPDF_DOCKER_IMAGE` | image reference | Docker image and pinned tag |
+| `PFPDF_BROWSER_PATH` | path | Browser used by the renderer |
 | `PFPDF_RENDER_TIMEOUT_MS` | decimal integer | Timeout from renderer preparation to PDF inspection completion. Between `1000` and `3600000` inclusive |
 | `PFPDF_KEEP_WORK_DIR` | boolean | Keep the temporary workspace |
 | `PFPDF_LOG_LEVEL` | `error` / `warn` / `info` / `debug` | Log verbosity |
@@ -249,30 +241,30 @@ Options:
 - `PFPDF_FONT_DIRS` is split on `path.delimiter`; an empty component is code `2` rather than being interpreted as the current directory. If the same canonical directory appears multiple times, only its first position is kept, with a warning
 - Child processes inherit the caller's environment variables, like ordinary CLI tools
 - `--print-effective-config` prints exactly one JSON object with a versioned schema to stdout, including each value and whether its source is the CLI, the environment, or a default. Tokens, credentials, and raw environment variable values are not included, and the contents of proxy URLs and custom CAs, which may contain secrets, are not shown
-- `--doctor` inspects, based on the effective configuration: Node.js, the browser, the Docker daemon, images, templates, logos, font directories, mountability, and output permissions
+- `--doctor` inspects, based on the effective configuration: Node.js, the browser, templates, logos, font directories, and output permissions
 - `--doctor` and `--print-effective-config` generate no PDF and never display secrets or the entire environment in diagnostics
-- `--doctor` performs no browser download, no Docker image pull, no creation of the user's project or output directory, and no configuration changes. Only when actually launching the browser or checking mountability requires it does it create a dedicated profile / workspace in the OS's secure temporary directory, reclaimed in `finally` along with unpredictably named diagnostic containers. A cleanup failure remains a `fail` for the check. Output permissions are judged, best effort, from the nearest existing parent directory, with no guarantee that an actual create / rename would succeed. Each external process / daemon check is cut off at 10 seconds including cleanup, the whole command at 60 seconds, and timeouts are reported as `fail`
+- `--doctor` performs no browser download, no creation of the user's project or output directory, and no configuration changes. Only when actually launching the browser requires it does it create a dedicated profile / workspace in the OS's secure temporary directory, reclaimed in `finally`. A cleanup failure remains a `fail` for the check. Output permissions are judged, best effort, from the nearest existing parent directory, with no guarantee that an actual create / rename would succeed. Each external process check is cut off at 10 seconds including cleanup, the whole command at 60 seconds, and timeouts are reported as `fail`
 - `--doctor` and `--print-effective-config` do not require `--input` and `--output`
 - `--doctor` without input / output inspects only the runtime and global settings, and inspects document resources and the write destination only when they are specified. Unspecified items are never displayed as verified successes
 - `--doctor` writes a JSON object with a versioned schema to stdout, giving each check `pass` / `warning` / `fail` / `not-run` and its rationale. The exit code is `1` when a problem is detected, `0` when there are only warnings or no problems
 - For scalars and lists, if the CLI provides a value, the entire CLI value is used; otherwise the environment variable; otherwise the built-in default. Lists are never implicitly concatenated across sources
-- `--no-logo`, `--no-font-dirs`, `--managed-browser`, `--default-docker-image`, and `--no-keep-work-dir` are explicit CLI reset values, not "unspecified", and disable the corresponding environment variables. The effective configuration distinguishes `null`, an empty list, and default values with `source: "cli"`
+- `--no-logo`, `--no-font-dirs`, `--managed-browser`, and `--no-keep-work-dir` are explicit CLI reset values, not "unspecified", and disable the corresponding environment variables. The effective configuration distinguishes `null`, an empty list, and default values with `source: "cli"`
 
-The top level of the JSON schema contains at least `schemaVersion: 1` and `command`. The effective configuration has `config.<name> = {"value": ..., "source": "cli|environment|default"}`; doctor has an overall `status` and `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}`. The overall status is fail if any check fails, otherwise warning if any check warns, and pass if at least one check ran and all passed. Key and check output order is fixed, and exactly one line of compact UTF-8 JSON plus a trailing LF is written to stdout. Adding optional fields in the future is allowed under the same schemaVersion, but changing the meaning or type of an existing field, or removing one, bumps the version.
+The top level of the JSON schema contains at least `schemaVersion: 2` and `command`. The effective configuration has `config.<name> = {"value": ..., "source": "cli|environment|default"}`; doctor has an overall `status` and `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}`. The overall status is fail if any check fails, otherwise warning if any check warns, and pass if at least one check ran and all passed. Key and check output order is fixed, and exactly one line of compact UTF-8 JSON plus a trailing LF is written to stdout. Adding optional fields in the future is allowed under the same schemaVersion, but changing the meaning or type of an existing field, or removing one, bumps the version.
 
 ### 2.9.4 Exit codes
 
 | code | Meaning |
 |---:|---|
 | `0` | Success |
-| `1` | Renderer, browser, Docker, or other runtime error, or internal error |
+| `1` | Renderer, browser, or other runtime error, or internal error |
 | `2` | CLI argument, input, or front matter error |
 
 Only output the command itself was asked for — help, version, `--doctor`, `--print-effective-config` — goes to stdout; a normal PDF build writes nothing to stdout. Progress, normal logs, warnings, errors, and child process output go to stderr. Exception stack traces are not shown by default, only with `--log-level debug`. Interruption codes before the commit follow the conventions of Node.js and each OS, and are not normalized to custom cross-platform codes. Signals after the commit critical section are delayed per the rules of the previous section, and a build that has already succeeded is never turned back into an interruption.
 
 Diagnostics include, where possible, the source file, the 1-based line and column, the relevant CLI option or environment variable name, and the processing phase. Under the trusted-input assumption, human-readable log content is not sanitized or redacted, and JSON is left to the serializer's normal escaping.
 
-Invalid, missing, or unreadable user-specified CLI / environment values, Markdown, front matter, custom templates, logos, fonts, and static local resources are code `2`. Browser / Docker / renderer failures, timeouts, write / rename failures at the output destination, missing bundled resources, and internal invariant violations are code `1`. Even for the same kind of check, corruption of a bundled template or font is code `1` because it is not user input. If cleanup fails before the commit, that too is code `1` and the existing output is preserved.
+Invalid, missing, or unreadable user-specified CLI / environment values, Markdown, front matter, custom templates, logos, fonts, and static local resources are code `2`. Browser / renderer failures, timeouts, write / rename failures at the output destination, missing bundled resources, and internal invariant violations are code `1`. Even for the same kind of check, corruption of a bundled template or font is code `1` because it is not user input. If cleanup fails before the commit, that too is code `1` and the existing output is preserved.
 
 ## 2.10 Complexity and resource limits
 

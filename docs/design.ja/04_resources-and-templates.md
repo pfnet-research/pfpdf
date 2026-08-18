@@ -15,9 +15,8 @@
 - `--host-fonts` で OS 標準の font directory を探索し、`--font-dir PATH` の繰り返し指定で探索先を追加できるようにする
 - `--font-dir` 自体もその directory に限った明示的な opt-in とみなし、`--host-fonts` なしで利用可能にする
 - macOS では `~/Library/Fonts`、`/Library/Fonts`、`/System/Library/Fonts`、`/System/Library/Fonts/Supplemental` を標準探索候補とする
-- local renderer は許可された font file を loopback `AssetServer` から配信し、Docker renderer は同じ directory を読み取り専用で bind mount して container 内の `AssetServer` から配信する
-- 利用者が指定した host font file を package、Docker image、workspace、cache へ複製しない。生成するのは一時的な font index、`@font-face` CSS、Linux 用 fontconfig metadata だけとする
-- Docker Desktop から macOS の system font を利用する機能は、mount 可否、font format、ライセンスを確認するまで Experimental とする
+- renderer は許可された font file を loopback `AssetServer` から配信する
+- 利用者が指定した host font file を package、workspace、cache へ複製しない。生成するのは一時的な font index、`@font-face` CSS、Linux 用 fontconfig metadata だけとする
 - OpenType `OS/2.fsType` などから PDF への埋め込みが禁止されていると判定できる font は候補から除外する。静的 CSS がその family / face を要求して fallback できない利用者指定 font なら終了 code `2`、bundled font なら package の不整合として `1` とする。未使用候補または制限の有無を判定できない format は warning とし、許諾を推測しない
 - `--font-dir` で発見した候補だけでなく、template / Markdown / raw HTML / CSS の静的 URL から font role として発見したすべての local / `data:` font に同じ embedding 検査を適用する。remote font の license / 内容は取得保証と同様に検査できないため利用者責任とし、再現可能な標準文書では使わない
 - ホストフォントを直接参照できることと、そのフォントを PDF へ埋め込めることは別問題であり、各フォントのライセンス条件は利用者が確認する必要がある
@@ -29,7 +28,7 @@
 - `--host-fonts` と明示された `--font-dir` から、利用を許可された directory の集合を作る
 - 探索順位は、effective な追加 font directory list、`--host-fonts` が追加する OS 標準 directory の固定順、bundled fallback の順とする。追加 list は CLI の `--font-dir` が 1 個以上あればその指定順だけを使い、なければ環境変数 `PFPDF_FONT_DIRS` の順を使う
 - OpenType の name table から family、weight、style、stretch を読み、採用した各 face を logical font URL で参照する一時的な `@font-face` CSS を生成する。`--font-dir` は font を自動的に本文へ選択する option ではなく、template / document CSS が family 名で選べる候補を追加する
-- local / Docker renderer とも実行環境から参照可能な font URL を使う CSS を生成し、必要な場合だけ renderer 内部向けの fontconfig metadata を渡す
+- renderer の実行環境から参照可能な font URL を使う CSS を生成し、必要な場合だけ renderer 内部向けの fontconfig metadata を渡す
 - bundled template の静的 CSS が要求する non-generic family を抽出し、見つかった face だけを有効にする。見つからない family は source location 付き warning とし、bundled fallback が font-family list の末尾にあることを template test で保証する。custom / raw CSS の dynamic property まで選択 font を保証しない
 - TTF、OTF、TTC、WOFF2 など Chromium で検証済みの format だけを対象にする。TTC の face index、variable font axis、weight / style mapping を fixture で確認し、未対応 format や face は `--doctor` で理由を表示する
 - directory は決定的な file 名順で再帰探索するが、symlink directory はたどらない。symlink file は解決先が regular file の場合だけ候補にし、canonical path で重複を除く
@@ -38,7 +37,7 @@
 - family 名と logical font URL は CSS string / URL token として escape し、font metadata を CSS source へそのまま連結しない
 - font file の copy は行わず、終了時に一時 CSS、index、fontconfig metadata を削除する
 - font family、実際に選択された file、埋め込み制限の検査結果を debug log と `--doctor` で確認可能にする
-- local Chromium 自体は OS font へアクセス可能なため、既定値で保証するのは pfpdf が host directory を探索せず、bundled template が host family を要求しないことまでとする。厳密に host font から隔離する場合は Docker renderer を使う
+- Chromium 自体は OS font へアクセス可能なため、既定値で保証するのは pfpdf が host directory を探索せず、bundled template が host family を要求しないことまでとする。再現性が必要な文書では custom / raw CSS から OS 固有の family を要求しない
 - custom / raw CSS の `local()` source は browser 自身の discovery を経由して実 file と embedding flag を事前特定できないため、利用時に warning を出す。bundled template では `local()` を禁止し、検査済み logical font URL と generic fallback だけを使う
 
 ## 4.4 template とロゴの分離
@@ -80,7 +79,7 @@ resources/templates/
 - `--template academic|book|compact|default|notebook|pfn|technical` で bundled template を選択する
 - template 内にはロゴを含めず、`--logo PATH` または `PFPDF_LOGO` で指定された file を placeholder へ挿入する
 - logo が未指定なら logo placeholder 自体を出力しない。壊れた image placeholder を残さない
-- logo の相対 path はカレントディレクトリを基準に解決し、Docker renderer では読み取り専用で mount する
+- logo の相対 path はカレントディレクトリを基準に解決する
 - logo と template は trusted input とし、存在して読み取れることだけを事前検査する。内容を sandbox 化しない
 
 ## 4.5 custom template
@@ -138,6 +137,6 @@ resources/templates/
 
 ## 4.8 bibliography input と style
 
-front matter が指す `.bib` は build 時に全 byte を読み終える input であり、画像・CSS・font のように browser が取得する resource graphへ登録しません。したがって AssetServer の logical URL、Docker renderer の追加 mount、readiness fetch を必要としません。relative path は front matter source の親 directory、absolute path と `..` は trusted-input 方針の範囲で許可しますが、tutorial では移植可能な相対配置を推奨します。
+front matter が指す `.bib` は build 時に全 byte を読み終える input であり、画像・CSS・font のように browser が取得する resource graphへ登録しません。したがって AssetServer の logical URL や readiness fetch を必要としません。relative path は front matter source の親 directory、absolute path と `..` は trusted-input 方針の範囲で許可しますが、tutorial では移植可能な相対配置を推奨します。
 
 Citation.js、citeproc-js、使用する CSL style / locale は lockfile と公開 shrinkwrap に固定し、license と入手元を `THIRD_PARTY_LICENSES.md` に記録します。CSL が返す HTML は document wrapper として挿入せず HAST fragment に parseし、pfpdf が安定した class、ID、ARIA role、backlink を付けます。全 bundled template は `common.css` / `common-vivliostyle.css` の構造 rule を共有し、文献本文の意味や固定 label を template 固有 CSS から追加しません。
