@@ -12,7 +12,7 @@ Required:
 Options:
   --title TEXT             Override the front matter title
   --toc / --no-toc         Enable / disable table of contents generation. Enabled by default
-  --template NAME          Bundled template name. Default is default
+  --template NAME          Bundled template name; overrides front matter. Default is default
   --template-dir PATH      Custom template directory
   --logo PATH / --no-logo  Logo file passed to the template / disable the environment variable logo
   --host-fonts             Use the OS standard font directories
@@ -33,7 +33,7 @@ Options:
 
 ## 7.2 Environment variables
 
-Most CLI arguments can also be set via environment variables. When both are present for the same setting, the CLI argument always wins.
+Most CLI arguments can also be set via environment variables. When both are present for the same setting, the CLI argument always wins. A template can also be selected in front matter; the precedence is built-in default, front matter, environment variable, then CLI argument.
 
 | Environment variable | Corresponding CLI |
 |---|---|
@@ -54,7 +54,7 @@ Most CLI arguments can also be set via environment variables. When both are pres
 - Specifying both `--template` and `--template-dir` in the same place, or `--toc` and `--no-toc` together, is an error. Choosing either template option on the CLI overrides the environment variable template selection entirely
 - Repeating any option other than `--font-dir` is an error, even with the same value. You also cannot use an empty path component in `PFPDF_FONT_DIRS` to mean the current directory
 - To disable an optional environment variable for a single run, use `--no-logo`, `--no-font-dirs`, `--managed-browser`, or `--no-keep-work-dir`. As explicit CLI values, these take precedence over environment variables
-- To see where each setting came from, use `--print-effective-config`, which outputs a JSON object with a versioned schema
+- To see where each setting came from, use `--print-effective-config`, which outputs a JSON object with a versioned schema. When `--input` is also specified, it reflects the front matter template selection and reports its source as `front-matter`
 
 ```bash
 PFPDF_TEMPLATE=pfn npx @pfnet-research/pfpdf@latest --print-effective-config

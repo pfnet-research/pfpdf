@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fromHtml } from 'hast-util-from-html';
 import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
+import { BUNDLED_TEMPLATE_NAMES } from './bundled-templates.js';
 import { InputError } from './errors.js';
 
 export interface SourceFile {
@@ -41,6 +42,8 @@ export interface ResolvedInput {
   files: SourceFile[];
   metadata: Metadata;
   bibliography: BibliographyFile[];
+  /** Bundled template selected in front matter, before external overrides. */
+  template: string | null;
 }
 
 export interface BibliographyFile {
@@ -105,7 +108,7 @@ interface FrontMatter {
 
 const ALLOWED_KEYS = new Set([
   'title', 'author', 'series', 'date', 'page_size', 'confidential', 'lang', 'dir',
-  'bibliography',
+  'bibliography', 'template',
 ]);
 
 interface SourceLine {
@@ -158,6 +161,55 @@ function parseFrontMatter(filePath: string, text: string): { fm: FrontMatter | n
   }
   const body = text.slice(lines[closed]!.end);
   return { fm: { raw, lineCount: closed + 1 }, body };
+}
+
+function resolveInputFilePaths(inputAbs: string): string[] {
+  let st: fs.Stats;
+  try {
+    st = fs.statSync(inputAbs);
+  } catch {
+    throw new InputError(`input not found: ${inputAbs}`);
+  }
+
+  if (st.isDirectory()) {
+    return listMarkdownFiles(inputAbs).map((n) => path.join(inputAbs, n));
+  }
+  if (st.isFile()) {
+    if (!inputAbs.endsWith('.md')) {
+      throw new InputError(`input file must have a lowercase .md extension: ${inputAbs}`);
+    }
+    return [inputAbs];
+  }
+  throw new InputError(`input is neither a regular file nor a directory: ${inputAbs}`);
+}
+
+function readInputFile(filePath: string): string {
+  let buf: Buffer;
+  try {
+    buf = fs.readFileSync(filePath);
+  } catch (e) {
+    throw new InputError(`cannot read input file ${filePath}: ${(e as Error).message}`);
+  }
+  return decodeUtf8(filePath, buf);
+}
+
+function resolveFrontMatterTemplate(raw: Map<string, unknown>): string | null {
+  const value = raw.get('template');
+  if (value === undefined) return null;
+  if (typeof value !== 'string') {
+    throw new InputError('front matter template: expected a string');
+  }
+  if (!BUNDLED_TEMPLATE_NAMES.includes(value)) {
+    throw new InputError(`front matter template: unknown bundled template: ${value}`);
+  }
+  return value;
+}
+
+/** Read only enough input to resolve the template for configuration diagnostics. */
+export function readFrontMatterTemplate(inputAbs: string): string | null {
+  const firstPath = resolveInputFilePaths(inputAbs)[0]!;
+  const parsed = parseFrontMatter(firstPath, readInputFile(firstPath));
+  return resolveFrontMatterTemplate(parsed.fm?.raw ?? new Map<string, unknown>());
 }
 
 const PAGE_SIZE_KEYWORDS: Record<string, string> = {
@@ -254,36 +306,13 @@ export function resolveInput(
   warn: (msg: string) => void,
   processStart = new Date(),
 ): ResolvedInput {
-  let st: fs.Stats;
-  try {
-    st = fs.statSync(inputAbs);
-  } catch {
-    throw new InputError(`input not found: ${inputAbs}`);
-  }
-
-  let filePaths: string[];
-  if (st.isDirectory()) {
-    filePaths = listMarkdownFiles(inputAbs).map((n) => path.join(inputAbs, n));
-  } else if (st.isFile()) {
-    if (!inputAbs.endsWith('.md')) {
-      throw new InputError(`input file must have a lowercase .md extension: ${inputAbs}`);
-    }
-    filePaths = [inputAbs];
-  } else {
-    throw new InputError(`input is neither a regular file nor a directory: ${inputAbs}`);
-  }
+  const filePaths = resolveInputFilePaths(inputAbs);
 
   const files: SourceFile[] = [];
   let fm: FrontMatter | null = null;
   for (let i = 0; i < filePaths.length; i++) {
     const p = filePaths[i]!;
-    let buf: Buffer;
-    try {
-      buf = fs.readFileSync(p);
-    } catch (e) {
-      throw new InputError(`cannot read input file ${p}: ${(e as Error).message}`);
-    }
-    const text = decodeUtf8(p, buf);
+    const text = readInputFile(p);
     if (i === 0) {
       const parsed = parseFrontMatter(p, text);
       fm = parsed.fm;
@@ -305,6 +334,7 @@ export function resolveInput(
   const raw = fm?.raw ?? new Map<string, unknown>();
 
   const bibliography = resolveBibliographyFiles(raw.get('bibliography'), filePaths[0]!);
+  const template = resolveFrontMatterTemplate(raw);
 
   const requireString = (key: string): string | null => {
     const v = raw.get(key);
@@ -366,6 +396,7 @@ export function resolveInput(
   return {
     files,
     bibliography,
+    template,
     metadata: {
       title,
       author,

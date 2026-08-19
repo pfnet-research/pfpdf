@@ -56,7 +56,7 @@ On Linux, the browser archive alone does not provide all the required shared lib
 - Diagnostic escaping of paths and URLs containing newlines, ESC, C0 / C1, and bidi formatting characters, and raw byte display of invalid UTF-8 filenames
 - The startup check against boundary values of the supported and unsupported Node.js semver ranges
 - Workspace cleanup on normal termination, ordinary errors, and catchable interruptions
-- Precedence of CLI, environment, and defaults, with the CLI always winning
+- Precedence of default, front matter, environment, and CLI for templates; precedence of CLI, environment, and defaults for other settings; the CLI always winning; and invalid front matter templates remaining errors under an override
 - Strict parsing of environment variable booleans, enums, numbers, and path lists
 - Simultaneous use of mutually exclusive flags; duplicate options other than `--font-dir`; unknown options, positional arguments, and missing values; explicit resets of the template selector and of the logo / font directory / managed browser / workspace retention overriding the entire logical configuration from environment variables; empty or duplicate components in path lists; and timeout minimum / maximum / overflow
 - Required files of bundled and custom templates, and the output when the logo is omitted

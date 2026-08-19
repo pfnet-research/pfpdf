@@ -3,10 +3,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveConfig, effectiveConfigJson, validateConfigForMode, HELP_TEXT } from './config.js';
+import {
+  applyFrontMatterTemplate,
+  resolveConfig,
+  effectiveConfigJson,
+  validateConfigForMode,
+  HELP_TEXT,
+} from './config.js';
 import { InputError, RuntimeError, exitCodeOf } from './errors.js';
 import { runBuild, type Logger } from './build.js';
 import { runDoctor } from './doctor.js';
+import { readFrontMatterTemplate } from './input.js';
 
 const LEVELS: Record<string, number> = { error: 0, warn: 1, info: 2, debug: 3 };
 
@@ -54,7 +61,11 @@ export async function main(): Promise<number> {
         process.stdout.write(packageVersion() + '\n');
         return 0;
       case 'print-effective-config':
-        process.stdout.write(effectiveConfigJson(config));
+        process.stdout.write(effectiveConfigJson(
+          config.inputAbs === null
+            ? config
+            : applyFrontMatterTemplate(config, readFrontMatterTemplate(config.inputAbs)),
+        ));
         return 0;
       case 'doctor': {
         const { json, exitCode } = await runDoctor(config, process.env, log);

@@ -76,7 +76,7 @@ resources/templates/
     vivliostyle.css
 ```
 
-- `--template academic|book|compact|default|notebook|pfn|technical` で bundled template を選択する
+- 先頭 Markdown の front matter `template` または `--template academic|book|compact|default|notebook|pfn|technical` で bundled template を選択する。環境変数と CLI は front matter より優先する
 - template 内にはロゴを含めず、`--logo PATH` または `PFPDF_LOGO` で指定された file を placeholder へ挿入する
 - logo が未指定なら logo placeholder 自体を出力しない。壊れた image placeholder を残さない
 - logo の相対 path はカレントディレクトリを基準に解決する
@@ -85,6 +85,7 @@ resources/templates/
 ## 4.5 custom template
 
 - 利用者が指定する custom template directory は `--template-dir PATH` で扱い、bundled template 名と曖昧にならないようにする
+- custom template の path は front matter では受け付けず、CLI または環境変数からだけ指定する
 - custom template は信頼できるローカルコードと同様に扱い、raw HTML や script を実行し得ることを明記する
 - custom template format に `apiVersion`、JSON Schema、version 間の互換性保証は設けない。template の見た目と構造を維持したい利用者は pfpdf の version を固定する。ただし、同じ pfpdf version 内で曖昧な文字列置換を避けるため、次の DOM slot contract は明確に定義する
 - custom template directory は `template.html`、`style.css`、`vivliostyle.css` を直接持ち、選択した pfpdf version が必要とする file の存在だけを検査する

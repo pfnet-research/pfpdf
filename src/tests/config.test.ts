@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { effectiveConfigJson, resolveConfig, validateConfigForMode } from '../config.js';
+import {
+  applyFrontMatterTemplate,
+  effectiveConfigJson,
+  resolveConfig,
+  validateConfigForMode,
+} from '../config.js';
 import { InputError } from '../errors.js';
 
 const cwd = '/tmp';
@@ -18,15 +23,43 @@ test('CLI overrides environment', () => {
   assert.equal(c.template.source, 'cli');
 });
 
+test('front matter template applies below environment and CLI', () => {
+  const base = resolveConfig(['--input', 'a.md', '--output', 'a.pdf'], {}, cwd);
+  const fromDocument = applyFrontMatterTemplate(base, 'pfn');
+  assert.deepEqual(fromDocument.template, {
+    value: { kind: 'bundled', name: 'pfn' },
+    source: 'front-matter',
+  });
+
+  const fromEnvironment = resolveConfig(
+    ['--input', 'a.md', '--output', 'a.pdf'],
+    { PFPDF_TEMPLATE: 'book' },
+    cwd,
+  );
+  assert.strictEqual(applyFrontMatterTemplate(fromEnvironment, 'pfn'), fromEnvironment);
+
+  const fromCli = resolveConfig(
+    ['--input', 'a.md', '--output', 'a.pdf', '--template', 'compact'],
+    {},
+    cwd,
+  );
+  assert.strictEqual(applyFrontMatterTemplate(fromCli, 'pfn'), fromCli);
+
+  const effective = JSON.parse(effectiveConfigJson(fromDocument)) as {
+    config: { template: { source: string } };
+  };
+  assert.equal(effective.config.template.source, 'front-matter');
+});
+
 test('environment applies when CLI is absent', () => {
   const c = resolveConfig(['--input', 'a.md', '--output', 'a.pdf'], { PFPDF_TOC: 'false' }, cwd);
   assert.equal(c.toc.value, false);
 });
 
-test('effective configuration uses schema version 2', () => {
+test('effective configuration uses schema version 3', () => {
   const config = resolveConfig(['--input', 'a.md', '--output', 'a.pdf'], {}, cwd);
   const result = JSON.parse(effectiveConfigJson(config)) as { schemaVersion: number };
-  assert.equal(result.schemaVersion, 2);
+  assert.equal(result.schemaVersion, 3);
 });
 
 test('positive/negative pair conflict is code 2', () => {

@@ -29,6 +29,7 @@ CLI と変換処理は TypeScript で実装し、npm package の compiled JavaSc
 - boolean、enum、数値、path を検証し、不正値を拒否する
 - path ごとに基準 directory を適用し、renderer へ渡す前に絶対 path へ正規化する
 - CLI の値を環境変数より常に優先し、effective config と各値の設定元を `--print-effective-config` と `--doctor` から再利用する
+- template は入力読込前に environment / CLI の外部指定を解決し、`InputResolver` が返した front matter の `template` は外部指定がない場合だけ組み込み `default` を置き換える。したがって優先順は組み込み既定値、front matter、環境変数、CLI とする
 - `template` と `template-dir` のような排他的な値は、個別の文字列ではなく 1 つの論理設定として解決する。同じ source で双方が指定された場合は終了 code `2` とし、CLI で一方が指定された場合は環境変数側の論理設定全体を置き換える
 - 同じ論理設定の正 / 負指定、たとえば `--host-fonts` と `--no-host-fonts`、`--toc` と `--no-toc`、`--logo` と `--no-logo` を同じ CLI invocation で併用した場合は、引数順に依存させず終了 code `2` とする
 - `--font-dir` 以外の値付き / boolean option を同じ invocation で繰り返した場合は、同じ値でも code `2` とする。unknown option、未定義の positional argument、option value の欠落も code `2` とし、「最後の値が勝つ」引数順依存を作らない
@@ -40,7 +41,7 @@ CLI と変換処理は TypeScript で実装し、npm package の compiled JavaSc
 - CLI のパスを絶対パスへ変換する
 - locale に依存しない規則で Markdown 一覧を決定し、case-insensitive filesystem で衝突する名前も検出する
 - front matter が最初の Markdown の先頭 1 か所だけにあることを検証する
-- title、author、series、date、page size、confidential、document language / direction の型を検証する
+- title、author、series、date、page size、confidential、document language / direction、および bundled template 名の型と値を検証する。外部指定が front matter の template を上書きする場合も、不正な front matter 値を無視しない
 - metadata の許可済み HTML と plain text 表現を分離し、template placeholder ごとの escape 漏れを防ぐ
 - file input ではその親 directory、directory input では input directory を resource base として保持する
 - 検証に使った Markdown byte 列をそのまま parser へ渡し、検証後に path から読み直して別内容を処理しない
@@ -162,7 +163,7 @@ Required:
 Options:
   --title TEXT             front matter の title を上書きする
   --toc / --no-toc         目次生成を有効 / 無効化する。既定は有効
-  --template NAME          bundled template 名。既定値は default
+  --template NAME          bundled template 名。front matter を上書き。既定値は default
   --template-dir PATH      custom template directory
   --logo PATH / --no-logo  template に渡す logo file / 環境変数の logo を無効化
   --host-fonts             OS 標準の font directory を使用する
@@ -240,17 +241,17 @@ Options:
 - 複数値や path を含む環境変数を shell command として評価しない
 - `PFPDF_FONT_DIRS` は `path.delimiter` で分割し、空 component を current directory と解釈せず code `2` にする。同じ canonical directory が複数回現れた場合は最初の順位だけを残して warning にする
 - child process は通常の CLI tool と同様に呼出元の環境変数を継承する
-- `--print-effective-config` は versioned schema を持つ JSON object を 1 個だけ stdout へ表示し、各値と、その設定元が CLI、environment、default のどれかを含める。token、credential、環境変数の生値は含めず、秘密を含み得る proxy URL と custom CA の内容は表示しない
+- `--print-effective-config` は versioned schema を持つ JSON object を 1 個だけ stdout へ表示し、各値と、その設定元が CLI、environment、front matter、default のどれかを含める。`--input` があれば先頭 Markdown の template 選択まで反映する。token、credential、環境変数の生値は含めず、秘密を含み得る proxy URL と custom CA の内容は表示しない
 - `--doctor` は effective config に基づき、Node.js、browser、template、logo、font directory、出力権限を検査する
 - `--doctor` と `--print-effective-config` は PDF を生成せず、診断で秘密情報や環境変数全体を表示しない
 - `--doctor` は browser download、利用者の project / output directory 作成、設定変更を行わない。browser 実起動の検査に必要な場合だけ、OS の secure temporary directory に専用 profile / workspace を作り、`finally` で回収する。cleanup 失敗は check の `fail` として残す。出力権限は既存の最寄り親 directory から best effort で判定し、実際の create / rename 成功を保証しない。外部 process の各 check は cleanup を含めて 10 秒、command 全体は 60 秒で打ち切り、timeout を `fail` として報告する
 - `--doctor` と `--print-effective-config` の実行時は `--input` と `--output` を必須にしない
 - input / output なしの `--doctor` は runtime と global setting だけを検査し、指定された場合だけ document resource と書込先まで検査する。未指定項目を成功確認済みと表示しない
 - `--doctor` は versioned schema の JSON object を stdout へ出し、検査ごとに `pass` / `warning` / `fail` / `not-run` と根拠を持たせる。問題を検出した場合に終了 code `1`、warning のみまたは問題なしの場合は `0` を返す
-- scalar と list は、CLI に値があれば CLI 全体、なければ環境変数、どちらにもなければ組み込み既定値を採用する。source 間で list を暗黙連結しない
+- template 以外の scalar と list は、CLI に値があれば CLI 全体、なければ環境変数、どちらにもなければ組み込み既定値を採用する。template だけは外部指定がなければ front matter、さらにそれもなければ組み込み既定値を採用する。source 間で list を暗黙連結しない
 - `--no-logo`、`--no-font-dirs`、`--managed-browser`、`--no-keep-work-dir` は「未指定」ではなく明示的な CLI reset 値であり、対応する環境変数を無効化する。effective config では `null` / 空 list / default 値と `source: "cli"` を区別して表示する
 
-JSON schema の top-level は少なくとも `schemaVersion: 2` と `command` を持ちます。effective config は `config.<name> = {"value": ..., "source": "cli|environment|default"}`、doctor は全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。全体 status は 1 個でも fail があれば fail、なければ warning があれば warning、実行対象が 1 個以上すべて pass なら pass とします。key と check の出力順を固定し、UTF-8 の compact JSON 1 行と末尾 LF だけを stdout へ書きます。将来の optional field 追加は同じ schemaVersion で許可しますが、既存 field の意味・型の変更や削除では version を上げます。
+effective config の top-level は `schemaVersion: 3` と `command` を持ち、`config.<name> = {"value": ..., "source": "cli|environment|front-matter|default"}` を含みます。doctor は `schemaVersion: 2` のままとし、全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。doctor の全体 status は 1 個でも fail があれば fail、なければ warning があれば warning、実行対象が 1 個以上すべて pass なら pass とします。key と check の出力順を固定し、UTF-8 の compact JSON 1 行と末尾 LF だけを stdout へ書きます。将来の optional field 追加は同じ schemaVersion で許可しますが、既存 field の意味・型の変更や削除では version を上げます。
 
 ### 2.9.4 終了コード
 

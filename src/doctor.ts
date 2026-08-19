@@ -6,11 +6,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { getInstalledBrowsers } from '@puppeteer/browsers';
-import type { Config } from './config.js';
+import { applyFrontMatterTemplate, type Config } from './config.js';
 import { buildHtml, type Logger } from './build.js';
 import { resolveFonts } from './fonts.js';
 import { ResourceManifest } from './resources.js';
 import { resolveTemplate, type PreparedTemplate } from './template.js';
+import { resolveInput, type ResolvedInput } from './input.js';
 import { MIN_NODE, runtimeIsSupported } from './runtime.js';
 import {
   rendererChildEnv,
@@ -34,6 +35,23 @@ export async function runDoctor(
   const add = (id: string, status: Check['status'], message: string): void => {
     checks.push({ id, status, message });
   };
+  let documentConfig = config;
+  let preparedInput: ResolvedInput | undefined;
+  let inputError: Error | undefined;
+  const inputWarnings: string[] = [];
+  if (config.inputAbs !== null) {
+    try {
+      preparedInput = resolveInput(
+        config.inputAbs,
+        config.title.value,
+        env,
+        (message) => { inputWarnings.push(message); log.debug(message); },
+      );
+      documentConfig = applyFrontMatterTemplate(config, preparedInput.template);
+    } catch (error) {
+      inputError = error as Error;
+    }
+  }
 
   const nodeOk = runtimeIsSupported(process.versions.node);
   add(
@@ -52,13 +70,17 @@ export async function runDoctor(
 
   let preparedTemplate: PreparedTemplate | undefined;
   let templateError: Error | undefined;
-  try {
-    preparedTemplate = resolveTemplate(config.template.value, config.templateDirAbs);
-    const tpl = preparedTemplate;
-    add('template', 'pass', `template resolved at ${tpl.dir}`);
-  } catch (e) {
-    templateError = e as Error;
-    add('template', 'fail', templateError.message);
+  if (inputError !== undefined) {
+    add('template', 'not-run', 'input resolution failed before template selection');
+  } else {
+    try {
+      preparedTemplate = resolveTemplate(documentConfig.template.value, documentConfig.templateDirAbs);
+      const tpl = preparedTemplate;
+      add('template', 'pass', `template resolved at ${tpl.dir}`);
+    } catch (e) {
+      templateError = e as Error;
+      add('template', 'fail', templateError.message);
+    }
   }
 
   if (config.inputAbs === null) {
@@ -78,18 +100,22 @@ export async function runDoctor(
   }
 
   if (config.inputAbs !== null) {
-    if (templateError !== undefined) {
+    if (inputError !== undefined) {
+      add('logo', 'not-run', 'input preparation did not complete');
+      add('input', 'fail', inputError.message);
+      addFailedFontChecks(config, inputError, add);
+    } else if (templateError !== undefined) {
       add('logo', 'not-run', 'template preparation failed');
       add('input', 'not-run', 'template preparation failed');
       addFailedFontChecks(config, templateError, add);
     } else {
       try {
-        const warnings: string[] = [];
-        const result = await buildHtml(config, env, {
+        const warnings = inputWarnings;
+        const result = await buildHtml(documentConfig, env, {
           warn: (message) => { warnings.push(message); log.debug(message); },
           info: log.info,
           debug: log.debug,
-        }, preparedTemplate);
+        }, preparedTemplate, preparedInput);
         add(
           'input',
           warnings.length === 0 ? 'pass' : 'warning',

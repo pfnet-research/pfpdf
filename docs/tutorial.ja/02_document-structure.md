@@ -9,6 +9,7 @@
 title: 四半期報告書
 author: 山田 太郎
 series: 技術報告シリーズ
+template: pfn
 date: 2026-08-01
 page_size: A4
 confidential: false
@@ -17,13 +18,14 @@ dir: ltr
 ---
 ```
 
-使える key は次の 8 つだけです。未知の key や重複する key はエラーになります。
+文書 metadata として使える key は次の 9 つです。これに加えて第 3 章で説明する build input の `bibliography` も使用できます。それ以外の未知の key や重複する key はエラーになります。
 
 | key | 型 | 既定値 | 説明 |
 |---|---|---|---|
 | `title` | string | なし(必須) | 文書タイトル。表紙では `<br>` で改行できます |
 | `author` | string | なし | 著者名 |
 | `series` | string | なし | 全 bundled template の主要ラベル位置に表示するシリーズ名 |
+| `template` | bundled template 名 | `default` | 文書に使用する bundled template |
 | `date` | string | 実行日 | 表紙に表示する日付 |
 | `page_size` | keyword / 寸法 | `A4` | ページサイズ |
 | `confidential` | boolean | `false` | `true` のとき全 page に Confidential 表示を出します |
@@ -31,9 +33,10 @@ dir: ltr
 | `dir` | `ltr` / `rtl` / `auto` | `auto` | 文書の文字方向。HTML root の `dir` に使います |
 
 - `title` は必須です。front matter に書くか、`--title` で指定してください。どちらにもない場合はエラー(終了 code `2`)になります
+- `template` には `academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical` のいずれかを指定します。`PFPDF_TEMPLATE` / `PFPDF_TEMPLATE_DIR` があれば front matter より優先され、CLI の `--template` / `--template-dir` はさらにそれらを上書きします
 - `series` を省略するとシリーズ表示領域自体が削除されます。bundled template は固定の出版名、文書種別、ブランド名、定型ラベルを補いません
 - 表紙のタイトルを改行したいときは `title: "長いタイトル<br>サブタイトル"` のように `<br>` を使います。使える tag は `<br>` / `<br/>` だけです
-- front matter は YAML mapping として読みます。pfpdf が利用する key は上表のものだけで、それぞれ表に記載した型である必要があります。複雑な YAML 値を書けても metadata としては利用されません
+- front matter は YAML mapping として読みます。pfpdf が利用するのは上表と第 3 章で説明する `bibliography` だけで、metadata key は表に記載した型である必要があります。複雑な YAML 値を書けても metadata としては利用されません
 - source file の最初の行が `---` なら front matter delimiter とみなされます。最初の file では閉じる `---` または `...` が必要で、2 個目以降の file では front matter の重複としてエラーです。各 file の先頭で水平線を出したい場合は `***` を使ってください
 - `page_size` の keyword は `A3` / `A4` / `A5`、`JIS-B4` / `JIS-B5`、`ISO-B4` / `ISO-B5`、`Letter` / `Legal` です。規格が曖昧な `B4` / `B5` は使えません。`210mm 297mm` のように幅と高さを指定することもできます
 - 英語文書なら `lang: en` のように BCP 47 language tag を指定します。省略時は host の言語に依存せず `ja` です

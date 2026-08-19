@@ -14,7 +14,16 @@ pfpdf ships with seven bundled templates.
 | `pfn` | A design for corporate documents. No logo is bundled; you supply one yourself |
 | `technical` | A dense design for technical documents that lays out code, tables, and long identifiers for readability |
 
-Select one with `--template` or the `PFPDF_TEMPLATE` environment variable.
+Normally, select a template by writing `template` in the front matter of the first Markdown file.
+
+```md
+---
+title: Quarterly Report
+template: pfn
+---
+```
+
+Pass `--template` when you temporarily want a different appearance. The CLI selection overrides front matter.
 
 If you are unsure which template to choose, use `default` for general-purpose documents. Choose `compact` for short handouts or reference memos, `book` for long documents read chapter by chapter, `notebook` for approachable teaching materials, and `pfn` for branded official documents. The `academic` template suits papers and survey reports, while `technical` suits design documents and API specifications.
 
@@ -25,6 +34,8 @@ Bundled templates never add strings you did not specify, such as publication nam
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
 ```
+
+Front matter can select bundled templates only. Because a custom template is trusted local code and depends on a path in the execution environment, specify it with `--template-dir` or `PFPDF_TEMPLATE_DIR`. The complete template precedence is the built-in `default`, front matter, environment variables, then CLI arguments.
 
 ## 6.2 Injecting a logo
 

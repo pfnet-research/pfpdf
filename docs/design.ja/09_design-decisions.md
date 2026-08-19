@@ -438,3 +438,13 @@
 - risk: GitHub App、Environment、npm trusted publisherのrepository外設定が必要である。App permissionをContents / Pull requests / Issuesの必要範囲へ絞り、actionをcommit SHA固定し、workflow lintと運用checklistで設定driftを検出する。npm公開後にGitHub Release公開が失敗する非atomic区間は残るため、draftを維持し、同一tarballのregistry integrityを確認してfinalizeだけ再開できるようにする
 - 検証: release helperのunit test、tag / lock / CHANGELOGの整合検査、npm pack allowlist、4環境のpacked-package install lock / shrinkwrap一致、`npm ls`、実PDF smoke test、4 PDFのexact setとchecksum、draft assetのstate / size / remote SHA-256 digest検査、public registryからのexact-version smoke test
 - 再検討条件: packageが複数になる場合、npm staged publishingを採用してnpm側の2FA承認もrelease gateへ含める場合、またはGitHub / npmが複数artifactのtransactional promotionを提供する場合
+
+## DD-39: bundled template は front matter で選択し、外部設定で上書き可能にする
+
+- status: Accepted(2026-08)
+- 問題: 文書が意図する見た目を Markdown と一緒に version 管理できるようにしたい。一方で preview、CI、移行確認では source を変更せず別 template を適用する必要があり、既存の `PFPDF_TEMPLATE` / `PFPDF_TEMPLATE_DIR` / `--template` / `--template-dir` との優先関係を曖昧にできない
+- 選択肢: (a) CLI / 環境変数だけを維持する、(b) front matter を CLI より優先する、(c) front matter で bundled template を選択でき、組み込み既定値、front matter、環境変数、CLI の順に上書きする、(d) custom template directory も front matter の相対 path で指定できるようにする
+- 採用: (c)。先頭 Markdown の `template` は manifest にある bundled template 名だけを受け付ける。ConfigResolver が外部指定を先に解決し、InputResolver の値は source が `default` の場合だけ置き換える。`--template` と `--template-dir` は同じ論理設定の CLI override とする。不正な front matter は外部指定で隠れても code `2` とし、`--print-effective-config --input PATH` と `--doctor --input PATH` は document 選択を反映する。effective-config schema は source `front-matter` の追加により version 3 とし、doctor は既存の version 2 を維持する
+- 非採用理由: (a) は文書単体で見た目を再現できない。(b) は一時的な preview と CI policy の適用に source 編集を要求する。(d) は trusted code の実行 path を文書へ埋め込み、文書 directory と invocation cwd のどちらを基準にするかという新しい path 規則と、配布先に存在しない directory への依存を作る
+- 検証: InputResolver の型・未知名検査、front matter 単独選択、environment / CLI / custom directory による上書き、上書き時の不正値検出、effective config の source と schema version を unit test で確認する
+- 再検討条件: custom template を package 名や content digest で移植可能に参照する registry を導入する場合、または他の front matter 設定も共通の多段 ConfigResolver へ統合する場合
