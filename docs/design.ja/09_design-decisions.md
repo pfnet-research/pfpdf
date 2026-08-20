@@ -442,9 +442,21 @@
 ## DD-39: bundled template は front matter で選択し、外部設定で上書き可能にする
 
 - status: Accepted(2026-08)
-- 問題: 文書が意図する見た目を Markdown と一緒に version 管理できるようにしたい。一方で preview、CI、移行確認では source を変更せず別 template を適用する必要があり、既存の `PFPDF_TEMPLATE` / `PFPDF_TEMPLATE_DIR` / `--template` / `--template-dir` との優先関係を曖昧にできない
+- 問題: 文書が意図する見た目を Markdown と一緒に version 管理できるようにしたい。一方で preview、CI、移行確認では source を変更せず別 template を適用する必要があり、`PFPDF_TEMPLATE` / `--template` との優先関係を曖昧にできない
 - 選択肢: (a) CLI / 環境変数だけを維持する、(b) front matter を CLI より優先する、(c) front matter で bundled template を選択でき、組み込み既定値、front matter、環境変数、CLI の順に上書きする、(d) custom template directory も front matter の相対 path で指定できるようにする
-- 採用: (c)。先頭 Markdown の `template` は manifest にある bundled template 名だけを受け付ける。ConfigResolver が外部指定を先に解決し、InputResolver の値は source が `default` の場合だけ置き換える。`--template` と `--template-dir` は同じ論理設定の CLI override とする。不正な front matter は外部指定で隠れても code `2` とし、`--print-effective-config --input PATH` と `--doctor --input PATH` は document 選択を反映する。effective-config schema は source `front-matter` の追加により version 3 とし、doctor は既存の version 2 を維持する
+- 採用: (c)。先頭 Markdown の `template` は manifest にある bundled template 名だけを受け付ける。ConfigResolver が外部指定を先に解決し、InputResolver の値は source が `default` の場合だけ置き換える。`--template` は外部sourceのCLI overrideとする。不正なfront matterは外部指定で隠れてもcode `2`とし、`--print-effective-config --input PATH`と`--doctor --input PATH`はdocument選択を反映する。effective-config schemaはsource `front-matter`の追加によりversion 3とし、doctorは既存のversion 2を維持する
 - 非採用理由: (a) は文書単体で見た目を再現できない。(b) は一時的な preview と CI policy の適用に source 編集を要求する。(d) は trusted code の実行 path を文書へ埋め込み、文書 directory と invocation cwd のどちらを基準にするかという新しい path 規則と、配布先に存在しない directory への依存を作る
 - 検証: InputResolver の型・未知名検査、front matter 単独選択、environment / CLI / custom directory による上書き、上書き時の不正値検出、effective config の source と schema version を unit test で確認する
 - 再検討条件: custom template を package 名や content digest で移植可能に参照する registry を導入する場合、または他の front matter 設定も共通の多段 ConfigResolver へ統合する場合
+
+## DD-40: template 既定ロゴと Git repository source を明示的な外部設定として扱う
+
+- status: Accepted(2026-08)
+- 問題: organization 共通の template とロゴを各文書 repository へ複製せず version 固定して利用し、monorepo 内のサブディレクトリも選択したい。また custom template 自体が既定ロゴを持ちながら、文書単位の上書きと完全な非表示も必要である
+- 選択肢: (a) GitHub raw URL を個別 file ごとに指定する、(b) Helm のような registry / index と template manifest を新設する、(c) Terraform / Kustomize 型の `git::URL//PATH?ref=REVISION` locator で repository を checkout し、既定ロゴは既存 `logo` slot の `src` で表す、(d) repository URL、ref、path を別々の CLI option にする
+- 採用: (c)。`--template SOURCE` / `PFPDF_TEMPLATE` は bundled preset 名との完全一致を最優先し、それ以外を `git::` locatorまたはlocal pathとして分類する。明示preset用に`--template-preset NAME` / `PFPDF_TEMPLATE_PRESET`を提供する。`--logo SOURCE` / `PFPDF_LOGO`もGit locatorとlocal pathを同じoptionで扱う。repository内pathはroleに応じてdirectory / fileとして検査し、同一URL / refはbuild内で共有する。template logoは未指定時にslotの`src`を通常resourceとして解決し、明示logoで上書きし、`--no-logo`で削除する。新しいmanifestやtemplate engineを導入せず既存DOM slot / resource graphを使う。logoの4状態とrepository template variantによりeffective-config schemaを4へ上げる
+- 非採用理由: (a) は3つのtemplate fileとnested CSS / image / fontを同一revisionで取得するpackage境界を持てない。(b)は探索、署名、version index、配信運用を現在の要件以上に増やす。(d)のsource種別ごとの専用optionはtemplateとlogoごとにoption / environment variableの組合せと不完全指定を増やし、sourceを1文字列でcopy / pinできない
+- security / trust: repository templateもraw HTML / scriptを実行できるtrusted codeであり、front matterからは指定できない。private sourceはGit credential helper / SSH agentを使い、HTTPS userinfoとpasswordを拒否する。Gitはshellなし、interactive promptなし、submoduleなし、300秒timeoutで実行する。この制約をsandboxとは表現しない
+- risk: persistent cacheがないため繰返し実行はnetworkとcheckout costを払う。branch / tagも移動し得るため、ref省略はwarning、CIは完全commit hash固定を推奨する。Git executableと認証設定が新しいruntime prerequisiteになる。offline用途は事前cloneと既存local optionで対応する
+- 検証: locatorのscheme / query / traversal / credential検査、local Git fixtureからのcommit checkout、template / logoのnested path、同一repository共有、template既定logo・明示上書き・`--no-logo`、CLI / environment排他性、終了code、日英文書buildをtestする
+- 再検討条件: repository利用が支配的になりpersistent content-addressed cacheが必要になった場合、またはgalleryから名前とsemantic versionで取得する署名付きregistryを導入する場合

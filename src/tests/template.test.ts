@@ -488,7 +488,7 @@ test('logo slot: injected when given, removed when not, error without slot', asy
   fs.writeFileSync(path.join(tplDir, 'vivliostyle.css'), '');
   await assert.rejects(
     buildHtml(
-      config(['--input', input, '--output', 'x.pdf', '--template-dir', tplDir, '--logo', logo]),
+      config(['--input', input, '--output', 'x.pdf', '--template', tplDir, '--logo', logo]),
       env,
       log,
     ),
@@ -507,23 +507,23 @@ test('custom template slot validation', async () => {
   };
   // missing content slot
   await assert.rejects(
-    buildHtml(config(['--input', input, '--output', 'x.pdf', '--template-dir', make('<!doctype html><html><head></head><body></body></html>')]), env, log),
+    buildHtml(config(['--input', input, '--output', 'x.pdf', '--template', make('<!doctype html><html><head></head><body></body></html>')]), env, log),
     InputError,
   );
   // unknown slot
   await assert.rejects(
-    buildHtml(config(['--input', input, '--output', 'x.pdf', '--template-dir', make('<!doctype html><html><head></head><body><div data-pfpdf-slot="bogus"></div><div data-pfpdf-slot="content"></div></body></html>')]), env, log),
+    buildHtml(config(['--input', input, '--output', 'x.pdf', '--template', make('<!doctype html><html><head></head><body><div data-pfpdf-slot="bogus"></div><div data-pfpdf-slot="content"></div></body></html>')]), env, log),
     InputError,
   );
   // duplicate slot
   await assert.rejects(
-    buildHtml(config(['--input', input, '--output', 'x.pdf', '--template-dir', make('<!doctype html><html><head></head><body><div data-pfpdf-slot="content"></div><div data-pfpdf-slot="content"></div></body></html>')]), env, log),
+    buildHtml(config(['--input', input, '--output', 'x.pdf', '--template', make('<!doctype html><html><head></head><body><div data-pfpdf-slot="content"></div><div data-pfpdf-slot="content"></div></body></html>')]), env, log),
     InputError,
   );
   // valid minimal template works, toc goes into content head
   const doc = makeDoc('---\ntitle: T\n---\n# A\n');
   const ok = await buildHtml(
-    config(['--input', doc, '--output', 'x.pdf', '--template-dir', make('<!doctype html><html lang="en"><head><meta charset="utf-8"></head><body><main data-pfpdf-slot="content"></main></body></html>')]),
+    config(['--input', doc, '--output', 'x.pdf', '--template', make('<!doctype html><html lang="en"><head><meta charset="utf-8"></head><body><main data-pfpdf-slot="content"></main></body></html>')]),
     env,
     log,
   );
@@ -531,7 +531,7 @@ test('custom template slot validation', async () => {
   assert.match(ok.html, /lang="ja"/);
 
   const permissive = await buildHtml(
-    config(['--input', input, '--output', 'x.pdf', '--template-dir', make('<html><head></head><body><a id="x" href="#missing">link</a><div id="x" data-pfpdf-custom="1"></div><main data-pfpdf-slot="content"></main></body></html>')]),
+    config(['--input', input, '--output', 'x.pdf', '--template', make('<html><head></head><body><a id="x" href="#missing">link</a><div id="x" data-pfpdf-custom="1"></div><main data-pfpdf-slot="content"></main></body></html>')]),
     env,
     log,
   );
@@ -548,7 +548,7 @@ test('prepared template HTML is read and parsed only once per build', async () =
   );
   fs.writeFileSync(path.join(dir, 'style.css'), '');
   fs.writeFileSync(path.join(dir, 'vivliostyle.css'), '');
-  const resolvedConfig = config(['--input', input, '--output', 'x.pdf', '--template-dir', dir]);
+  const resolvedConfig = config(['--input', input, '--output', 'x.pdf', '--template', dir]);
   const prepared = resolveTemplate(resolvedConfig.template.value, resolvedConfig.templateDirAbs);
   fs.rmSync(path.join(dir, 'template.html'));
   const result = await buildHtml(resolvedConfig, env, log, prepared);
@@ -638,7 +638,7 @@ test('template asset paths cannot alias document logical asset ids', async () =>
   fs.writeFileSync(path.join(tplDir, 'vivliostyle.css'), '');
 
   const result = await buildHtml(
-    config(['--input', input, '--output', 'x.pdf', '--template-dir', tplDir]),
+    config(['--input', input, '--output', 'x.pdf', '--template', tplDir]),
     env,
     log,
   );

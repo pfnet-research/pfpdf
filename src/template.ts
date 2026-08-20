@@ -23,6 +23,7 @@ export interface Template {
   stylePath: string;
   vivliostylePath: string;
   bundled: boolean;
+  repositoryRoot?: string | undefined;
 }
 
 export interface PreparedTemplate extends Template {
@@ -37,9 +38,16 @@ export function resourcePath(...parts: string[]): string {
 }
 
 export function resolveTemplate(
-  template: { kind: 'bundled'; name: string } | { kind: 'custom'; dir: string },
+  template:
+    { kind: 'bundled'; name: string } |
+    { kind: 'custom'; dir: string } |
+    { kind: 'repository'; locator: string },
   templateDirAbs: string | null,
+  repositoryRoot?: string,
 ): PreparedTemplate {
+  if (template.kind === 'repository') {
+    throw new RuntimeError('repository template must be checked out before template resolution');
+  }
   const bundled = template.kind === 'bundled';
   const dir = bundled ? resourcePath('templates', template.name) : templateDirAbs!;
   const err = bundled
@@ -72,6 +80,7 @@ export function resolveTemplate(
     htmlPath: resolved.htmlPath!,
     stylePath: resolved.stylePath!,
     vivliostylePath: resolved.vivliostylePath!,
+    repositoryRoot,
   };
   const source = readTemplateText(resolvedTemplate, resolvedTemplate.htmlPath);
   const root = fromHtml(source) as unknown as HastRoot;
@@ -194,7 +203,7 @@ export interface BuildOptions {
   body: DocumentBody;
   template: PreparedTemplate;
   manifest: ResourceManifest;
-  logoAbs: string | null;
+  logo: { kind: 'template' | 'none' } | { kind: 'file'; absPath: string };
   toc: boolean;
   fontFaceCss: string;
   warn: (msg: string) => void;
@@ -251,15 +260,21 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
 
   // Slot: logo
   let injectedLogoLogical: string | null = null;
-  if (opts.logoAbs !== null) {
+  if (opts.logo.kind === 'file') {
     if (!slots.logo) {
-      throw new InputError('--logo was given but the template has no logo slot');
+      throw new InputError('an explicit logo was given but the template has no logo slot');
     }
-    injectedLogoLogical = opts.manifest.add(opts.logoAbs);
+    injectedLogoLogical = opts.manifest.add(opts.logo.absPath);
     slots.logo.properties = { ...slots.logo.properties, src: injectedLogoLogical };
     if (slots.logo.properties.alt === undefined) slots.logo.properties.alt = '';
   } else if (slots.logo) {
-    removeElement(root, slots.logo);
+    const defaultSource = slots.logo.properties?.src;
+    if (opts.logo.kind === 'none' || typeof defaultSource !== 'string' || defaultSource === '') {
+      removeElement(root, slots.logo);
+    } else {
+      slots.logo.properties = { ...slots.logo.properties };
+      if (slots.logo.properties.alt === undefined) slots.logo.properties.alt = '';
+    }
   }
 
   // Slot: toc / content

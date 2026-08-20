@@ -30,7 +30,7 @@ CLI と変換処理は TypeScript で実装し、npm package の compiled JavaSc
 - path ごとに基準 directory を適用し、renderer へ渡す前に絶対 path へ正規化する
 - CLI の値を環境変数より常に優先し、effective config と各値の設定元を `--print-effective-config` と `--doctor` から再利用する
 - template は入力読込前に environment / CLI の外部指定を解決し、`InputResolver` が返した front matter の `template` は外部指定がない場合だけ組み込み `default` を置き換える。したがって優先順は組み込み既定値、front matter、環境変数、CLI とする
-- `template` と `template-dir` のような排他的な値は、個別の文字列ではなく 1 つの論理設定として解決する。同じ source で双方が指定された場合は終了 code `2` とし、CLI で一方が指定された場合は環境変数側の論理設定全体を置き換える
+- template は1つの論理設定として解決する。`--template SOURCE` / `PFPDF_TEMPLATE` は bundled preset 名との完全一致、`git::` locator、local path の順に分類する。明示 preset の `--template-preset NAME` / `PFPDF_TEMPLATE_PRESET` は source 指定と排他的で、CLI のいずれかが環境変数側の設定全体を置き換える
 - 同じ論理設定の正 / 負指定、たとえば `--host-fonts` と `--no-host-fonts`、`--toc` と `--no-toc`、`--logo` と `--no-logo` を同じ CLI invocation で併用した場合は、引数順に依存させず終了 code `2` とする
 - `--font-dir` 以外の値付き / boolean option を同じ invocation で繰り返した場合は、同じ値でも code `2` とする。unknown option、未定義の positional argument、option value の欠落も code `2` とし、「最後の値が勝つ」引数順依存を作らない
 - conversion、`--doctor`、`--print-effective-config`、`--help`、`--version` は排他的な command mode とする。mode flag を複数指定した場合は code `2` とし、help / version を理由に他の不正引数を暗黙に無視しない
@@ -163,9 +163,10 @@ Required:
 Options:
   --title TEXT             front matter の title を上書きする
   --toc / --no-toc         目次生成を有効 / 無効化する。既定は有効
-  --template NAME          bundled template 名。front matter を上書き。既定値は default
-  --template-dir PATH      custom template directory
-  --logo PATH / --no-logo  template に渡す logo file / 環境変数の logo を無効化
+  --template SOURCE        preset 名、local directory、または git::URL//PATH?ref=REVISION
+  --template-preset NAME   bundled template preset を明示選択
+  --logo SOURCE            local file または git::URL//PATH?ref=REVISION。template 既定値を上書き
+  --no-logo                local / repository / template 既定 logo を無効化
   --host-fonts             OS 標準の font directory を使用する
   --no-host-fonts          環境変数の host font 指定を無効化する
   --font-dir PATH          追加 font directory。複数回指定可能
@@ -228,9 +229,9 @@ Options:
 | `PFPDF_TOC` | boolean | 目次生成の有効 / 無効 |
 | `PFPDF_HOST_FONTS` | boolean | OS 標準 font directory の利用可否 |
 | `PFPDF_FONT_DIRS` | path list | 追加 font directory。区切りは Node.js の `path.delimiter` |
-| `PFPDF_TEMPLATE` | template 名 | bundled template の選択 |
-| `PFPDF_TEMPLATE_DIR` | path | custom template directory |
-| `PFPDF_LOGO` | path | template に渡す logo file |
+| `PFPDF_TEMPLATE` | source | preset 名、custom template directory、または Git locator |
+| `PFPDF_TEMPLATE_PRESET` | template 名 | bundled template preset の明示選択 |
+| `PFPDF_LOGO` | source | template 既定値を上書きする local logo file または Git locator |
 | `PFPDF_BROWSER_PATH` | path | renderer が使う browser |
 | `PFPDF_RENDER_TIMEOUT_MS` | decimal integer | renderer 準備から PDF 検査完了までの timeout。`1000` 以上 `3600000` 以下 |
 | `PFPDF_KEEP_WORK_DIR` | boolean | 一時 workspace の保持 |
@@ -248,10 +249,10 @@ Options:
 - `--doctor` と `--print-effective-config` の実行時は `--input` と `--output` を必須にしない
 - input / output なしの `--doctor` は runtime と global setting だけを検査し、指定された場合だけ document resource と書込先まで検査する。未指定項目を成功確認済みと表示しない
 - `--doctor` は versioned schema の JSON object を stdout へ出し、検査ごとに `pass` / `warning` / `fail` / `not-run` と根拠を持たせる。問題を検出した場合に終了 code `1`、warning のみまたは問題なしの場合は `0` を返す
-- template 以外の scalar と list は、CLI に値があれば CLI 全体、なければ環境変数、どちらにもなければ組み込み既定値を採用する。template だけは外部指定がなければ front matter、さらにそれもなければ組み込み既定値を採用する。source 間で list を暗黙連結しない
-- `--no-logo`、`--no-font-dirs`、`--managed-browser`、`--no-keep-work-dir` は「未指定」ではなく明示的な CLI reset 値であり、対応する環境変数を無効化する。effective config では `null` / 空 list / default 値と `source: "cli"` を区別して表示する
+- template 以外の scalar と list は、CLI に値があれば CLI 全体、なければ環境変数、どちらにもなければ組み込み既定値を採用する。template だけは外部指定がなければ front matter、さらにそれもなければ組み込み既定値を採用する。template source / explicit preset と、logo source / disabled はそれぞれ排他的な1つの論理設定であり、source 間で list を暗黙連結しない
+- `--no-logo`、`--no-font-dirs`、`--managed-browser`、`--no-keep-work-dir` は「未指定」ではなく明示的な CLI reset 値であり、対応する環境変数を無効化する。logo 未指定は template slot の既定 `src` を使用する `template` 状態、`--no-logo` はそれも削除する `none` 状態として effective config で区別する
 
-effective config の top-level は `schemaVersion: 3` と `command` を持ち、`config.<name> = {"value": ..., "source": "cli|environment|front-matter|default"}` を含みます。doctor は `schemaVersion: 2` のままとし、全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。doctor の全体 status は 1 個でも fail があれば fail、なければ warning があれば warning、実行対象が 1 個以上すべて pass なら pass とします。key と check の出力順を固定し、UTF-8 の compact JSON 1 行と末尾 LF だけを stdout へ書きます。将来の optional field 追加は同じ schemaVersion で許可しますが、既存 field の意味・型の変更や削除では version を上げます。
+effective config の top-level は `schemaVersion: 4` と `command` を持ち、`config.<name> = {"value": ..., "source": "cli|environment|front-matter|default"}` を含みます。schema 4 では template に repository variant、logo に `template` / `none` / `local` / `repository` variant を持たせます。doctor は `schemaVersion: 2` のままとし、全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。doctor の全体 status は 1 個でも fail があれば fail、なければ warning があれば warning、実行対象が 1 個以上すべて pass なら pass とします。key と check の出力順を固定し、UTF-8 の compact JSON 1 行と末尾 LF だけを stdout へ書きます。将来の optional field 追加は同じ schemaVersion で許可しますが、既存 field の意味・型の変更や削除では version を上げます。
 
 ### 2.9.4 終了コード
 

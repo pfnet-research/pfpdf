@@ -33,7 +33,7 @@ The following nine keys are available as document metadata. The `bibliography` b
 | `dir` | `ltr` / `rtl` / `auto` | `auto` | Text direction of the document. Used for the `dir` attribute of the HTML root |
 
 - `title` is required. Write it in the front matter or pass it with `--title`. If it appears in neither, that is an error (exit code `2`)
-- `template` must be one of `academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical`. `PFPDF_TEMPLATE` / `PFPDF_TEMPLATE_DIR` override front matter, and the CLI's `--template` / `--template-dir` override both
+- Front matter `template` must be one of `academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical`. `PFPDF_TEMPLATE` / `PFPDF_TEMPLATE_PRESET` override front matter, and the CLI's `--template` / `--template-preset` override them
 - If `series` is omitted, the series display area is removed entirely. The bundled templates never fill it with a fixed publication name, document type, brand name, or boilerplate label
 - To break the title across lines on the cover, use `<br>`, as in `title: "Long Title<br>Subtitle"`. The only tags allowed are `<br>` / `<br/>`
 - The front matter is parsed as a YAML mapping. pfpdf uses only the keys in the table above and the `bibliography` key described in Chapter 03; each metadata key must have the type listed in the table. You can write complex YAML values, but they are not used as metadata

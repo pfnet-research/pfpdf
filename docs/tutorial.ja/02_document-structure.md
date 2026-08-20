@@ -33,7 +33,7 @@ dir: ltr
 | `dir` | `ltr` / `rtl` / `auto` | `auto` | 文書の文字方向。HTML root の `dir` に使います |
 
 - `title` は必須です。front matter に書くか、`--title` で指定してください。どちらにもない場合はエラー(終了 code `2`)になります
-- `template` には `academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical` のいずれかを指定します。`PFPDF_TEMPLATE` / `PFPDF_TEMPLATE_DIR` があれば front matter より優先され、CLI の `--template` / `--template-dir` はさらにそれらを上書きします
+- front matter の `template` には `academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical` のいずれかを指定します。`PFPDF_TEMPLATE` / `PFPDF_TEMPLATE_PRESET` があれば front matter より優先され、CLI の `--template` / `--template-preset` はさらにそれらを上書きします
 - `series` を省略するとシリーズ表示領域自体が削除されます。bundled template は固定の出版名、文書種別、ブランド名、定型ラベルを補いません
 - 表紙のタイトルを改行したいときは `title: "長いタイトル<br>サブタイトル"` のように `<br>` を使います。使える tag は `<br>` / `<br/>` だけです
 - front matter は YAML mapping として読みます。pfpdf が利用するのは上表と第 3 章で説明する `bibliography` だけで、metadata key は表に記載した型である必要があります。複雑な YAML 値を書けても metadata としては利用されません

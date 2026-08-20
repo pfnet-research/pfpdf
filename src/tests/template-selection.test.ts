@@ -60,7 +60,7 @@ test('CLI template does not hide an invalid front matter template', async () => 
   );
 });
 
-test('--template-dir overrides a front matter bundled template', async () => {
+test('--template with a path overrides a front matter bundled template', async () => {
   const input = makeDoc('---\ntitle: T\ntemplate: pfn\n---\nbody\n');
   const templateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-template-selection-custom-'));
   fs.writeFileSync(
@@ -71,7 +71,7 @@ test('--template-dir overrides a front matter bundled template', async () => {
   fs.writeFileSync(path.join(templateDir, 'vivliostyle.css'), '');
 
   const result = await buildHtml(
-    config(['--input', input, '--output', 'x.pdf', '--template-dir', templateDir]),
+    config(['--input', input, '--output', 'x.pdf', '--template', templateDir]),
     env,
     log,
   );

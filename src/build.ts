@@ -1,4 +1,6 @@
 /** End-to-end build pipeline: input -> HTML -> renderer -> committed PDF. */
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { applyFrontMatterTemplate, type Config } from './config.js';
 import { RuntimeError } from './errors.js';
@@ -15,6 +17,7 @@ import { resolveFonts } from './fonts.js';
 import { Workspace } from './workspace.js';
 import { renderDocument } from './renderer.js';
 import { validateOutputPath, ensureOutputParent, commitOutput } from './output.js';
+import { RepositoryResolver } from './repository.js';
 
 export interface Logger {
   warn: (msg: string) => void;
@@ -41,13 +44,52 @@ interface PreparedBoundaries {
   input?: ResolvedInput | undefined;
 }
 
+interface PrepareOptions {
+  processStart?: Date;
+  prepared?: PreparedBoundaries;
+  repositoryResolver: RepositoryResolver;
+}
+
+export async function prepareConfiguredTemplate(
+  config: Config,
+  resolver: RepositoryResolver,
+): Promise<PreparedTemplate> {
+  if (config.template.value.kind !== 'repository') {
+    return resolveTemplate(config.template.value, config.templateDirAbs);
+  }
+  const resolved = await resolver.resolve(config.template.value.locator, 'template');
+  return resolveTemplate(
+    { kind: 'custom', dir: resolved.path },
+    resolved.path,
+    resolved.repositoryRoot,
+  );
+}
+
+export async function prepareConfiguredLogo(
+  config: Config,
+  resolver: RepositoryResolver,
+): Promise<{ kind: 'template' | 'none' } | { kind: 'file'; absPath: string }> {
+  switch (config.logo.value.kind) {
+    case 'template':
+    case 'none':
+      return { kind: config.logo.value.kind };
+    case 'local':
+      return { kind: 'file', absPath: config.logoAbs! };
+    case 'repository': {
+      const resolved = await resolver.resolve(config.logo.value.locator, 'logo');
+      return { kind: 'file', absPath: resolved.path };
+    }
+  }
+}
+
 async function prepareDocument(
   config: Config,
   env: Record<string, string | undefined>,
   log: Logger,
-  processStart = new Date(),
-  prepared?: PreparedBoundaries,
+  options: PrepareOptions,
 ): Promise<PreparedDocument> {
+  const processStart = options.processStart ?? new Date();
+  const prepared = options.prepared;
   const input = prepared?.input ?? resolveInput(
     config.inputAbs!,
     config.title.value,
@@ -56,10 +98,9 @@ async function prepareDocument(
     processStart,
   );
   const documentConfig = applyFrontMatterTemplate(config, input.template);
-  const template = prepared?.template ?? resolveTemplate(
-    documentConfig.template.value,
-    documentConfig.templateDirAbs,
-  );
+  const repositoryResolver = options.repositoryResolver;
+  const template = prepared?.template ?? await prepareConfiguredTemplate(documentConfig, repositoryResolver);
+  const logo = await prepareConfiguredLogo(config, repositoryResolver);
   const manifest = new ResourceManifest();
   const fonts = resolveFonts(manifest, config.fontDirsAbs, config.hostFonts.value);
   for (const warning of fonts.warnings) log.warn(warning);
@@ -73,7 +114,7 @@ async function prepareDocument(
     body,
     template,
     manifest,
-    logoAbs: config.logoAbs,
+    logo,
     toc: config.toc.value,
     fontFaceCss: fonts.css,
     warn: log.warn,
@@ -104,14 +145,17 @@ export async function buildHtml(
   generated: Map<string, Buffer>;
   fontWarnings: string[];
 }> {
-  const { html, manifest, generated, fontWarnings } = await prepareDocument(
-    config,
-    env,
-    log,
-    new Date(),
-    { template: preparedTemplate, input: preparedInput },
-  );
-  return { html, manifest, generated, fontWarnings };
+  const sourceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-sources-'));
+  const repositoryResolver = new RepositoryResolver(sourceRoot, log.warn, log.info, env);
+  try {
+    const { html, manifest, generated, fontWarnings } = await prepareDocument(config, env, log, {
+      prepared: { template: preparedTemplate, input: preparedInput },
+      repositoryResolver,
+    });
+    return { html, manifest, generated, fontWarnings };
+  } finally {
+    fs.rmSync(sourceRoot, { recursive: true, force: true });
+  }
 }
 
 export async function runBuild(
@@ -124,13 +168,21 @@ export async function runBuild(
   const sourceDateEpoch = parseSourceDateEpoch(env['SOURCE_DATE_EPOCH']);
 
   validateOutputPath(config.outputAbs!, config.inputAbs!);
-
-  const { html, metadata, manifest, generated } = await prepareDocument(config, env, log, processStart);
-
-  ensureOutputParent(config.outputAbs!);
-
   const workspace = Workspace.create();
   try {
+    const repositoryResolver = new RepositoryResolver(
+      workspace.filePath('repositories'),
+      log.warn,
+      log.info,
+      env,
+    );
+    const { html, metadata, manifest, generated } = await prepareDocument(config, env, log, {
+      processStart,
+      repositoryResolver,
+    });
+
+    ensureOutputParent(config.outputAbs!);
+
     workspace.writeFile('document.html', html);
     workspace.writeFile('manifest.json', JSON.stringify(manifest.toJSON(), null, 2));
     for (const [logical, content] of generated) {

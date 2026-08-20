@@ -12,9 +12,10 @@ Required:
 Options:
   --title TEXT             Override the front matter title
   --toc / --no-toc         Enable / disable table of contents generation. Enabled by default
-  --template NAME          Bundled template name; overrides front matter. Default is default
-  --template-dir PATH      Custom template directory
-  --logo PATH / --no-logo  Logo file passed to the template / disable the environment variable logo
+  --template SOURCE        Preset name, local directory, or git::URL//PATH?ref=REVISION
+  --template-preset NAME   Explicitly select a bundled template preset
+  --logo SOURCE            Local file or git::URL//PATH?ref=REVISION; overrides template default
+  --no-logo                Disable local, repository, and template default logos
   --host-fonts             Use the OS standard font directories
   --no-host-fonts          Disable the environment variable host font setting
   --font-dir PATH          Additional font directory. Can be specified multiple times
@@ -41,7 +42,7 @@ Most CLI arguments can also be set via environment variables. When both are pres
 | `PFPDF_HOST_FONTS` | `--host-fonts` / `--no-host-fonts` |
 | `PFPDF_FONT_DIRS` | `--font-dir` / `--no-font-dirs` (join multiple entries with the path separator) |
 | `PFPDF_TEMPLATE` | `--template` |
-| `PFPDF_TEMPLATE_DIR` | `--template-dir` |
+| `PFPDF_TEMPLATE_PRESET` | `--template-preset` |
 | `PFPDF_LOGO` | `--logo` / `--no-logo` |
 | `PFPDF_BROWSER_PATH` | `--browser-path` / `--managed-browser` |
 | `PFPDF_RENDER_TIMEOUT_MS` | `--render-timeout-ms` |
@@ -51,7 +52,7 @@ Most CLI arguments can also be set via environment variables. When both are pres
 
 - Boolean environment variables accept only `true` / `false` / `1` / `0`
 - List options such as `--font-dir` are never merged between the CLI and environment variables. If even one entry is given on the CLI, the CLI list is used in its entirety
-- Specifying both `--template` and `--template-dir` in the same place, or `--toc` and `--no-toc` together, is an error. Choosing either template option on the CLI overrides the environment variable template selection entirely
+- Combining `--template` with `--template-preset`, or `--toc` with `--no-toc`, is an error. Either CLI template form replaces the whole environment template selection. `--template` first checks for an exact preset-name match and otherwise treats the value as a Git locator or local path. `--logo` likewise accepts either a Git locator or local path
 - Repeating any option other than `--font-dir` is an error, even with the same value. You also cannot use an empty path component in `PFPDF_FONT_DIRS` to mean the current directory
 - To disable an optional environment variable for a single run, use `--no-logo`, `--no-font-dirs`, `--managed-browser`, or `--no-keep-work-dir`. As explicit CLI values, these take precedence over environment variables
 - To see where each setting came from, use `--print-effective-config`, which outputs a JSON object with a versioned schema. When `--input` is also specified, it reflects the front matter template selection and reports its source as `front-matter`

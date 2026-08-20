@@ -56,10 +56,10 @@ test('environment applies when CLI is absent', () => {
   assert.equal(c.toc.value, false);
 });
 
-test('effective configuration uses schema version 3', () => {
+test('effective configuration uses schema version 4', () => {
   const config = resolveConfig(['--input', 'a.md', '--output', 'a.pdf'], {}, cwd);
   const result = JSON.parse(effectiveConfigJson(config)) as { schemaVersion: number };
-  assert.equal(result.schemaVersion, 3);
+  assert.equal(result.schemaVersion, 4);
 });
 
 test('positive/negative pair conflict is code 2', () => {
@@ -92,14 +92,91 @@ test('--no-font-dirs resets environment list', () => {
   assert.equal(c.fontDirs.source, 'cli');
 });
 
-test('template/template-dir exclusive per source', () => {
-  assert.throws(() => resolveConfig(['--template', 'a', '--template-dir', 'b', '--input', 'x.md', '--output', 'y.pdf'], {}, cwd), InputError);
-  assert.throws(() => resolveConfig(['--input', 'x.md', '--output', 'y.pdf'], { PFPDF_TEMPLATE: 'default', PFPDF_TEMPLATE_DIR: '/x' }, cwd), InputError);
+test('template source and explicit preset are exclusive per source', () => {
+  assert.throws(() => resolveConfig(['--template', 'a', '--template-preset', 'book', '--input', 'x.md', '--output', 'y.pdf'], {}, cwd), InputError);
+  assert.throws(() => resolveConfig(['--input', 'x.md', '--output', 'y.pdf'], { PFPDF_TEMPLATE: './default', PFPDF_TEMPLATE_PRESET: 'default' }, cwd), InputError);
 });
 
-test('CLI template overrides both env template settings', () => {
-  const c = resolveConfig(['--input', 'x.md', '--output', 'y.pdf', '--template', 'pfn'], { PFPDF_TEMPLATE: 'default', PFPDF_TEMPLATE_DIR: '/x' }, cwd);
+test('repository template and logo settings are parsed as logical selections', () => {
+  const templateLocator = 'git::https://example.com/assets.git//templates/report?ref=v1.0.0';
+  const logoLocator = 'git::ssh://git@example.com/assets.git//logos/main.svg?ref=0123456789abcdef';
+  const c = resolveConfig([
+    '--input', 'x.md', '--output', 'y.pdf',
+    '--template', templateLocator,
+    '--logo', logoLocator,
+  ], {}, cwd);
+  assert.deepEqual(c.template.value, { kind: 'repository', locator: templateLocator });
+  assert.deepEqual(c.logo.value, { kind: 'repository', locator: logoLocator });
+  assert.equal(c.logoAbs, null);
+});
+
+test('explicit template preset and logo disable alternatives are mutually exclusive', () => {
+  const locator = 'git::https://example.com/assets.git//templates/report?ref=v1';
+  assert.throws(
+    () => resolveConfig([
+      '--input', 'x.md', '--output', 'y.pdf', '--template-preset', 'default',
+      '--template', locator,
+    ], {}, cwd),
+    InputError,
+  );
+  assert.throws(
+    () => resolveConfig([
+      '--input', 'x.md', '--output', 'y.pdf', '--logo', locator, '--no-logo',
+    ], {}, cwd),
+    InputError,
+  );
+});
+
+test('logo defaults to the template and --no-logo is an explicit state', () => {
+  const automatic = resolveConfig(['--input', 'x.md', '--output', 'y.pdf'], {}, cwd);
+  assert.deepEqual(automatic.logo, { value: { kind: 'template' }, source: 'default' });
+  const disabled = resolveConfig(['--input', 'x.md', '--output', 'y.pdf', '--no-logo'], {}, cwd);
+  assert.deepEqual(disabled.logo, { value: { kind: 'none' }, source: 'cli' });
+});
+
+test('CLI template overrides the environment template setting', () => {
+  const c = resolveConfig(['--input', 'x.md', '--output', 'y.pdf', '--template-preset', 'pfn'], { PFPDF_TEMPLATE: './default' }, cwd);
   assert.deepEqual(c.template.value, { kind: 'bundled', name: 'pfn' });
+});
+
+test('--template uses an exact preset match and otherwise treats the value as a path', () => {
+  const preset = resolveConfig(['--input', 'x.md', '--output', 'y.pdf', '--template', 'default'], {}, cwd);
+  assert.deepEqual(preset.template.value, { kind: 'bundled', name: 'default' });
+  const pathSelection = resolveConfig(['--input', 'x.md', '--output', 'y.pdf', '--template', './default'], {}, cwd);
+  assert.deepEqual(pathSelection.template.value, { kind: 'custom', dir: './default' });
+  assert.equal(pathSelection.templateDirAbs, path.join(cwd, 'default'));
+});
+
+test('--template-preset rejects non-preset names instead of treating them as paths', () => {
+  assert.throws(
+    () => resolveConfig(['--input', 'x.md', '--output', 'y.pdf', '--template-preset', './default'], {}, cwd),
+    InputError,
+  );
+});
+
+test('removed template and logo source-specific options are rejected', () => {
+  for (const option of ['--template-dir', '--template-repository', '--logo-repository']) {
+    assert.throws(
+      () => resolveConfig(['--input', 'x.md', '--output', 'y.pdf', option, 'value'], {}, cwd),
+      InputError,
+    );
+  }
+});
+
+test('environment template and logo sources use the same classification rules', () => {
+  const local = resolveConfig(
+    ['--input', 'x.md', '--output', 'y.pdf'],
+    { PFPDF_TEMPLATE: './default', PFPDF_LOGO: './logo.svg' },
+    cwd,
+  );
+  assert.deepEqual(local.template.value, { kind: 'custom', dir: './default' });
+  assert.deepEqual(local.logo.value, { kind: 'local', path: './logo.svg' });
+  const preset = resolveConfig(
+    ['--input', 'x.md', '--output', 'y.pdf'],
+    { PFPDF_TEMPLATE_PRESET: 'default' },
+    cwd,
+  );
+  assert.deepEqual(preset.template.value, { kind: 'bundled', name: 'default' });
 });
 
 test('unknown option / positional / missing value are code 2', () => {

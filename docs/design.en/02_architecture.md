@@ -30,7 +30,7 @@ The CLI and conversion logic are implemented in TypeScript and run as compiled J
 - Resolves each path against the appropriate base directory and normalizes it to an absolute path before passing it to the renderer
 - Always prefers CLI values over environment variables, and reuses the effective configuration and the source of each value for `--print-effective-config` and `--doctor`
 - Template resolution happens in two stages: environment and CLI selections are resolved before reading input, and the front matter `template` returned by `InputResolver` replaces the built-in `default` only when no external selection exists. The resulting precedence is built-in default, front matter, environment variable, then CLI argument
-- Mutually exclusive values such as `template` and `template-dir` are resolved as a single logical setting rather than as individual strings. If both are specified from the same source, the process exits with code `2`; if one is specified on the CLI, it replaces the entire logical setting from the environment
+- A template is resolved as one logical setting. `--template SOURCE` / `PFPDF_TEMPLATE` classifies an exact bundled-preset name first, then a `git::` locator, then a local path. Explicit `--template-preset NAME` / `PFPDF_TEMPLATE_PRESET` is exclusive with the source form, and either CLI form replaces the entire environment setting
 - Combining positive and negative forms of the same logical setting in the same CLI invocation — for example `--host-fonts` and `--no-host-fonts`, `--toc` and `--no-toc`, `--logo` and `--no-logo` — exits with code `2`, regardless of argument order
 - Repeating any value-taking or boolean option other than `--font-dir` in one invocation exits with code `2`, even when the repeated values are identical. Unknown options, unexpected positional arguments, and missing option values also produce code `2`; behavior never depends on a "last value wins" rule
 - Conversion, `--doctor`, `--print-effective-config`, `--help`, and `--version` are mutually exclusive command modes. Specifying multiple mode flags is code `2`, and help / version do not implicitly excuse other invalid arguments
@@ -163,9 +163,10 @@ Required:
 Options:
   --title TEXT             override the front matter title
   --toc / --no-toc         enable / disable table of contents generation. Default is enabled
-  --template NAME          bundled template name; overrides front matter. Default is default
-  --template-dir PATH      custom template directory
-  --logo PATH / --no-logo  logo file passed to the template / disable the environment logo
+  --template SOURCE        preset name, local directory, or git::URL//PATH?ref=REVISION
+  --template-preset NAME   explicitly select a bundled template preset
+  --logo SOURCE            local file or git::URL//PATH?ref=REVISION; overrides template default
+  --no-logo                disable local, repository, and template default logos
   --host-fonts             use the OS standard font directories
   --no-host-fonts          disable the host font setting from the environment
   --font-dir PATH          additional font directory. May be repeated
@@ -228,9 +229,9 @@ Options:
 | `PFPDF_TOC` | boolean | Enable / disable table of contents generation |
 | `PFPDF_HOST_FONTS` | boolean | Whether OS standard font directories may be used |
 | `PFPDF_FONT_DIRS` | path list | Additional font directories. Separator is Node.js `path.delimiter` |
-| `PFPDF_TEMPLATE` | template name | Bundled template selection |
-| `PFPDF_TEMPLATE_DIR` | path | Custom template directory |
-| `PFPDF_LOGO` | path | Logo file passed to the template |
+| `PFPDF_TEMPLATE` | source | Preset name, custom template directory, or Git locator |
+| `PFPDF_TEMPLATE_PRESET` | template name | Explicit bundled-template preset selection |
+| `PFPDF_LOGO` | source | Local logo file or Git locator overriding the template default |
 | `PFPDF_BROWSER_PATH` | path | Browser used by the renderer |
 | `PFPDF_RENDER_TIMEOUT_MS` | decimal integer | Timeout from renderer preparation to PDF inspection completion. Between `1000` and `3600000` inclusive |
 | `PFPDF_KEEP_WORK_DIR` | boolean | Keep the temporary workspace |
@@ -248,10 +249,10 @@ Options:
 - `--doctor` and `--print-effective-config` do not require `--input` and `--output`
 - `--doctor` without input / output inspects only the runtime and global settings, and inspects document resources and the write destination only when they are specified. Unspecified items are never displayed as verified successes
 - `--doctor` writes a JSON object with a versioned schema to stdout, giving each check `pass` / `warning` / `fail` / `not-run` and its rationale. The exit code is `1` when a problem is detected, `0` when there are only warnings or no problems
-- For scalars and lists other than the template, if the CLI provides a value, the entire CLI value is used; otherwise the environment variable; otherwise the built-in default. For the template alone, front matter is used when no external selection exists, followed by the built-in default. Lists are never implicitly concatenated across sources
-- `--no-logo`, `--no-font-dirs`, `--managed-browser`, and `--no-keep-work-dir` are explicit CLI reset values, not "unspecified", and disable the corresponding environment variables. The effective configuration distinguishes `null`, an empty list, and default values with `source: "cli"`
+- For scalars and lists other than the template, if the CLI provides a value, the entire CLI value is used; otherwise the environment variable; otherwise the built-in default. For the template alone, front matter is used when no external selection exists, followed by the built-in default. Template source / explicit preset and logo source / disabled are each one exclusive logical setting. Lists are never implicitly concatenated across sources
+- `--no-logo`, `--no-font-dirs`, `--managed-browser`, and `--no-keep-work-dir` are explicit CLI reset values, not "unspecified", and disable the corresponding environment variables. An unspecified logo is the `template` state that uses the slot's default `src`; `--no-logo` is the distinct `none` state that removes it too
 
-The effective configuration has `schemaVersion: 3` and `command` at the top level, with `config.<name> = {"value": ..., "source": "cli|environment|front-matter|default"}`. Doctor remains at `schemaVersion: 2` and has an overall `status` plus `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}`. Doctor's overall status is fail if any check fails, otherwise warning if any check warns, and pass if at least one check ran and all passed. Key and check output order is fixed, and exactly one line of compact UTF-8 JSON plus a trailing LF is written to stdout. Adding optional fields in the future is allowed under the same schemaVersion, but changing the meaning or type of an existing field, or removing one, bumps the version.
+The effective configuration has `schemaVersion: 4` and `command` at the top level, with `config.<name> = {"value": ..., "source": "cli|environment|front-matter|default"}`. Schema 4 adds the repository variant to templates and `template` / `none` / `local` / `repository` variants to logos. Doctor remains at `schemaVersion: 2` and has an overall `status` plus `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}`. Doctor's overall status is fail if any check fails, otherwise warning if any check warns, and pass if at least one check ran and all passed. Key and check output order is fixed, and exactly one line of compact UTF-8 JSON plus a trailing LF is written to stdout. Adding optional fields in the future is allowed under the same schemaVersion, but changing the meaning or type of an existing field, or removing one, bumps the version.
 
 ### 2.9.4 Exit codes
 

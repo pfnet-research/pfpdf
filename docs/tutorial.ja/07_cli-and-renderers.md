@@ -12,9 +12,10 @@ Required:
 Options:
   --title TEXT             front matter の title を上書きする
   --toc / --no-toc         目次生成を有効 / 無効化する。既定は有効
-  --template NAME          bundled template 名。front matter を上書き。既定値は default
-  --template-dir PATH      custom template directory
-  --logo PATH / --no-logo  template に渡す logo file / 環境変数の logo を無効化
+  --template SOURCE        preset 名、local directory、または git::URL//PATH?ref=REVISION
+  --template-preset NAME   bundled template preset を明示選択
+  --logo SOURCE            local file または git::URL//PATH?ref=REVISION。template 既定値を上書き
+  --no-logo                local / repository / template 既定 logo を無効化
   --host-fonts             OS 標準の font directory を使用する
   --no-host-fonts          環境変数の host font 指定を無効化する
   --font-dir PATH          追加 font directory。複数回指定可能
@@ -41,7 +42,7 @@ CLI 引数の多くは環境変数でも設定できます。同じ項目が両�
 | `PFPDF_HOST_FONTS` | `--host-fonts` / `--no-host-fonts` |
 | `PFPDF_FONT_DIRS` | `--font-dir` / `--no-font-dirs`(複数は path 区切り文字で連結) |
 | `PFPDF_TEMPLATE` | `--template` |
-| `PFPDF_TEMPLATE_DIR` | `--template-dir` |
+| `PFPDF_TEMPLATE_PRESET` | `--template-preset` |
 | `PFPDF_LOGO` | `--logo` / `--no-logo` |
 | `PFPDF_BROWSER_PATH` | `--browser-path` / `--managed-browser` |
 | `PFPDF_RENDER_TIMEOUT_MS` | `--render-timeout-ms` |
@@ -51,7 +52,7 @@ CLI 引数の多くは環境変数でも設定できます。同じ項目が両�
 
 - boolean の環境変数は `true` / `false` / `1` / `0` だけを受け付けます
 - `--font-dir` のような list は CLI と環境変数を混ぜません。CLI で 1 個でも指定すれば CLI の list 全体が使われます
-- `--template` と `--template-dir` を同じ場所で両方指定した場合や、`--toc` と `--no-toc` を同時指定した場合はエラーです。CLI で template の一方を選べば、環境変数側の template 選択全体を上書きします
+- `--template` と `--template-preset`、または `--toc` と `--no-toc` を同時指定した場合はエラーです。CLIでtemplateの一方を選べば、環境変数側のtemplate選択全体を上書きします。`--template`はpreset名との完全一致を先に判定し、それ以外をGit locatorまたはlocal pathとして扱います。`--logo`もGit locatorとlocal pathを同じoptionで扱います
 - `--font-dir` 以外の option を繰り返した場合は、同じ値でもエラーです。`PFPDF_FONT_DIRS` に空の path component を入れて current directory を表すこともできません
 - optional な環境変数を 1 回だけ無効化するには、`--no-logo`、`--no-font-dirs`、`--managed-browser`、`--no-keep-work-dir` を使います。これらは明示的な CLI 値として環境変数より優先されます
 - どの設定がどこから来たかは `--print-effective-config` で、versioned schema の JSON object として確認できます。`--input` も指定すると front matter の template 選択を反映し、設定元を `front-matter` と表示します
