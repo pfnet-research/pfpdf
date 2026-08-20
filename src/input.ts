@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fromHtml } from 'hast-util-from-html';
 import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import { BUNDLED_TEMPLATE_NAMES } from './bundled-templates.js';
+import type { FrontMatterConfig } from './config.js';
 import { InputError } from './errors.js';
 
 export interface SourceFile {
@@ -42,8 +43,8 @@ export interface ResolvedInput {
   files: SourceFile[];
   metadata: Metadata;
   bibliography: BibliographyFile[];
-  /** Bundled template selected in front matter, before external overrides. */
-  template: string | null;
+  /** Document settings selected in front matter, before CLI overrides. */
+  config: FrontMatterConfig;
 }
 
 export interface BibliographyFile {
@@ -108,7 +109,7 @@ interface FrontMatter {
 
 const ALLOWED_KEYS = new Set([
   'title', 'author', 'series', 'date', 'page_size', 'confidential', 'lang', 'dir',
-  'bibliography', 'template',
+  'bibliography', 'template', 'toc', 'logo',
 ]);
 
 interface SourceLine {
@@ -193,23 +194,54 @@ function readInputFile(filePath: string): string {
   return decodeUtf8(filePath, buf);
 }
 
-function resolveFrontMatterTemplate(raw: Map<string, unknown>): string | null {
+function resolveFrontMatterConfig(
+  raw: Map<string, unknown>,
+  frontMatterPath: string,
+): FrontMatterConfig {
   const value = raw.get('template');
-  if (value === undefined) return null;
-  if (typeof value !== 'string') {
+  let template: string | null = null;
+  if (value !== undefined && typeof value !== 'string') {
     throw new InputError('front matter template: expected a string');
   }
-  if (!BUNDLED_TEMPLATE_NAMES.includes(value)) {
+  if (typeof value === 'string' && !BUNDLED_TEMPLATE_NAMES.includes(value)) {
     throw new InputError(`front matter template: unknown bundled template: ${value}`);
   }
-  return value;
+  if (typeof value === 'string') template = value;
+
+  const tocValue = raw.get('toc');
+  if (tocValue !== undefined && typeof tocValue !== 'boolean') {
+    throw new InputError('front matter toc: expected a YAML boolean');
+  }
+
+  const logoValue = raw.get('logo');
+  let logo: FrontMatterConfig['logo'] = null;
+  if (logoValue === false) {
+    logo = { kind: 'none' };
+  } else if (typeof logoValue === 'string') {
+    if (logoValue === '' || logoValue.includes('\0')) {
+      throw new InputError('front matter logo: empty paths and NUL are not allowed');
+    }
+    if (logoValue.startsWith('git::')) {
+      throw new InputError('front matter logo: Git repository sources require --logo');
+    }
+    logo = {
+      kind: 'local',
+      path: logoValue,
+      absPath: path.isAbsolute(logoValue)
+        ? path.normalize(logoValue)
+        : path.resolve(path.dirname(frontMatterPath), logoValue),
+    };
+  } else if (logoValue !== undefined) {
+    throw new InputError('front matter logo: expected a path string or false');
+  }
+  return { template, toc: tocValue ?? null, logo };
 }
 
-/** Read only enough input to resolve the template for configuration diagnostics. */
-export function readFrontMatterTemplate(inputAbs: string): string | null {
+/** Read document configuration for configuration diagnostics. */
+export function readFrontMatterConfig(inputAbs: string): FrontMatterConfig {
   const firstPath = resolveInputFilePaths(inputAbs)[0]!;
   const parsed = parseFrontMatter(firstPath, readInputFile(firstPath));
-  return resolveFrontMatterTemplate(parsed.fm?.raw ?? new Map<string, unknown>());
+  return resolveFrontMatterConfig(parsed.fm?.raw ?? new Map<string, unknown>(), firstPath);
 }
 
 const PAGE_SIZE_KEYWORDS: Record<string, string> = {
@@ -334,7 +366,7 @@ export function resolveInput(
   const raw = fm?.raw ?? new Map<string, unknown>();
 
   const bibliography = resolveBibliographyFiles(raw.get('bibliography'), filePaths[0]!);
-  const template = resolveFrontMatterTemplate(raw);
+  const config = resolveFrontMatterConfig(raw, filePaths[0]!);
 
   const requireString = (key: string): string | null => {
     const v = raw.get(key);
@@ -396,7 +428,7 @@ export function resolveInput(
   return {
     files,
     bibliography,
-    template,
+    config,
     metadata: {
       title,
       author,

@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { applyFrontMatterTemplate, type Config } from './config.js';
+import { applyFrontMatterConfig, type Config } from './config.js';
 import { RuntimeError } from './errors.js';
 import {
   resolveInput,
@@ -97,10 +97,10 @@ async function prepareDocument(
     log.warn,
     processStart,
   );
-  const documentConfig = applyFrontMatterTemplate(config, input.template);
+  const documentConfig = applyFrontMatterConfig(config, input.config);
   const repositoryResolver = options.repositoryResolver;
   const template = prepared?.template ?? await prepareConfiguredTemplate(documentConfig, repositoryResolver);
-  const logo = await prepareConfiguredLogo(config, repositoryResolver);
+  const logo = await prepareConfiguredLogo(documentConfig, repositoryResolver);
   const manifest = new ResourceManifest();
   const fonts = resolveFonts(manifest, config.fontDirsAbs, config.hostFonts.value);
   for (const warning of fonts.warnings) log.warn(warning);
@@ -115,7 +115,7 @@ async function prepareDocument(
     template,
     manifest,
     logo,
-    toc: config.toc.value,
+    toc: documentConfig.toc.value,
     fontFaceCss: fonts.css,
     warn: log.warn,
   });

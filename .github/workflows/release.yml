@@ -62,7 +62,7 @@ jobs:
           browser_path="$(command -v google-chrome)"
           test -n "$browser_path"
           browser_version="$("$browser_path" --version)"
-          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+          echo "BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
           echo "version=$browser_version" >> "$GITHUB_OUTPUT"
       - name: Build the four release PDFs
         run: make docs-release
@@ -125,7 +125,7 @@ jobs:
         run: |
           browser_path="$(command -v google-chrome)"
           test -n "$browser_path"
-          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+          echo "BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
       - name: Install Chromium on Linux Arm64
         if: matrix.runner == 'ubuntu-24.04-arm'
         shell: bash
@@ -134,21 +134,21 @@ jobs:
           sudo apt-get install -y chromium-browser
           browser_path="$(command -v chromium-browser || command -v chromium)"
           test -n "$browser_path"
-          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+          echo "BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
       - name: Select Chrome on macOS
         if: runner.os == 'macOS'
         shell: bash
         run: |
           browser_path='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
           test -x "$browser_path"
-          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+          echo "BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
       - name: Select Chrome on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $browserPath = Join-Path $env:PROGRAMFILES 'Google\Chrome\Application\chrome.exe'
           if (-not (Test-Path $browserPath)) { throw 'Google Chrome is not installed' }
-          "PFPDF_BROWSER_PATH=$browserPath" >> $env:GITHUB_ENV
+          "BROWSER_PATH=$browserPath" >> $env:GITHUB_ENV
       - name: Install and smoke-test the packed package
         run: node scripts/release.mjs test-packed --metadata build/release/release-metadata.json
 
@@ -240,7 +240,7 @@ jobs:
         run: |
           browser_path="$(command -v google-chrome)"
           test -n "$browser_path"
-          echo "PFPDF_BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+          echo "BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
       - name: Verify installation from the public registry
         run: node scripts/release.mjs verify-published --metadata build/release/release-metadata.json
       - name: Record the approved candidate

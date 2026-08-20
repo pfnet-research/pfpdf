@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  applyFrontMatterTemplate,
+  applyFrontMatterConfig,
   resolveConfig,
   effectiveConfigJson,
   validateConfigForMode,
@@ -13,7 +13,7 @@ import {
 import { InputError, RuntimeError, exitCodeOf } from './errors.js';
 import { runBuild, type Logger } from './build.js';
 import { runDoctor } from './doctor.js';
-import { readFrontMatterTemplate } from './input.js';
+import { readFrontMatterConfig } from './input.js';
 
 const LEVELS: Record<string, number> = { error: 0, warn: 1, info: 2, debug: 3 };
 
@@ -45,7 +45,7 @@ function packageVersion(): string {
 export async function main(): Promise<number> {
   let logLevel = 'warn';
   try {
-    const config = resolveConfig(process.argv.slice(2), process.env, process.cwd());
+    const config = resolveConfig(process.argv.slice(2), process.cwd());
     logLevel = config.logLevel.value;
     const log = makeLogger(logLevel);
 
@@ -64,7 +64,7 @@ export async function main(): Promise<number> {
         process.stdout.write(effectiveConfigJson(
           config.inputAbs === null
             ? config
-            : applyFrontMatterTemplate(config, readFrontMatterTemplate(config.inputAbs)),
+            : applyFrontMatterConfig(config, readFrontMatterConfig(config.inputAbs)),
         ));
         return 0;
       case 'doctor': {

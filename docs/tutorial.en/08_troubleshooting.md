@@ -12,7 +12,7 @@ The command checks the Node.js version, browser availability, fonts, output perm
 
 `--doctor` does not download browsers, create project or output directories, or change OS settings. For the actual launch check it uses an isolated temporary profile, which is deleted afterward. Each external check times out after 10 seconds including cleanup, and the whole run after 60 seconds.
 
-To confirm that settings are taking effect as intended, use `--print-effective-config`. It prints each setting's value, along with whether it came from the CLI, an environment variable, front matter, or a default, as JSON. Include `--input` when checking a front matter template selection.
+To confirm that settings are taking effect as intended, use `--print-effective-config`. It prints each setting's value, along with whether it came from the CLI, front matter, or a default, as JSON. Include `--input` when checking front matter `template` / `toc` / `logo` settings.
 
 ## 8.2 The Node.js version is too old
 
@@ -23,7 +23,7 @@ pfpdf checks the Node.js version at startup and exits with a clear error if it i
 The first-run Chromium fetch is performed by the standard mechanism of the bundled Vivliostyle CLI and its browser manager.
 
 - In environments that need a proxy or a custom CA, follow the Vivliostyle CLI / Puppeteer instructions to configure them
-- If you already have a compatible browser, you can specify it explicitly with `--browser-path` / `PFPDF_BROWSER_PATH`
+- If you already have a compatible browser, you can specify it explicitly with `--browser-path`
 
 ## 8.4 The browser does not start on Linux (missing shared libraries)
 

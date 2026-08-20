@@ -26,7 +26,7 @@ pfpdf bundles redistributable Japanese fonts in multiple weights, including Noto
 
 - Bundled fonts are always available; if host fonts are disabled, no OS font discovery is performed
 - Builds the set of permitted directories from `--host-fonts` and any explicitly given `--font-dir`
-- The scan priority is: the effective list of additional font directories, then the fixed order of standard OS directories added by `--host-fonts`, then the bundled fallback. The additional list uses only the CLI `--font-dir` order if at least one is given, and otherwise the order of the `PFPDF_FONT_DIRS` environment variable
+- The scan priority is: the additional font directories in CLI `--font-dir` order, then the fixed order of standard OS directories added by `--host-fonts`, then the bundled fallback
 - Reads family, weight, style, and stretch from the OpenType name table and generates temporary `@font-face` CSS that references each adopted face by logical font URL. `--font-dir` is not an option that automatically selects fonts into the body; it adds candidates that template and document CSS can select by family name
 - Generates CSS with font URLs reachable from the renderer's execution environment, and passes renderer-internal fontconfig metadata only where needed
 - Extracts the non-generic families demanded by the bundled templates' static CSS and enables only the faces that are found. Families that are not found become warnings with source locations, and template tests guarantee that the bundled fallback appears at the end of the font-family list. Selected fonts are not guaranteed for dynamic properties in custom or raw CSS
@@ -76,30 +76,30 @@ resources/templates/
     vivliostyle.css
 ```
 
-- Select a bundled template with the first Markdown file's front matter `template`, or with `--template SOURCE` / `PFPDF_TEMPLATE` when the source exactly matches a bundled name. `--template-preset NAME` / `PFPDF_TEMPLATE_PRESET` explicitly requires a bundled preset. Environment variables and CLI arguments take precedence over front matter
+- Select a bundled template with the first Markdown file's front matter `template`, or with `--template SOURCE` when the source exactly matches a bundled name. `--template-preset NAME` explicitly requires a bundled preset. CLI arguments take precedence over front matter
 - A custom or repository template may declare a default logo by putting a template-relative path in the `src` of its `logo` slot. Bundled templates have no default logo
-- `--logo SOURCE` / `PFPDF_LOGO` accepts a local path or Git locator and overrides the template default. `--no-logo` disables both the environment value and the template default
+- Front matter `logo` accepts a local path or `false`. CLI `--logo SOURCE` accepts a local path or Git locator and overrides front matter and the template default; `--no-logo` disables both
 - If no logo is explicit and the slot has no `src`, the logo placeholder itself is not emitted. No broken image placeholder is left behind
-- A relative logo path is resolved against the current directory
+- A relative front matter logo path is resolved from the first Markdown file's parent directory; a relative CLI logo path is resolved from the current directory
 - The logo and template are trusted input; only their existence and readability are pre-checked. Their content is not sandboxed
 
 ## 4.5 Custom templates
 
-- A plain `--template SOURCE` / `PFPDF_TEMPLATE` value that does not exactly match a bundled preset name is a custom-template directory path. To select a same-named directory, use an unambiguous path spelling such as `./default`
-- Custom template paths are accepted only from the CLI or environment, not from front matter
+- A plain `--template SOURCE` value that does not exactly match a bundled preset name is a custom-template directory path. To select a same-named directory, use an unambiguous path spelling such as `./default`
+- Custom template paths are accepted only from the CLI, not from front matter
 - Custom templates are treated like trusted local code, with explicit documentation that they may execute raw HTML and scripts
 - The custom template format has no `apiVersion`, JSON Schema, or cross-version compatibility guarantee. Users who need to preserve a template's appearance and structure should pin the pfpdf version. Within a given version, the following DOM slot contract prevents ambiguous string substitution
 - A custom template directory contains `template.html`, `style.css`, and `vivliostyle.css` directly, and only the presence of the files required by the selected pfpdf version is checked
 
 ### 4.5.1 Git repository sources
 
-- `--template 'git::URL//PATH?ref=REVISION'` / `PFPDF_TEMPLATE` selects a custom template directory inside a Git repository. `--logo` / `PFPDF_LOGO` uses the same form to select a regular file
+- `--template 'git::URL//PATH?ref=REVISION'` selects a custom template directory inside a Git repository. `--logo` uses the same form to select a regular file
 - `PATH` is a `/`-separated relative path from the repository root. Subdirectories are allowed; absolute paths, empty components, `.`, `..`, and backslashes are code `2`. A template must select a directory and a logo a regular file
 - Supported URL schemes are `https://`, `ssh://`, and `file://`; `file://` is for local use and tests. Passwords and HTTPS userinfo are rejected to avoid credential disclosure. Private repositories authenticate through a Git credential helper or SSH agent
 - `ref` accepts a branch, tag, or commit. If omitted, remote `HEAD` is used and the resolved commit is reported as a warning. Reproducible CI should specify a full commit hash
 - A repository source is checked out under an OS temporary directory at depth 1, detached HEAD, with submodules disabled. The same URL / ref is shared within one process. There is no persistent cache; a conversion checkout lives in the build workspace and is reclaimed with it, subject to `--keep-work-dir`
 - Locator syntax, path, and file-type errors are code `2`; Git startup, network, authentication, fetch / checkout failures, and timeouts are code `1`. The conversion timeout is 300 seconds and a doctor's external-process check is 10 seconds. Git is launched with an argument array rather than a shell, with interactive prompts disabled
-- Repository templates remain trusted code. Front matter cannot select one; only an explicit CLI or environment selection causes network access and template-script execution
+- Repository templates remain trusted code. Front matter cannot select one; only an explicit CLI selection causes network access and template-script execution
 
 ### 4.5.2 DOM slot contract
 

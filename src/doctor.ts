@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { getInstalledBrowsers } from '@puppeteer/browsers';
-import { applyFrontMatterTemplate, type Config } from './config.js';
+import { applyFrontMatterConfig, type Config } from './config.js';
 import { buildHtml, prepareConfiguredLogo, prepareConfiguredTemplate, type Logger } from './build.js';
 import { resolveFonts } from './fonts.js';
 import { ResourceManifest } from './resources.js';
@@ -63,7 +63,7 @@ async function runDoctorWithResolver(
         env,
         (message) => { inputWarnings.push(message); log.debug(message); },
       );
-      documentConfig = applyFrontMatterTemplate(config, preparedInput.template);
+      documentConfig = applyFrontMatterConfig(config, preparedInput.config);
     } catch (error) {
       inputError = error as Error;
     }
@@ -137,20 +137,20 @@ async function runDoctorWithResolver(
           warnings.length === 0 ? 'pass' : 'warning',
           `${result.manifest.list().length} local resource(s) resolved${warnings.length ? `; ${warnings.length} warning(s)` : ''}`,
         );
-        const configuredLogo = config.logo.value;
+        const configuredLogo = documentConfig.logo.value;
         add(
           'logo',
           configuredLogo.kind === 'template' ? 'not-run' : 'pass',
           configuredLogo.kind === 'template' ? 'template default or no logo'
             : configuredLogo.kind === 'none' ? 'logo explicitly disabled'
-              : configuredLogo.kind === 'local' ? config.logoAbs!
+              : configuredLogo.kind === 'local' ? documentConfig.logoAbs!
                 : configuredLogo.locator,
         );
         addFontChecks(config, result.fontWarnings, add);
       } catch (e) {
         add('input', 'fail', (e as Error).message);
-        const logoText = config.logo.value.kind === 'local' ? config.logoAbs
-          : config.logo.value.kind === 'repository' ? config.logo.value.locator : null;
+        const logoText = documentConfig.logo.value.kind === 'local' ? documentConfig.logoAbs
+          : documentConfig.logo.value.kind === 'repository' ? documentConfig.logo.value.locator : null;
         const logoFailure = logoText !== null && (e as Error).message.includes(logoText);
         add('logo', logoFailure ? 'fail' : 'not-run', logoFailure ? (e as Error).message : 'input preparation did not complete');
         addFailedFontChecks(config, e as Error, add);
@@ -307,7 +307,7 @@ async function probeBrowser(browserPath: string): Promise<Pick<Check, 'status' |
     const launcher = path.join(path.dirname(fileURLToPath(import.meta.url)), 'launcher.js');
     const result = spawnSync(process.execPath, [
       launcher, '--input', input, '--output', output, '--browser-path', browserPath,
-      '--template', 'default', '--no-logo', '--no-host-fonts', '--no-font-dirs',
+      '--template', 'default', '--no-logo',
       '--render-timeout-ms', '10000', '--log-level', 'error',
     ], {
       shell: false,

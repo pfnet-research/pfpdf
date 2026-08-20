@@ -1,11 +1,11 @@
-/** ConfigResolver: built-in defaults < environment variables < CLI arguments. */
+/** ConfigResolver: built-in defaults < front matter < CLI arguments. */
 import path from 'node:path';
 import { BUNDLED_TEMPLATE_NAMES } from './bundled-templates.js';
 import { InputError } from './errors.js';
 import { validateTitle } from './input.js';
 import { parseRepositoryLocator } from './repository.js';
 
-export type Source = 'cli' | 'environment' | 'front-matter' | 'default';
+export type Source = 'cli' | 'front-matter' | 'default';
 export type CommandMode = 'convert' | 'doctor' | 'print-effective-config' | 'help' | 'version';
 
 export interface ResolvedValue<T> {
@@ -56,9 +56,7 @@ const VALUE_OPTIONS = new Set([
   '--render-timeout-ms', '--log-level',
 ]);
 const FLAG_OPTIONS = new Set([
-  '--toc', '--no-toc', '--host-fonts', '--no-host-fonts', '--no-font-dirs',
-  '--no-logo', '--managed-browser',
-  '--keep-work-dir', '--no-keep-work-dir',
+  '--toc', '--no-toc', '--host-fonts', '--no-logo', '--keep-work-dir',
   '--print-effective-config', '--doctor', '--version', '--help', '-h',
 ]);
 const PATH_OPTIONS = new Set([
@@ -67,12 +65,8 @@ const PATH_OPTIONS = new Set([
 
 const CONFLICT_PAIRS: Array<[string, string]> = [
   ['--toc', '--no-toc'],
-  ['--host-fonts', '--no-host-fonts'],
   ['--logo', '--no-logo'],
   ['--template', '--template-preset'],
-  ['--font-dir', '--no-font-dirs'],
-  ['--browser-path', '--managed-browser'],
-  ['--keep-work-dir', '--no-keep-work-dir'],
 ];
 
 function rejectNul(name: string, value: string): string {
@@ -124,12 +118,6 @@ export function parseArgv(argv: string[]): RawCli {
   return raw;
 }
 
-function parseEnvBoolean(name: string, value: string): boolean {
-  if (value === 'true' || value === '1') return true;
-  if (value === 'false' || value === '0') return false;
-  throw new InputError(`${name}: expected true/false/1/0, got ${JSON.stringify(value)}`);
-}
-
 function parseTimeout(source: string, value: string): number {
   if (!/^[0-9]+$/.test(value)) throw new InputError(`${source}: expected a decimal integer`);
   const n = Number(value);
@@ -141,34 +129,14 @@ function parseTimeout(source: string, value: string): number {
 
 function resolveTemplateSetting(
   raw: RawCli,
-  env: Record<string, string | undefined>,
 ): Config['template'] {
   const cliTpl = raw['--template'] as string | undefined;
   const cliPreset = raw['--template-preset'] as string | undefined;
-  const envTpl = env['PFPDF_TEMPLATE'];
-  const envPreset = env['PFPDF_TEMPLATE_PRESET'];
-  if (cliTpl === undefined && cliPreset === undefined && envTpl !== undefined && envPreset !== undefined) {
-    throw new InputError('PFPDF_TEMPLATE and PFPDF_TEMPLATE_PRESET may not be combined');
-  }
   if (cliPreset !== undefined) {
     return { value: bundledTemplate(cliPreset, '--template-preset'), source: 'cli' };
   }
   if (cliTpl !== undefined) {
     return { value: parseTemplateSource(cliTpl, '--template'), source: 'cli' };
-  }
-  if (envPreset !== undefined) {
-    if (envPreset === '') throw new InputError('PFPDF_TEMPLATE_PRESET: empty value is not allowed');
-    return {
-      value: bundledTemplate(rejectNul('PFPDF_TEMPLATE_PRESET', envPreset), 'PFPDF_TEMPLATE_PRESET'),
-      source: 'environment',
-    };
-  }
-  if (envTpl !== undefined) {
-    if (envTpl === '') throw new InputError('PFPDF_TEMPLATE: empty value is not allowed');
-    return {
-      value: parseTemplateSource(rejectNul('PFPDF_TEMPLATE', envTpl), 'PFPDF_TEMPLATE'),
-      source: 'environment',
-    };
   }
   return { value: { kind: 'bundled', name: 'default' }, source: 'default' };
 }
@@ -199,7 +167,6 @@ function parseLogoSource(value: string, source: string): Config['logo']['value']
 
 function resolveLogoSetting(
   raw: RawCli,
-  env: Record<string, string | undefined>,
 ): Config['logo'] {
   const cliLogo = raw['--logo'] as string | undefined;
   if (cliLogo !== undefined) {
@@ -207,18 +174,11 @@ function resolveLogoSetting(
   }
   if (raw['--no-logo'] !== undefined) return { value: { kind: 'none' }, source: 'cli' };
 
-  const envLogo = env['PFPDF_LOGO'];
-  if (envLogo === '') throw new InputError('PFPDF_LOGO: empty value is not allowed');
-  if (envLogo !== undefined) {
-    const value = rejectNul('PFPDF_LOGO', envLogo);
-    return { value: parseLogoSource(value, 'PFPDF_LOGO'), source: 'environment' };
-  }
   return { value: { kind: 'template' }, source: 'default' };
 }
 
 export function resolveConfig(
   argv: string[],
-  env: Record<string, string | undefined>,
   cwd: string,
 ): Config {
   const raw = parseArgv(argv);
@@ -233,71 +193,37 @@ export function resolveConfig(
           ? 'print-effective-config'
           : 'convert';
 
-  function str(cliKey: string, envKey: string | null): ResolvedValue<string | null> {
+  function str(cliKey: string): ResolvedValue<string | null> {
     const cli = raw[cliKey] as string | undefined;
     if (cli !== undefined) return { value: cli, source: 'cli' };
-    const e = envKey ? env[envKey] : undefined;
-    if (e !== undefined) {
-      if (e === '') throw new InputError(`${envKey}: empty value is not allowed`);
-      return { value: rejectNul(envKey!, e), source: 'environment' };
-    }
     return { value: null, source: 'default' };
   }
 
-  function bool(
-    posKey: string,
-    negKey: string,
-    envKey: string,
-    def: boolean,
-  ): ResolvedValue<boolean> {
+  function bool(posKey: string, negKey: string, def: boolean): ResolvedValue<boolean> {
     if (raw[posKey] !== undefined) return { value: true, source: 'cli' };
     if (raw[negKey] !== undefined) return { value: false, source: 'cli' };
-    const e = env[envKey];
-    if (e !== undefined) return { value: parseEnvBoolean(envKey, e), source: 'environment' };
     return { value: def, source: 'default' };
   }
 
-  // Optional path settings where a bare CLI negative flag resets the environment.
-  function optionalPath(
-    cliKey: string,
-    negKey: string,
-    envKey: string,
-  ): ResolvedValue<string | null> {
-    const cli = raw[cliKey] as string | undefined;
-    if (cli !== undefined) return { value: cli, source: 'cli' };
-    if (raw[negKey] !== undefined) return { value: null, source: 'cli' };
-    const e = env[envKey];
-    if (e !== undefined) {
-      if (e === '') throw new InputError(`${envKey}: empty path is not allowed`);
-      return { value: rejectNul(envKey, e), source: 'environment' };
-    }
-    return { value: null, source: 'default' };
-  }
+  const input = str('--input');
+  const output = str('--output');
+  const title = str('--title');
+  const toc = bool('--toc', '--no-toc', true);
+  const hostFonts: ResolvedValue<boolean> = raw['--host-fonts'] !== undefined
+    ? { value: true, source: 'cli' }
+    : { value: false, source: 'default' };
+  const keepWorkDir: ResolvedValue<boolean> = raw['--keep-work-dir'] !== undefined
+    ? { value: true, source: 'cli' }
+    : { value: false, source: 'default' };
+  const browserPath = str('--browser-path');
 
-  const input = str('--input', null);
-  const output = str('--output', null);
-  const title = str('--title', null);
-  const toc = bool('--toc', '--no-toc', 'PFPDF_TOC', true);
-  const hostFonts = bool('--host-fonts', '--no-host-fonts', 'PFPDF_HOST_FONTS', false);
-  const keepWorkDir = bool('--keep-work-dir', '--no-keep-work-dir', 'PFPDF_KEEP_WORK_DIR', false);
-  const browserPath = optionalPath('--browser-path', '--managed-browser', 'PFPDF_BROWSER_PATH');
+  const template = resolveTemplateSetting(raw);
+  const logo = resolveLogoSetting(raw);
 
-  const template = resolveTemplateSetting(raw, env);
-  const logo = resolveLogoSetting(raw, env);
-
-  // font dirs: CLI list replaces the environment list entirely.
   let fontDirs: ResolvedValue<string[]>;
   const cliFontDirs = raw['--font-dir'] as string[] | undefined;
   if (cliFontDirs !== undefined) {
     fontDirs = { value: cliFontDirs, source: 'cli' };
-  } else if (raw['--no-font-dirs'] !== undefined) {
-    fontDirs = { value: [], source: 'cli' };
-  } else if (env['PFPDF_FONT_DIRS'] !== undefined) {
-    const parts = env['PFPDF_FONT_DIRS'].split(path.delimiter);
-    if (parts.some((p) => p === '')) {
-      throw new InputError('PFPDF_FONT_DIRS: empty path component is not allowed');
-    }
-    fontDirs = { value: parts.map((p) => rejectNul('PFPDF_FONT_DIRS', p)), source: 'environment' };
   } else {
     fontDirs = { value: [], source: 'default' };
   }
@@ -307,11 +233,6 @@ export function resolveConfig(
   const cliTimeout = raw['--render-timeout-ms'] as string | undefined;
   if (cliTimeout !== undefined) {
     renderTimeoutMs = { value: parseTimeout('--render-timeout-ms', cliTimeout), source: 'cli' };
-  } else if (env['PFPDF_RENDER_TIMEOUT_MS'] !== undefined) {
-    renderTimeoutMs = {
-      value: parseTimeout('PFPDF_RENDER_TIMEOUT_MS', env['PFPDF_RENDER_TIMEOUT_MS']),
-      source: 'environment',
-    };
   } else {
     renderTimeoutMs = { value: 300000, source: 'default' };
   }
@@ -319,7 +240,7 @@ export function resolveConfig(
   // log level
   let logLevel: ResolvedValue<'error' | 'warn' | 'info' | 'debug'>;
   {
-    const v = str('--log-level', 'PFPDF_LOG_LEVEL');
+    const v = str('--log-level');
     if (v.value === null) {
       logLevel = { value: 'warn', source: 'default' };
     } else if (v.value === 'error' || v.value === 'warn' || v.value === 'info' || v.value === 'debug') {
@@ -366,20 +287,44 @@ export function resolveConfig(
   };
 }
 
-/** Apply a bundled template selected by the document when no external source overrides it. */
-export function applyFrontMatterTemplate(config: Config, name: string | null): Config {
-  if (name === null || config.template.source !== 'default') return config;
+/** Apply document settings from front matter when no CLI override exists. */
+export interface FrontMatterConfig {
+  template: string | null;
+  toc: boolean | null;
+  logo: { kind: 'none' } | { kind: 'local'; path: string; absPath: string } | null;
+}
+
+export function applyFrontMatterConfig(config: Config, frontMatter: FrontMatterConfig): Config {
+  const template = frontMatter.template !== null && config.template.source === 'default'
+    ? { value: { kind: 'bundled' as const, name: frontMatter.template }, source: 'front-matter' as const }
+    : config.template;
+  const toc = frontMatter.toc !== null && config.toc.source === 'default'
+    ? { value: frontMatter.toc, source: 'front-matter' as const }
+    : config.toc;
+  const logo = frontMatter.logo !== null && config.logo.source === 'default'
+    ? {
+        value: frontMatter.logo.kind === 'none'
+          ? { kind: 'none' as const }
+          : { kind: 'local' as const, path: frontMatter.logo.path },
+        source: 'front-matter' as const,
+      }
+    : config.logo;
   return {
     ...config,
-    template: { value: { kind: 'bundled', name }, source: 'front-matter' },
-    templateDirAbs: null,
+    template,
+    toc,
+    logo,
+    templateDirAbs: template.value.kind === 'custom' ? path.resolve(config.cwd, template.value.dir) : null,
+    logoAbs: logo.source === 'front-matter' && frontMatter.logo?.kind === 'local'
+      ? frontMatter.logo.absPath
+      : logo.value.kind === 'local' ? path.resolve(config.cwd, logo.value.path) : null,
   };
 }
 
 export function effectiveConfigJson(config: Config): string {
   const entry = <T>(v: ResolvedValue<T>) => ({ value: v.value, source: v.source });
   const obj = {
-    schemaVersion: 4,
+    schemaVersion: 5,
     command: config.command,
     config: {
       input: entry(config.input),
@@ -425,14 +370,10 @@ Options:
   --logo SOURCE            local file or git::URL//PATH?ref=REVISION; overrides template default
   --no-logo                disable local, repository, and template default logos
   --host-fonts             search OS standard font directories
-  --no-host-fonts          disable host fonts requested via environment
   --font-dir PATH          extra font directory (repeatable)
-  --no-font-dirs           disable extra font directories from environment
   --browser-path PATH      browser used by the renderer
-  --managed-browser        disable the browser path from environment
   --render-timeout-ms N    absolute deadline in ms (default: 300000)
-  --keep-work-dir / --no-keep-work-dir
-                           keep the temporary workspace / disable env setting
+  --keep-work-dir          keep the temporary workspace
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config print resolved configuration as JSON and exit
   --doctor                 diagnose renderer, browser, and assets

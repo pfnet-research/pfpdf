@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 const result = spawnSync(process.execPath, ['--test', 'dist/tests/*.test.js'], {
   shell: false,
   stdio: 'inherit',
-  env: { ...process.env, PFPDF_TEST_E2E: '1' },
+  env: { ...process.env, RUN_E2E: '1' },
 });
 
 if (result.error) {

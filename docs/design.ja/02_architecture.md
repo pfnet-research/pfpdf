@@ -25,13 +25,13 @@ CLI と変換処理は TypeScript で実装し、npm package の compiled JavaSc
 
 ## 2.2 `ConfigResolver`
 
-- 組み込み既定値、環境変数、CLI 引数を定義済みの優先順位で解決する
+- 組み込み既定値、front matter、CLI 引数を定義済みの優先順位で解決する
 - boolean、enum、数値、path を検証し、不正値を拒否する
 - path ごとに基準 directory を適用し、renderer へ渡す前に絶対 path へ正規化する
-- CLI の値を環境変数より常に優先し、effective config と各値の設定元を `--print-effective-config` と `--doctor` から再利用する
-- template は入力読込前に environment / CLI の外部指定を解決し、`InputResolver` が返した front matter の `template` は外部指定がない場合だけ組み込み `default` を置き換える。したがって優先順は組み込み既定値、front matter、環境変数、CLI とする
-- template は1つの論理設定として解決する。`--template SOURCE` / `PFPDF_TEMPLATE` は bundled preset 名との完全一致、`git::` locator、local path の順に分類する。明示 preset の `--template-preset NAME` / `PFPDF_TEMPLATE_PRESET` は source 指定と排他的で、CLI のいずれかが環境変数側の設定全体を置き換える
-- 同じ論理設定の正 / 負指定、たとえば `--host-fonts` と `--no-host-fonts`、`--toc` と `--no-toc`、`--logo` と `--no-logo` を同じ CLI invocation で併用した場合は、引数順に依存させず終了 code `2` とする
+- CLI の値をfront matterより常に優先し、effective config と各値の設定元を `--print-effective-config` と `--doctor` から再利用する
+- `InputResolver` が返した front matter の `template` / `toc` / `logo` は、対応するCLI指定がない場合だけ組み込み既定値を置き換える。したがって優先順は組み込み既定値、front matter、CLI とする
+- template は1つの論理設定として解決する。`--template SOURCE` は bundled preset 名との完全一致、`git::` locator、local path の順に分類する。明示 preset の `--template-preset NAME` は source 指定と排他的とする
+- 同じ論理設定の正 / 負指定、たとえば `--toc` と `--no-toc`、`--logo` と `--no-logo` を同じ CLI invocation で併用した場合は、引数順に依存させず終了 code `2` とする
 - `--font-dir` 以外の値付き / boolean option を同じ invocation で繰り返した場合は、同じ値でも code `2` とする。unknown option、未定義の positional argument、option value の欠落も code `2` とし、「最後の値が勝つ」引数順依存を作らない
 - conversion、`--doctor`、`--print-effective-config`、`--help`、`--version` は排他的な command mode とする。mode flag を複数指定した場合は code `2` とし、help / version を理由に他の不正引数を暗黙に無視しない
 - path は NUL を拒否し、空文字列を「未指定」として扱わない。解決後も表示用の元表現と実行用の絶対 path を分離する
@@ -41,7 +41,7 @@ CLI と変換処理は TypeScript で実装し、npm package の compiled JavaSc
 - CLI のパスを絶対パスへ変換する
 - locale に依存しない規則で Markdown 一覧を決定し、case-insensitive filesystem で衝突する名前も検出する
 - front matter が最初の Markdown の先頭 1 か所だけにあることを検証する
-- title、author、series、date、page size、confidential、document language / direction、および bundled template 名の型と値を検証する。外部指定が front matter の template を上書きする場合も、不正な front matter 値を無視しない
+- title、author、series、date、page size、confidential、document language / direction、および `template` / `toc` / `logo` の型と値を検証する。CLIがfront matterを上書きする場合も、不正な値を無視しない
 - metadata の許可済み HTML と plain text 表現を分離し、template placeholder ごとの escape 漏れを防ぐ
 - file input ではその親 directory、directory input では input directory を resource base として保持する
 - 検証に使った Markdown byte 列をそのまま parser へ渡し、検証後に path から読み直して別内容を処理しない
@@ -67,7 +67,7 @@ front matter は既存 YAML library の JSON schema で 1 document の mapping �
 - 各 fetch resource に探索順で決定的な logical ID を割り当て、HTML には `assets/<id>/<encoded-basename>` のような相対 URL だけを出力する。pfpdf が解決した asset の absolute path、一時 directory、random token を `document.html` へ新たに埋め込まない。利用者が navigation link として明示した absolute `file:` URL は portable でないことを承知した入力として保持する
 - seed の順序は bundled resource の固定 list、template DOM の source order、Markdown file / AST node の source order、effective font の優先順とする。CSS の参照は queue から取り出した file 内の token 順で追加し、非同期 I/O の完了順や hash map の偶然の列挙順で ID を変えない
 - query と fragment は resource path と分離して保持し、percent decode は URL component ごとに 1 回だけ行う。NUL、不正な percent encoding、URL として不正な値は入力エラーにする
-- Markdown / HTML / CSS の URL は `/` を separator とする。Windows absolute path は `file:///C:/path/to/file`、UNC は妥当な `file://server/share/...` URL で表し、backslash を URL path separator として推測しない。CLI / environment の path は OS native path として別に扱う
+- Markdown / HTML / CSS の URL は `/` を separator とする。Windows absolute path は `file:///C:/path/to/file`、UNC は妥当な `file://server/share/...` URL で表し、backslash を URL path separator として推測しない。CLI の path は OS native path として別に扱う
 - URL は element / AST node の役割で分類する。画像、script、stylesheet、font など browser が取得する URL だけを resource graph に入れ、`a[href]` の navigation target を asset 配信用 URL へ変えない。fetch role では relative / absolute `file:` を local、HTTP(S) / network-path reference と `data:` を remote / embedded として扱い、それ以外の scheme は静的に再現できないため code `2` とする。特に source に直書きされた `blob:` は別 browser session で有効でないため拒否する
 - navigation role の文書内 fragment、HTTP(S)、`mailto:`、`tel:`、absolute `file:`、raw HTML に明示された `javascript:` / custom scheme は local resource graph へ入れず、trusted link として保持する。scheme のない relative navigation は後述の document link 規則で処理する。URL parser が scheme と判断した値を local path として再解釈しない
 - symlink は許可するが、canonical path で重複排除と循環検出を行う。build 中の file 内容変更を snapshot として固定することまでは保証しない
@@ -168,14 +168,10 @@ Options:
   --logo SOURCE            local file または git::URL//PATH?ref=REVISION。template 既定値を上書き
   --no-logo                local / repository / template 既定 logo を無効化
   --host-fonts             OS 標準の font directory を使用する
-  --no-host-fonts          環境変数の host font 指定を無効化する
   --font-dir PATH          追加 font directory。複数回指定可能
-  --no-font-dirs           環境変数の追加 font directory を無効化
   --browser-path PATH      renderer が使う browser
-  --managed-browser        環境変数の browser path を無効化
   --render-timeout-ms N    renderer 準備から PDF 検査完了まで。既定は 300000
-  --keep-work-dir / --no-keep-work-dir
-                           一時 workspace の保持 / 環境変数の保持指定を無効化
+  --keep-work-dir          一時 workspace を保持する
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config 適用後の設定と設定元を表示して終了する
   --doctor                 renderer、browser、asset を診断する
@@ -214,6 +210,7 @@ Options:
 - `dir` は `ltr` / `rtl` / `auto` の ASCII case-sensitive enum とし、省略時は `auto` とする。生成 HTML root の `dir` attribute へ設定し、host locale や `lang` だけから text direction を推測しない。upstream の reading progression は固定値で上書きせず、computed `writing-mode` / direction から自動判定させ、horizontal RTL と vertical writing の PDF direction を compatibility test で確認する
 - page size keyword は ASCII case-insensitive の `A3`、`A4`、`A5`、`JIS-B4`、`JIS-B5`、`ISO-B4`、`ISO-B5`、`Letter`、`Legal` とする。曖昧な `B4` / `B5` は受け付けない。寸法は `<number><unit><ASCII-whitespace+><number><unit>` の幅・高さ順とし、unit は `mm` / `cm` / `in` / `pt`、各辺は正の有限 decimal とする。renderer が扱える寸法へ pfpdf 独自の上限を設けない
 - metadata key は `title`、`author`、`series`、`date`、`page_size`、`confidential`、`lang`、`dir` の allowlist とし、重複 key と未知 key は入力誤りとして報告する
+- 文書設定の`template`はbundled template名、`toc`はYAML boolean、`logo`はlocal path stringまたは`false`とする。`logo`の相対pathはfront matter sourceの親directory基準で解決し、Git repository sourceはfront matterでは拒否して`--logo`だけから受け付ける
 - `--title` は有効な front matter title の値だけを上書きする。CLI override があっても front matter 全体の syntax、key、型を先に検証し、不正値を隠さない
 - `confidential` の既定値は `false` とし、利用者が明示した場合だけ `Confidential` 表示を行う
 - `SOURCE_DATE_EPOCH` は ASCII decimal の非負整数 Unix seconds とし、13 digit を超える値は数値変換前に拒否する。その後 JavaScript `Number` を経由せず parse し、安全な整数かつ ECMAScript `Date` の表現範囲にあることを確認する。不正値は無視せずエラーにする。`date` が省略されてこの値が有効なら、表示日付には UTC のその日付を使う。未設定時の表示日付は process 起動時に 1 回だけ取得した local date、PDF metadata は同じ起動 instant を使う。front matter の `date` の有無にかかわらず、`SOURCE_DATE_EPOCH` 未設定時は再現可能 build ではないことを warning にする
@@ -222,37 +219,23 @@ Options:
 - PDF の CreationDate / ModDate と XMP timestamp は、`SOURCE_DATE_EPOCH` があればその UTC instant、なければ process 起動時刻を使う。任意 string である front matter の `date` は PDF timestamp に流用しない。upstream の正式 option または構造を理解する PDF library で設定し、PDF byte 列を正規表現置換しない
 - canonical CI では `SOURCE_DATE_EPOCH` を固定し、生成 HTML と PDF Info / XMP title・author・language・timestamp / timezone policy を同じ fixture で検査する。timestamp を固定しても browser / OS 間の PDF byte 一致までは保証しない
 
-### 2.9.3 環境変数
+### 2.9.3 設定解決と診断
 
-| 環境変数 | 値 | 用途 |
-|---|---|---|
-| `PFPDF_TOC` | boolean | 目次生成の有効 / 無効 |
-| `PFPDF_HOST_FONTS` | boolean | OS 標準 font directory の利用可否 |
-| `PFPDF_FONT_DIRS` | path list | 追加 font directory。区切りは Node.js の `path.delimiter` |
-| `PFPDF_TEMPLATE` | source | preset 名、custom template directory、または Git locator |
-| `PFPDF_TEMPLATE_PRESET` | template 名 | bundled template preset の明示選択 |
-| `PFPDF_LOGO` | source | template 既定値を上書きする local logo file または Git locator |
-| `PFPDF_BROWSER_PATH` | path | renderer が使う browser |
-| `PFPDF_RENDER_TIMEOUT_MS` | decimal integer | renderer 準備から PDF 検査完了までの timeout。`1000` 以上 `3600000` 以下 |
-| `PFPDF_KEEP_WORK_DIR` | boolean | 一時 workspace の保持 |
-| `PFPDF_LOG_LEVEL` | `error` / `warn` / `info` / `debug` | log 詳細度 |
-| `SOURCE_DATE_EPOCH` | non-negative decimal Unix seconds | 表示日付と PDF metadata timestamp。front matter の `date` が表示日付だけを上書き |
-
-- boolean は `true`、`false`、`1`、`0` だけを受け付け、解釈できない値を黙って truthy にしない
-- 複数値や path を含む環境変数を shell command として評価しない
-- `PFPDF_FONT_DIRS` は `path.delimiter` で分割し、空 component を current directory と解釈せず code `2` にする。同じ canonical directory が複数回現れた場合は最初の順位だけを残して warning にする
+- 文書設定の`template` / `toc` / `logo`は、CLIに値があればCLI、なければfront matter、どちらにもなければ組み込み既定値を採用する。template source / explicit presetと、logo source / disabledはそれぞれ排他的な1つの論理設定とする
+- browser path、追加font directory、host font、timeout、workspace保持、log levelはCLIだけから設定する。listを別の設定元から暗黙連結しない
+- `SOURCE_DATE_EPOCH`だけは再現可能buildの標準環境変数として扱い、表示日付とPDF metadata timestampに使用する。front matterの`date`は表示日付だけを上書きする
 - child process は通常の CLI tool と同様に呼出元の環境変数を継承する
-- `--print-effective-config` は versioned schema を持つ JSON object を 1 個だけ stdout へ表示し、各値と、その設定元が CLI、environment、front matter、default のどれかを含める。`--input` があれば先頭 Markdown の template 選択まで反映する。token、credential、環境変数の生値は含めず、秘密を含み得る proxy URL と custom CA の内容は表示しない
+- `--print-effective-config` は versioned schema を持つ JSON object を 1 個だけ stdout へ表示し、各値と、その設定元が CLI、front matter、default のどれかを含める。`--input` があれば先頭 Markdown の `template` / `toc` / `logo` まで反映する。token、credential、環境変数の生値は含めず、秘密を含み得る proxy URL と custom CA の内容は表示しない
 - `--doctor` は effective config に基づき、Node.js、browser、template、logo、font directory、出力権限を検査する
 - `--doctor` と `--print-effective-config` は PDF を生成せず、診断で秘密情報や環境変数全体を表示しない
 - `--doctor` は browser download、利用者の project / output directory 作成、設定変更を行わない。browser 実起動の検査に必要な場合だけ、OS の secure temporary directory に専用 profile / workspace を作り、`finally` で回収する。cleanup 失敗は check の `fail` として残す。出力権限は既存の最寄り親 directory から best effort で判定し、実際の create / rename 成功を保証しない。外部 process の各 check は cleanup を含めて 10 秒、command 全体は 60 秒で打ち切り、timeout を `fail` として報告する
 - `--doctor` と `--print-effective-config` の実行時は `--input` と `--output` を必須にしない
 - input / output なしの `--doctor` は runtime と global setting だけを検査し、指定された場合だけ document resource と書込先まで検査する。未指定項目を成功確認済みと表示しない
 - `--doctor` は versioned schema の JSON object を stdout へ出し、検査ごとに `pass` / `warning` / `fail` / `not-run` と根拠を持たせる。問題を検出した場合に終了 code `1`、warning のみまたは問題なしの場合は `0` を返す
-- template 以外の scalar と list は、CLI に値があれば CLI 全体、なければ環境変数、どちらにもなければ組み込み既定値を採用する。template だけは外部指定がなければ front matter、さらにそれもなければ組み込み既定値を採用する。template source / explicit preset と、logo source / disabled はそれぞれ排他的な1つの論理設定であり、source 間で list を暗黙連結しない
-- `--no-logo`、`--no-font-dirs`、`--managed-browser`、`--no-keep-work-dir` は「未指定」ではなく明示的な CLI reset 値であり、対応する環境変数を無効化する。logo 未指定は template slot の既定 `src` を使用する `template` 状態、`--no-logo` はそれも削除する `none` 状態として effective config で区別する
 
-effective config の top-level は `schemaVersion: 4` と `command` を持ち、`config.<name> = {"value": ..., "source": "cli|environment|front-matter|default"}` を含みます。schema 4 では template に repository variant、logo に `template` / `none` / `local` / `repository` variant を持たせます。doctor は `schemaVersion: 2` のままとし、全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。doctor の全体 status は 1 個でも fail があれば fail、なければ warning があれば warning、実行対象が 1 個以上すべて pass なら pass とします。key と check の出力順を固定し、UTF-8 の compact JSON 1 行と末尾 LF だけを stdout へ書きます。将来の optional field 追加は同じ schemaVersion で許可しますが、既存 field の意味・型の変更や削除では version を上げます。
+logo未指定はtemplate slotの既定`src`を使用する`template`状態、front matterの`logo: false`またはCLIの`--no-logo`はそれも削除する`none`状態としてeffective configで区別します。
+
+effective config の top-level は `schemaVersion: 5` と `command` を持ち、`config.<name> = {"value": ..., "source": "cli|front-matter|default"}` を含みます。schema 5ではenvironment sourceを削除し、`toc` / `logo`がfront matter sourceを持てるようにします。template はrepository variant、logoは`template` / `none` / `local` / `repository` variantを持ちます。doctor は `schemaVersion: 2` のままとし、全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。doctor の全体 status は 1 個でも fail があれば fail、なければ warning があれば warning、実行対象が 1 個以上すべて pass なら pass とします。key と check の出力順を固定し、UTF-8 の compact JSON 1 行と末尾 LF だけを stdout へ書きます。将来の optional field 追加は同じ schemaVersion で許可しますが、既存 field の意味・型の変更や削除では version を上げます。
 
 ### 2.9.4 終了コード
 
@@ -264,9 +247,9 @@ effective config の top-level は `schemaVersion: 4` と `command` を持ち、
 
 help、version、`--doctor`、`--print-effective-config` など command が要求された結果だけを stdout へ出し、通常の PDF build は stdout へ何も出しません。進捗、通常 log、警告、エラーと child process の出力は stderr へ送ります。例外 stack trace は標準では表示せず、`--log-level debug` の場合だけ表示します。commit 前の中断 code は Node.js と各 OS の慣例に従い、platform をまたぐ独自 code へ正規化しません。commit critical section 後の signal は前節の規則で遅延し、成功済み build を中断へ戻しません。
 
-診断には可能な限り source file と 1-origin の line / column、該当 CLI option / environment 名、処理 phase を含めます。trusted input 前提のため human-readable log の内容は sanitize / redact せず、JSON は serializer の通常の escape に任せます。
+診断には可能な限り source file と 1-origin の line / column、該当 CLI option / front matter key、処理 phase を含めます。trusted input 前提のため human-readable log の内容は sanitize / redact せず、JSON は serializer の通常の escape に任せます。
 
-利用者が指定した CLI / environment の値、Markdown、front matter、custom template、logo、font、静的 local resource の不正・不存在・読取り不能は code `2` とします。browser / renderer の失敗、timeout、出力先への write / rename 失敗、bundled resource の欠落、内部 invariant 違反は code `1` とします。同じ検査でも bundled template / font の破損は利用者入力ではないため code `1` です。cleanup が commit 前に失敗した場合も code `1` として既存出力を維持します。
+利用者が指定した CLI の値、Markdown、front matter、custom template、logo、font、静的 local resource の不正・不存在・読取り不能は code `2` とします。browser / renderer の失敗、timeout、出力先への write / rename 失敗、bundled resource の欠落、内部 invariant 違反は code `1` とします。同じ検査でも bundled template / font の破損は利用者入力ではないため code `1` です。cleanup が commit 前に失敗した場合も code `1` として既存出力を維持します。
 
 ## 2.10 計算量と resource 上限
 

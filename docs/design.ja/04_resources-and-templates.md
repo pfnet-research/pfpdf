@@ -26,7 +26,7 @@
 
 - bundled font を常に利用可能にし、ホストフォントが無効なら OS の font discovery を行わない
 - `--host-fonts` と明示された `--font-dir` から、利用を許可された directory の集合を作る
-- 探索順位は、effective な追加 font directory list、`--host-fonts` が追加する OS 標準 directory の固定順、bundled fallback の順とする。追加 list は CLI の `--font-dir` が 1 個以上あればその指定順だけを使い、なければ環境変数 `PFPDF_FONT_DIRS` の順を使う
+- 探索順位は、CLIの`--font-dir`で指定した追加font directory list、`--host-fonts`が追加するOS標準directoryの固定順、bundled fallbackの順とする
 - OpenType の name table から family、weight、style、stretch を読み、採用した各 face を logical font URL で参照する一時的な `@font-face` CSS を生成する。`--font-dir` は font を自動的に本文へ選択する option ではなく、template / document CSS が family 名で選べる候補を追加する
 - renderer の実行環境から参照可能な font URL を使う CSS を生成し、必要な場合だけ renderer 内部向けの fontconfig metadata を渡す
 - bundled template の静的 CSS が要求する non-generic family を抽出し、見つかった face だけを有効にする。見つからない family は source location 付き warning とし、bundled fallback が font-family list の末尾にあることを template test で保証する。custom / raw CSS の dynamic property まで選択 font を保証しない
@@ -76,30 +76,30 @@ resources/templates/
     vivliostyle.css
 ```
 
-- 先頭 Markdown の front matter `template`、または bundled 名と完全一致する `--template SOURCE` / `PFPDF_TEMPLATE` で bundled template を選択する。`--template-preset NAME` / `PFPDF_TEMPLATE_PRESET` は bundled preset であることを明示する。環境変数と CLI は front matter より優先する
+- 先頭 Markdown の front matter `template`、または bundled 名と完全一致する `--template SOURCE` で bundled template を選択する。`--template-preset NAME` は bundled preset であることを明示する。CLIはfront matterより優先する
 - custom / repository template は `logo` slot の `src` に template 相対 path を持つ既定ロゴを宣言できる。bundled template は既定ロゴを持たない
-- `--logo SOURCE` / `PFPDF_LOGO` は local path または Git locator を受け付け、template の既定ロゴを上書きする。`--no-logo` は環境変数と template 既定値の両方を無効化する
+- front matterの`logo`はlocal pathまたは`false`を受け付ける。CLIの`--logo SOURCE`はlocal pathまたはGit locatorでfront matterとtemplate既定ロゴを上書きし、`--no-logo`は両方を無効化する
 - logo が明示指定されず slot に `src` もなければ logo placeholder 自体を出力しない。壊れた image placeholder を残さない
-- logo の相対 path はカレントディレクトリを基準に解決する
+- front matter logoの相対pathは先頭Markdownの親directory、CLI logoの相対pathはカレントディレクトリを基準に解決する
 - logo と template は trusted input とし、存在して読み取れることだけを事前検査する。内容を sandbox 化しない
 
 ## 4.5 custom template
 
-- `--template SOURCE` / `PFPDF_TEMPLATE` が bundled preset 名と完全一致しない通常文字列なら、custom template directory path として扱う。同名directoryを選ぶ場合は`./default`のようにpathであることが分かる表記を使う
-- custom template の path は front matter では受け付けず、CLI または環境変数からだけ指定する
+- `--template SOURCE` が bundled preset 名と完全一致しない通常文字列なら、custom template directory path として扱う。同名directoryを選ぶ場合は`./default`のようにpathであることが分かる表記を使う
+- custom template の path は front matter では受け付けず、CLIからだけ指定する
 - custom template は信頼できるローカルコードと同様に扱い、raw HTML や script を実行し得ることを明記する
 - custom template format に `apiVersion`、JSON Schema、version 間の互換性保証は設けない。template の見た目と構造を維持したい利用者は pfpdf の version を固定する。ただし、同じ pfpdf version 内で曖昧な文字列置換を避けるため、次の DOM slot contract は明確に定義する
 - custom template directory は `template.html`、`style.css`、`vivliostyle.css` を直接持ち、選択した pfpdf version が必要とする file の存在だけを検査する
 
 ### 4.5.1 Git repository source
 
-- `--template 'git::URL//PATH?ref=REVISION'` / `PFPDF_TEMPLATE` で Git repository 内の custom template directoryを指定できる。`--logo` / `PFPDF_LOGO` も同じ形式で通常 file を指定する
+- `--template 'git::URL//PATH?ref=REVISION'` で Git repository 内の custom template directoryを指定できる。`--logo`も同じ形式で通常 file を指定する
 - `PATH` は repository root からの `/` 区切り相対 path とし、サブディレクトリを許可するが、absolute path、空 component、`.`、`..`、backslash は code `2` とする。template は directory、logo は通常 file でなければならない
 - 対応 URL scheme は `https://`、`ssh://`、`file://` とする。`file://` は local / test 用である。password、および HTTPS URL の userinfo は credential 漏洩を避けるため拒否し、private repository は Git credential helper または SSH agent で認証する
 - `ref` は branch、tag、commit を受け付ける。省略時は remote `HEAD` を使うが、解決 commit を warning に出す。再現可能な CI では完全な commit hash を指定する
 - repository source は OS の一時 directory に depth 1、detached HEAD、submodule 無効で checkout し、同一 process 内の同じ URL / ref は共有する。persistent cache は持たず、`--keep-work-dir` の対象となる build workspace と一緒に回収する
 - locator の構文 / path / file type error は code `2`、Git 起動、network、認証、fetch / checkout failure と timeout は code `1` とする。conversion の timeout は 300 秒、doctor の外部 process check は 10 秒とする。Git child process は shell を介さず argument array で起動し、interactive prompt を無効化する
-- repository template も trusted code として扱う。front matter から repository source を指定できず、CLI または環境変数による明示選択だけが network access と template script の実行を発生させる
+- repository template も trusted code として扱う。front matter から repository source を指定できず、CLIによる明示選択だけが network access と template script の実行を発生させる
 
 ### 4.5.2 DOM slot contract
 

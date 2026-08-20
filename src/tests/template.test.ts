@@ -20,7 +20,7 @@ function makeDoc(content: string): string {
 }
 
 function config(args: string[]): ReturnType<typeof resolveConfig> {
-  return resolveConfig(args, {}, process.cwd());
+  return resolveConfig(args, process.cwd());
 }
 
 function bundledCss(template: string, file: 'style.css' | 'vivliostyle.css'): string {

@@ -35,11 +35,21 @@ Bundled templates never add strings you did not specify, such as publication nam
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
 ```
 
-Front matter can select bundled templates only. CLI `--template SOURCE` and environment variable `PFPDF_TEMPLATE` use a bundled preset on an exact preset-name match and otherwise treat the value as a local directory or Git locator. Use `--template-preset` / `PFPDF_TEMPLATE_PRESET` to explicitly require a preset. The complete template precedence is the built-in `default`, front matter, environment variables, then CLI arguments.
+Front matter can select bundled templates only. CLI `--template SOURCE` uses a bundled preset on an exact preset-name match and otherwise treats the value as a local directory or Git locator. Use `--template-preset` to explicitly require a preset. The complete template precedence is the built-in `default`, front matter, then CLI arguments.
 
 ## 6.2 Injecting a logo
 
-Bundled templates include no logo image. To put one on the cover or elsewhere, select a local file or Git locator you have the rights to use with `--logo` / `PFPDF_LOGO`. A custom template can have a default logo by putting a template-relative path in the `src` of its `logo` slot.
+Bundled templates include no logo image. Normally select a local file you have the rights to use in the first Markdown file's front matter. A custom template can have a default logo by putting a template-relative path in the `src` of its `logo` slot.
+
+```md
+---
+title: Quarterly Report
+template: pfn
+logo: assets/logo.png
+---
+```
+
+A relative front matter path is resolved from the directory containing that Markdown file. `logo: false` displays no logo, including a template default. Use `--logo` / `--no-logo` for a Git locator or a temporary override.
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
@@ -48,8 +58,8 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
 
 - A relative logo path is resolved against the current directory
 - Without an explicit logo, the template's default `src` is used. If it has none, the logo area itself is removed, leaving no broken-image placeholder
-- If specifying the logo for every run in a repository is tedious, record `--logo` in a Makefile or CI workflow, or set `PFPDF_LOGO`
-- To temporarily skip an environment or template default logo, pass `--no-logo`
+- If a repository logo is used consistently, record `--logo` in a Makefile or CI workflow
+- To temporarily skip a front matter or template default logo, pass `--no-logo`
 
 ```make
 docs.pdf: $(wildcard docs/*.md)
@@ -143,9 +153,6 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --font-dir ~/my-
 ```
 
 - `--font-dir` can be specified multiple times
-- The corresponding environment variables are `PFPDF_HOST_FONTS=true` and `PFPDF_FONT_DIRS` (entries separated by the OS path separator)
-- The CLI's `--no-host-fonts` overrides the environment variable
-- The CLI's `--no-font-dirs` clears the environment variable's list of additional directories. It cannot be combined with `--font-dir`
 - Specifying font directories only adds available `@font-face` declarations. To actually use a family, request it via `font-family` in a custom template or in the document's CSS. Merely adding a directory never changes the body font automatically
 
 ### Caveats for host fonts

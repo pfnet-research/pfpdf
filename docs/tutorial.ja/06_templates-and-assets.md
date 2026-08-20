@@ -35,11 +35,21 @@ bundled template は利用者が指定していない出版名、文書種別、
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
 ```
 
-front matter から選べるのは bundled template だけです。CLI の `--template SOURCE` と環境変数 `PFPDF_TEMPLATE` は、bundled preset 名との完全一致ならpreset、それ以外はlocal directoryまたはGit locatorとして扱います。presetであることを明示する場合は`--template-preset` / `PFPDF_TEMPLATE_PRESET`を使います。template選択全体の優先順は、組み込みの`default`、front matter、環境変数、CLIです。
+front matter から選べるのは bundled template だけです。CLI の `--template SOURCE` は、bundled preset 名との完全一致ならpreset、それ以外はlocal directoryまたはGit locatorとして扱います。presetであることを明示する場合は`--template-preset`を使います。template選択全体の優先順は、組み込みの`default`、front matter、CLIです。
 
 ## 6.2 ロゴの注入
 
-bundled template にはロゴ画像を含めていません。表紙などにロゴを入れたい場合は、利用者が権利を持つlocal fileまたはGit locatorを`--logo` / `PFPDF_LOGO`で指定します。custom templateは`logo` slotの`src`にtemplate相対pathを書くことで既定ロゴを持てます。
+bundled template にはロゴ画像を含めていません。通常は先頭Markdownのfront matterに、利用者が権利を持つlocal fileを指定します。custom templateは`logo` slotの`src`にtemplate相対pathを書くことで既定ロゴを持てます。
+
+```md
+---
+title: 四半期報告書
+template: pfn
+logo: assets/logo.png
+---
+```
+
+front matterの相対pathは、そのMarkdownの親directory基準です。`logo: false`ならtemplate既定値を含めてロゴを表示しません。Git locatorや一時的な上書きには`--logo` / `--no-logo`を使います。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
@@ -48,8 +58,8 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
 
 - ロゴの相対パスはカレントディレクトリ基準で解決されます
 - 明示ロゴがなければ template の既定 `src` を使います。それもなければロゴ領域自体を削除し、壊れた画像 placeholder を残しません
-- repository ごとに毎回指定するのが面倒な場合は、Makefile や CI workflow に `--logo` を記録するか、`PFPDF_LOGO` を設定してください
-- 環境変数または template 既定ロゴを一時的に使わない場合は `--no-logo` を指定します
+- repository logoを継続的に使う場合は、MakefileやCI workflowに`--logo`を記録してください
+- front matterまたはtemplate既定ロゴを一時的に使わない場合は`--no-logo`を指定します
 
 ```make
 docs.pdf: $(wildcard docs/*.md)
@@ -143,9 +153,6 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --font-dir ~/my-
 ```
 
 - `--font-dir` は複数回指定できます
-- 環境変数では `PFPDF_HOST_FONTS=true`、`PFPDF_FONT_DIRS`(区切りは OS の path 区切り文字)を使います
-- CLI の `--no-host-fonts` は環境変数の指定を打ち消します
-- CLI の `--no-font-dirs` は環境変数の追加 directory list を空にします。`--font-dir` との同時指定はできません
 - font directory の指定は利用可能な `@font-face` を追加します。実際に使う family は custom template や文書の CSS で `font-family` に指定してください。directory を追加しただけで本文 font が自動変更されることはありません
 
 ### host font の注意点

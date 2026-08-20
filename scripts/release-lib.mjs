@@ -316,6 +316,10 @@ function runNpm(args, options = {}) {
   return run('npm', args, options);
 }
 
+function browserCliArgs() {
+  return process.env.BROWSER_PATH ? ['--browser-path', process.env.BROWSER_PATH] : [];
+}
+
 export function testPackedPackage({ metadataPath }) {
   const metadata = verifyReleaseArtifacts({ metadataPath });
   const { tarball } = releaseArtifactPaths(metadataPath, metadata);
@@ -349,7 +353,7 @@ export function testPackedPackage({ metadataPath }) {
     const input = path.join(temp, 'input.md');
     const output = path.join(temp, 'output.pdf');
     fs.writeFileSync(input, '---\ntitle: Packed package smoke test\n---\n\n# Test\n\nHello from pfpdf.\n');
-    run(process.execPath, [launcher, '--input', input, '--output', output], {
+    run(process.execPath, [launcher, ...browserCliArgs(), '--input', input, '--output', output], {
       cwd: packageRoot,
       env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' },
     });
@@ -436,7 +440,8 @@ export async function verifyPublishedPackage({ metadataPath, attempts = 18, dela
     const output = path.join(temp, 'output.pdf');
     fs.writeFileSync(input, '---\ntitle: Registry smoke test\n---\n\n# Test\n\nInstalled from the public npm registry.\n');
     runNpm([
-      'exec', '--yes', `--package=${spec}`, '--', 'pfpdf', '--input', input, '--output', output,
+      'exec', '--yes', `--package=${spec}`, '--', 'pfpdf', ...browserCliArgs(),
+      '--input', input, '--output', output,
     ], { cwd: temp, env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' } });
     const pdf = fs.readFileSync(output);
     invariant(pdf.subarray(0, 5).toString('ascii') === '%PDF-', 'published package did not produce a PDF');

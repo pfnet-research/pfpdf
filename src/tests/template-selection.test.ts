@@ -17,11 +17,11 @@ function makeDoc(content: string): string {
   return input;
 }
 
-function config(args: string[], processEnv: Record<string, string> = {}): ReturnType<typeof resolveConfig> {
-  return resolveConfig(args, processEnv, process.cwd());
+function config(args: string[]): ReturnType<typeof resolveConfig> {
+  return resolveConfig(args, process.cwd());
 }
 
-test('front matter selects a bundled template and external settings override it', async () => {
+test('front matter selects a bundled template and CLI overrides it', async () => {
   const input = makeDoc('---\ntitle: T\ntemplate: pfn\n---\nbody\n');
 
   const fromDocument = await buildHtml(
@@ -30,14 +30,6 @@ test('front matter selects a bundled template and external settings override it'
     log,
   );
   assert.match(fromDocument.html, /pfn-cover/);
-
-  const fromEnvironment = await buildHtml(
-    config(['--input', input, '--output', 'x.pdf'], { PFPDF_TEMPLATE: 'compact' }),
-    env,
-    log,
-  );
-  assert.match(fromEnvironment.html, /compact-header/);
-  assert.doesNotMatch(fromEnvironment.html, /pfn-cover/);
 
   const fromCli = await buildHtml(
     config(['--input', input, '--output', 'x.pdf', '--template', 'book']),
@@ -77,4 +69,35 @@ test('--template with a path overrides a front matter bundled template', async (
   );
   assert.match(result.html, /Custom marker/);
   assert.doesNotMatch(result.html, /pfn-cover/);
+});
+
+test('front matter toc and logo affect the rendered document and remain CLI-overridable', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-document-config-'));
+  const input = path.join(dir, 'doc.md');
+  fs.writeFileSync(path.join(dir, 'logo.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
+  fs.writeFileSync(input, [
+    '---',
+    'title: T',
+    'template: pfn',
+    'toc: false',
+    'logo: logo.svg',
+    '---',
+    '# Heading',
+  ].join('\n'));
+
+  const fromDocument = await buildHtml(
+    config(['--input', input, '--output', 'x.pdf']),
+    env,
+    log,
+  );
+  assert.match(fromDocument.html, /logo\.svg/);
+  assert.doesNotMatch(fromDocument.html, /pfpdf-toc-list/);
+
+  const overridden = await buildHtml(
+    config(['--input', input, '--output', 'x.pdf', '--toc', '--no-logo']),
+    env,
+    log,
+  );
+  assert.doesNotMatch(overridden.html, /logo\.svg/);
+  assert.match(overridden.html, /pfpdf-toc-list/);
 });

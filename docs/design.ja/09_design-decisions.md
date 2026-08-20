@@ -64,7 +64,7 @@
 - 選択肢: (a) pfpdf が独自に browser を download・管理する、(b) pinned Vivliostyle CLI と Puppeteer 系 browser manager の標準機構に任せる
 - 採用: (b)。download の integrity、cache layout、platform 差分は upstream が既に解決しており、重複実装は保守負担と不整合の源になる
 - 非採用理由: (a) は cache lock、partial download recovery、prune まで自前で持つことになり、upstream の変更に追従し続ける必要がある
-- risk: upstream の browser 方針変更に影響を受ける。`--browser-path` / `PFPDF_BROWSER_PATH` の明示 override を逃げ道として提供する
+- risk: upstream の browser 方針変更に影響を受ける。`--browser-path` の明示 override を逃げ道として提供する
 - 検証: browser なし初回実行と明示 browser path の integration test
 - 再検討条件: upstream の browser 管理が pfpdf の要件を満たさなくなった場合
 
@@ -79,16 +79,16 @@
 - 検証: 公開 CLI に renderer 選択がなく、integration test が実際の単一経路を通ることを確認する
 - 再検討条件: 別の描画 engine が独立した利用価値と保守可能な互換性 contract を持つ場合
 
-## DD-07: 設定は CLI 引数と環境変数のみ、CLI が常に優先
+## DD-07: 設定はfront matterとCLI引数に限定し、CLIが常に優先
 
 - status: Accepted(2026-08)
 - 問題: 設定 source の種類と優先順位
-- 選択肢: (a) project config file を導入する、(b) CLI 引数と環境変数だけにする
-- 採用: (b)。config file は探索順序・merge 規則・相対 path 基準という新たな仕様を生み、「どの設定が効いたか」の診断を難しくする。繰り返し設定は Makefile や CI workflow に CLI 引数として記録できる
-- 非採用理由: (a) は同じ項目を 3 つの source で調停することになり、`--print-effective-config` の説明可能性が下がる
-- risk: 長い引数列が必要な利用者がいる。環境変数と wrapper script で緩和する
-- 検証: 優先順位と boolean 否定 flag の unit test
-- 再検討条件: 設定項目が大幅に増え、CLI / 環境変数で管理困難になった場合
+- 選択肢: (a) project config file を導入する、(b) PFPDF固有の環境変数を使う、(c) 文書設定をfront matter、実行設定をCLIへ置く
+- 採用: (c)。config file は探索順序・merge 規則・相対 path 基準という新たな仕様を生み、環境変数はversion管理されず「どの設定が効いたか」の診断を難しくする。文書設定の優先順はdefault、front matter、CLIとし、繰り返し実行設定はMakefileやCI workflowにCLI引数として記録する。再現可能buildの標準入力`SOURCE_DATE_EPOCH`と一般的なprocess environmentは対象外とする
+- 非採用理由: (a) は別形式のproject設定を増やす。(b) は文書の意図をMarkdownから分離し、CLI reset optionと設定元の組合せを増やす
+- risk: 実行設定では長い引数列が必要になる場合がある。wrapper scriptで緩和する
+- 検証: default / front matter / CLI優先順位、CLI-only設定、effective config sourceのunit test
+- 再検討条件: 実行設定項目が大幅に増え、CLIで管理困難になった場合
 
 ## DD-08: 生成 HTML を公開出力形式にしない
 
@@ -442,11 +442,11 @@
 ## DD-39: bundled template は front matter で選択し、外部設定で上書き可能にする
 
 - status: Accepted(2026-08)
-- 問題: 文書が意図する見た目を Markdown と一緒に version 管理できるようにしたい。一方で preview、CI、移行確認では source を変更せず別 template を適用する必要があり、`PFPDF_TEMPLATE` / `--template` との優先関係を曖昧にできない
-- 選択肢: (a) CLI / 環境変数だけを維持する、(b) front matter を CLI より優先する、(c) front matter で bundled template を選択でき、組み込み既定値、front matter、環境変数、CLI の順に上書きする、(d) custom template directory も front matter の相対 path で指定できるようにする
-- 採用: (c)。先頭 Markdown の `template` は manifest にある bundled template 名だけを受け付ける。ConfigResolver が外部指定を先に解決し、InputResolver の値は source が `default` の場合だけ置き換える。`--template` は外部sourceのCLI overrideとする。不正なfront matterは外部指定で隠れてもcode `2`とし、`--print-effective-config --input PATH`と`--doctor --input PATH`はdocument選択を反映する。effective-config schemaはsource `front-matter`の追加によりversion 3とし、doctorは既存のversion 2を維持する
+- 問題: 文書が意図する見た目を Markdown と一緒に version 管理できるようにしたい。一方で preview、CI、移行確認では source を変更せず別 template を適用する必要があり、`--template`との優先関係を曖昧にできない
+- 選択肢: (a) CLIだけを使う、(b) front matter を CLI より優先する、(c) front matter で bundled template を選択でき、組み込み既定値、front matter、CLI の順に上書きする、(d) custom template directory も front matter の相対 path で指定できるようにする
+- 採用: (c)。先頭 Markdown の `template` は manifest にある bundled template 名だけを受け付ける。InputResolver の値はCLI指定がなくsourceが`default`の場合だけ置き換える。`--template`はCLI overrideとする。不正なfront matterはCLI指定で隠れてもcode `2`とし、`--print-effective-config --input PATH`と`--doctor --input PATH`はdocument選択を反映する
 - 非採用理由: (a) は文書単体で見た目を再現できない。(b) は一時的な preview と CI policy の適用に source 編集を要求する。(d) は trusted code の実行 path を文書へ埋め込み、文書 directory と invocation cwd のどちらを基準にするかという新しい path 規則と、配布先に存在しない directory への依存を作る
-- 検証: InputResolver の型・未知名検査、front matter 単独選択、environment / CLI / custom directory による上書き、上書き時の不正値検出、effective config の source と schema version を unit test で確認する
+- 検証: InputResolver の型・未知名検査、front matter 単独選択、CLI / custom directory による上書き、上書き時の不正値検出、effective config の source と schema version を unit test で確認する
 - 再検討条件: custom template を package 名や content digest で移植可能に参照する registry を導入する場合、または他の front matter 設定も共通の多段 ConfigResolver へ統合する場合
 
 ## DD-40: template 既定ロゴと Git repository source を明示的な外部設定として扱う
@@ -454,9 +454,9 @@
 - status: Accepted(2026-08)
 - 問題: organization 共通の template とロゴを各文書 repository へ複製せず version 固定して利用し、monorepo 内のサブディレクトリも選択したい。また custom template 自体が既定ロゴを持ちながら、文書単位の上書きと完全な非表示も必要である
 - 選択肢: (a) GitHub raw URL を個別 file ごとに指定する、(b) Helm のような registry / index と template manifest を新設する、(c) Terraform / Kustomize 型の `git::URL//PATH?ref=REVISION` locator で repository を checkout し、既定ロゴは既存 `logo` slot の `src` で表す、(d) repository URL、ref、path を別々の CLI option にする
-- 採用: (c)。`--template SOURCE` / `PFPDF_TEMPLATE` は bundled preset 名との完全一致を最優先し、それ以外を `git::` locatorまたはlocal pathとして分類する。明示preset用に`--template-preset NAME` / `PFPDF_TEMPLATE_PRESET`を提供する。`--logo SOURCE` / `PFPDF_LOGO`もGit locatorとlocal pathを同じoptionで扱う。repository内pathはroleに応じてdirectory / fileとして検査し、同一URL / refはbuild内で共有する。template logoは未指定時にslotの`src`を通常resourceとして解決し、明示logoで上書きし、`--no-logo`で削除する。新しいmanifestやtemplate engineを導入せず既存DOM slot / resource graphを使う。logoの4状態とrepository template variantによりeffective-config schemaを4へ上げる
-- 非採用理由: (a) は3つのtemplate fileとnested CSS / image / fontを同一revisionで取得するpackage境界を持てない。(b)は探索、署名、version index、配信運用を現在の要件以上に増やす。(d)のsource種別ごとの専用optionはtemplateとlogoごとにoption / environment variableの組合せと不完全指定を増やし、sourceを1文字列でcopy / pinできない
+- 採用: (c)。`--template SOURCE` は bundled preset 名との完全一致を最優先し、それ以外を `git::` locatorまたはlocal pathとして分類する。明示preset用に`--template-preset NAME`を提供する。`--logo SOURCE`もGit locatorとlocal pathを同じoptionで扱う。repository内pathはroleに応じてdirectory / fileとして検査し、同一URL / refはbuild内で共有する。template logoは未指定時にslotの`src`を通常resourceとして解決し、front matterまたはCLIの明示logoで上書きし、`logo: false` / `--no-logo`で削除する。新しいmanifestやtemplate engineを導入せず既存DOM slot / resource graphを使う
+- 非採用理由: (a) は3つのtemplate fileとnested CSS / image / fontを同一revisionで取得するpackage境界を持てない。(b)は探索、署名、version index、配信運用を現在の要件以上に増やす。(d)のsource種別ごとの専用optionはtemplateとlogoごとのoptionと不完全指定を増やし、sourceを1文字列でcopy / pinできない
 - security / trust: repository templateもraw HTML / scriptを実行できるtrusted codeであり、front matterからは指定できない。private sourceはGit credential helper / SSH agentを使い、HTTPS userinfoとpasswordを拒否する。Gitはshellなし、interactive promptなし、submoduleなし、300秒timeoutで実行する。この制約をsandboxとは表現しない
 - risk: persistent cacheがないため繰返し実行はnetworkとcheckout costを払う。branch / tagも移動し得るため、ref省略はwarning、CIは完全commit hash固定を推奨する。Git executableと認証設定が新しいruntime prerequisiteになる。offline用途は事前cloneと既存local optionで対応する
-- 検証: locatorのscheme / query / traversal / credential検査、local Git fixtureからのcommit checkout、template / logoのnested path、同一repository共有、template既定logo・明示上書き・`--no-logo`、CLI / environment排他性、終了code、日英文書buildをtestする
+- 検証: locatorのscheme / query / traversal / credential検査、local Git fixtureからのcommit checkout、template / logoのnested path、同一repository共有、template既定logo・front matter / CLI上書き・`logo: false` / `--no-logo`、CLI排他性、終了code、日英文書buildをtestする
 - 再検討条件: repository利用が支配的になりpersistent content-addressed cacheが必要になった場合、またはgalleryから名前とsemantic versionで取得する署名付きregistryを導入する場合
