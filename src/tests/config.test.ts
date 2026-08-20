@@ -128,9 +128,9 @@ test('template and logo CLI selection variants remain distinct', () => {
     '--input', 'x.md', '--output', 'y.pdf', '--template', './default', '--logo', './logo.svg',
   ], cwd);
   assert.deepEqual(custom.template.value, { kind: 'custom', dir: './default' });
-  assert.equal(custom.templateDirAbs, path.join(cwd, 'default'));
+  assert.equal(custom.templateDirAbs, path.resolve(cwd, 'default'));
   assert.deepEqual(custom.logo.value, { kind: 'local', path: './logo.svg' });
-  assert.equal(custom.logoAbs, path.join(cwd, 'logo.svg'));
+  assert.equal(custom.logoAbs, path.resolve(cwd, 'logo.svg'));
   assert.throws(
     () => resolveConfig([
       '--input', 'x.md', '--output', 'y.pdf', '--template-preset', './default',
