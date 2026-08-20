@@ -12,18 +12,15 @@ Required:
 Options:
   --title TEXT             Override the front matter title
   --toc / --no-toc         Enable / disable table of contents generation. Enabled by default
-  --template NAME          Bundled template name; overrides front matter. Default is default
-  --template-dir PATH      Custom template directory
-  --logo PATH / --no-logo  Logo file passed to the template / disable the environment variable logo
+  --template SOURCE        Preset name, local directory, or git::URL//PATH?ref=REVISION
+  --template-preset NAME   Explicitly select a bundled template preset
+  --logo SOURCE            Local file or git::URL//PATH?ref=REVISION; overrides template default
+  --no-logo                Disable local, repository, and template default logos
   --host-fonts             Use the OS standard font directories
-  --no-host-fonts          Disable the environment variable host font setting
   --font-dir PATH          Additional font directory. Can be specified multiple times
-  --no-font-dirs           Disable the environment variable's additional font directories
   --browser-path PATH      Browser used by the renderer
-  --managed-browser        Disable the environment variable browser path
   --render-timeout-ms N    From renderer preparation to PDF inspection completion. Default is 300000
-  --keep-work-dir / --no-keep-work-dir
-                           Keep the temporary workspace / disable the environment variable keep setting
+  --keep-work-dir          Keep the temporary workspace
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config Print the effective configuration and its sources, then exit
   --doctor                 Diagnose renderer, browser, and assets
@@ -31,33 +28,16 @@ Options:
   -h, --help               Show help
 ```
 
-## 7.2 Environment variables
+## 7.2 Configuration precedence
 
-Most CLI arguments can also be set via environment variables. When both are present for the same setting, the CLI argument always wins. A template can also be selected in front matter; the precedence is built-in default, front matter, environment variable, then CLI argument.
+The front matter is authoritative for `template` / `toc` / `logo`, which determine document content and appearance. CLI options can override them for one invocation. Precedence is built-in default, front matter, then CLI argument. Runtime settings such as the browser, font directories, timeout, logging, and workspace retention are CLI-only.
 
-| Environment variable | Corresponding CLI |
-|---|---|
-| `PFPDF_TOC` | `--toc` / `--no-toc` |
-| `PFPDF_HOST_FONTS` | `--host-fonts` / `--no-host-fonts` |
-| `PFPDF_FONT_DIRS` | `--font-dir` / `--no-font-dirs` (join multiple entries with the path separator) |
-| `PFPDF_TEMPLATE` | `--template` |
-| `PFPDF_TEMPLATE_DIR` | `--template-dir` |
-| `PFPDF_LOGO` | `--logo` / `--no-logo` |
-| `PFPDF_BROWSER_PATH` | `--browser-path` / `--managed-browser` |
-| `PFPDF_RENDER_TIMEOUT_MS` | `--render-timeout-ms` |
-| `PFPDF_KEEP_WORK_DIR` | `--keep-work-dir` / `--no-keep-work-dir` |
-| `PFPDF_LOG_LEVEL` | `--log-level` |
-| `SOURCE_DATE_EPOCH` | No corresponding CLI option. Used for reproducible display dates and PDF metadata |
-
-- Boolean environment variables accept only `true` / `false` / `1` / `0`
-- List options such as `--font-dir` are never merged between the CLI and environment variables. If even one entry is given on the CLI, the CLI list is used in its entirety
-- Specifying both `--template` and `--template-dir` in the same place, or `--toc` and `--no-toc` together, is an error. Choosing either template option on the CLI overrides the environment variable template selection entirely
-- Repeating any option other than `--font-dir` is an error, even with the same value. You also cannot use an empty path component in `PFPDF_FONT_DIRS` to mean the current directory
-- To disable an optional environment variable for a single run, use `--no-logo`, `--no-font-dirs`, `--managed-browser`, or `--no-keep-work-dir`. As explicit CLI values, these take precedence over environment variables
-- To see where each setting came from, use `--print-effective-config`, which outputs a JSON object with a versioned schema. When `--input` is also specified, it reflects the front matter template selection and reports its source as `front-matter`
+- Combining `--template` with `--template-preset`, `--toc` with `--no-toc`, or `--logo` with `--no-logo` is an error. `--template` first checks for an exact preset-name match and otherwise treats the value as a Git locator or local path. `--logo` likewise accepts either a Git locator or local path
+- Repeating any option other than `--font-dir` is an error, even with the same value
+- To see where each setting came from, use `--print-effective-config`, which outputs a JSON object with a versioned schema. When `--input` is also specified, it reflects front matter `template` / `toc` / `logo` values and reports their source as `front-matter`
 
 ```bash
-PFPDF_TEMPLATE=pfn npx @pfnet-research/pfpdf@latest --print-effective-config
+npx @pfnet-research/pfpdf@latest --input docs --print-effective-config
 ```
 
 ## 7.3 Exit codes
@@ -77,7 +57,7 @@ pfpdf never reports success for a partial PDF. It writes to a temporary file in 
 pfpdf renders the PDF using the bundled Vivliostyle CLI and the Chromium managed by its standard mechanism.
 
 - The browser is fetched automatically on first run and cached thereafter
-- To use an existing compatible browser, specify it with `--browser-path` or `PFPDF_BROWSER_PATH`
+- To use an existing compatible browser, specify it with `--browser-path`
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \

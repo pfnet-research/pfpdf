@@ -64,7 +64,7 @@ Each decision follows this format:
 - Options: (a) pfpdf downloads and manages the browser itself, (b) delegate to the standard mechanism of the pinned Vivliostyle CLI and the Puppeteer-family browser manager
 - Adopted: (b). Download integrity, cache layout, and platform differences are already solved upstream, and a duplicate implementation would be a source of maintenance burden and inconsistency
 - Rejection reasons: (a) would mean owning cache locking, partial-download recovery, and pruning ourselves, and continually tracking upstream changes
-- Risk: Exposure to upstream changes in browser policy. The explicit override via `--browser-path` / `PFPDF_BROWSER_PATH` is provided as an escape hatch
+- Risk: Exposure to upstream changes in browser policy. The explicit override via `--browser-path` is provided as an escape hatch
 - Verification: integration tests for a browser-less first run and for an explicit browser path
 - Reconsideration conditions: if upstream's browser management no longer meets pfpdf's requirements
 
@@ -79,16 +79,16 @@ Each decision follows this format:
 - Verification: confirm that the public CLI exposes no renderer selection and integration tests exercise the actual single path
 - Reconsideration conditions: if another rendering engine provides independent user value and a maintainable compatibility contract
 
-## DD-07: Configuration is CLI arguments and environment variables only, with CLI always winning
+## DD-07: Configuration is limited to front matter and CLI arguments, with CLI always winning
 
 - Status: Accepted (2026-08)
 - Problem: Which kinds of configuration sources to support, and their precedence
-- Options: (a) introduce a project config file, (b) use only CLI arguments and environment variables
-- Adopted: (b). A config file introduces new specifications for search order, merge rules, and relative path bases, making it harder to diagnose which setting took effect. Repeated settings can be recorded as CLI arguments in a Makefile or CI workflow
-- Rejection reasons: (a) means arbitrating the same item across 3 sources, reducing the explainability of `--print-effective-config`
-- Risk: Some users need long argument lists. Mitigated with environment variables and wrapper scripts
-- Verification: unit tests of precedence and boolean negation flags
-- Reconsideration conditions: if the number of configuration items grows substantially and becomes unmanageable via CLI and environment variables
+- Options: (a) introduce a project config file, (b) use product-specific environment variables, (c) put document settings in front matter and runtime settings on the CLI
+- Adopted: (c). A config file introduces new specifications for search order, merge rules, and relative path bases, while environment variables are not versioned and make it harder to diagnose which setting took effect. Document precedence is default, front matter, then CLI; recurring runtime settings can be recorded as CLI arguments in a Makefile or CI workflow. The standard reproducible-build input `SOURCE_DATE_EPOCH` and the general process environment are out of scope
+- Rejection reasons: (a) adds another project configuration format. (b) separates document intent from Markdown and multiplies CLI reset options and source combinations
+- Risk: Some runtime configurations need long argument lists. Wrapper scripts mitigate this
+- Verification: unit tests of default / front matter / CLI precedence, CLI-only settings, and effective-configuration sources
+- Reconsideration conditions: if runtime configuration grows substantially and becomes unmanageable via CLI arguments
 
 ## DD-08: Do not make the generated HTML a public output format
 
@@ -442,9 +442,21 @@ Each decision follows this format:
 ## DD-39: Select bundled templates in front matter and allow external overrides
 
 - Status: Accepted (2026-08)
-- Problem: A document's intended appearance should be versioned together with its Markdown. Previewing, CI, and migration checks must still be able to apply another template without editing the source, and the precedence relative to the existing `PFPDF_TEMPLATE` / `PFPDF_TEMPLATE_DIR` / `--template` / `--template-dir` settings must be unambiguous
-- Options: (a) retain CLI and environment selection only, (b) give front matter precedence over the CLI, (c) let front matter select a bundled template with overrides ordered as built-in default, front matter, environment variable, then CLI argument, (d) also allow a relative custom-template directory in front matter
-- Adopted: (c). The first Markdown file's `template` accepts only bundled names present in the manifest. ConfigResolver first resolves external selections, and the value from InputResolver replaces it only when its source is `default`. `--template` and `--template-dir` are CLI overrides of the same logical setting. Invalid front matter remains a code `2` error even when hidden by an external selection. `--print-effective-config --input PATH` and `--doctor --input PATH` reflect the document selection. Adding the `front-matter` source changes the effective-config schema to version 3, while doctor retains its existing version 2
+- Problem: A document's intended appearance should be versioned together with its Markdown. Previewing, CI, and migration checks must still be able to apply another template without editing the source, and precedence relative to `--template` must be unambiguous
+- Options: (a) use the CLI only, (b) give front matter precedence over the CLI, (c) let front matter select a bundled template with overrides ordered as built-in default, front matter, then CLI argument, (d) also allow a relative custom-template directory in front matter
+- Adopted: (c). The first Markdown file's `template` accepts only bundled names present in the manifest. The InputResolver value replaces the selection only when no CLI selection exists and its source is `default`. `--template` is the CLI override. Invalid front matter remains a code `2` error even when hidden by the CLI. `--print-effective-config --input PATH` and `--doctor --input PATH` reflect the document selection
 - Rejected because: (a) cannot reproduce the intended appearance from the document alone. (b) requires editing the source for temporary previews and CI policy. (d) embeds a trusted-code execution path in the document, introduces a new choice between document-directory and invocation-cwd path bases, and creates dependencies on directories absent from distributed copies
-- Verification: Unit tests cover InputResolver type and unknown-name validation, standalone front matter selection, environment / CLI / custom-directory overrides, invalid values under an override, and the effective-config source plus schema version
+- Verification: Unit tests cover InputResolver type and unknown-name validation, standalone front matter selection, CLI / custom-directory overrides, invalid values under an override, and the effective-config source plus schema version
 - Reconsider when: a registry can reference custom templates portably by package name or content digest, or other front matter settings are integrated into one shared multi-stage ConfigResolver
+
+## DD-40: Treat template default logos and Git repository sources as explicit external configuration
+
+- Status: Accepted (2026-08)
+- Problem: Organization-wide templates and logos should be usable at a pinned version without copying them into every document repository, including selections from monorepo subdirectories. A custom template must also be able to carry a default logo while allowing per-document overrides and complete suppression
+- Options: (a) specify GitHub raw URLs for each file, (b) introduce a Helm-like registry / index and a template manifest, (c) check out a repository through a Terraform / Kustomize-style `git::URL//PATH?ref=REVISION` locator and express the default logo through the existing `logo` slot's `src`, (d) split repository URL, ref, and path across separate CLI options
+- Adopted: (c). `--template SOURCE` first checks for an exact bundled-preset name match, then classifies the value as a `git::` locator or local path. `--template-preset NAME` explicitly requires a preset. `--logo SOURCE` likewise accepts a Git locator or local path through one option. The repository path is checked as a directory or file according to its role, and the same URL / ref is shared within a build. With no explicit logo, the template slot's `src` is resolved as an ordinary resource; a front matter or CLI logo overrides it, and `logo: false` / `--no-logo` removes it. This reuses the DOM slot and resource graph without a new manifest or template engine
+- Rejected because: (a) has no package boundary that retrieves all three template files plus nested CSS / image / font assets at one revision. (b) adds discovery, signatures, version indexes, and distribution operations beyond current requirements. (d), dedicated options per source kind, multiplies partial combinations of options for each template and logo and cannot represent a source as one copyable, pinnable string
+- Security / trust: A repository template remains trusted code that can run raw HTML and scripts and cannot be selected from front matter. Private sources use a Git credential helper or SSH agent; HTTPS userinfo and passwords are rejected. Git runs without a shell, interactive prompts, or submodules, with a 300-second timeout. These constraints are not described as a sandbox
+- Risk: With no persistent cache, repeated invocations pay network and checkout costs. Branches and tags can move, so omission of `ref` warns and CI should pin a full commit hash. The Git executable and authentication setup become new runtime prerequisites. Offline use can clone ahead of time and use the existing local options
+- Verification: Tests cover locator schemes / queries / traversal / credentials, commit checkout from a local Git fixture, nested template and logo paths, sharing of one repository, template default / front matter and CLI overrides / `logo: false` / `--no-logo`, CLI exclusivity, exit codes, and Japanese / English documentation builds
+- Reconsider when: repository use becomes dominant enough to require a persistent content-addressed cache, or the gallery gains a signed registry selected by name and semantic version

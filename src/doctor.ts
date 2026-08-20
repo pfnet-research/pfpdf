@@ -6,11 +6,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { getInstalledBrowsers } from '@puppeteer/browsers';
-import { applyFrontMatterTemplate, type Config } from './config.js';
-import { buildHtml, type Logger } from './build.js';
+import { applyFrontMatterConfig, type Config } from './config.js';
+import { buildHtml, prepareConfiguredLogo, prepareConfiguredTemplate, type Logger } from './build.js';
 import { resolveFonts } from './fonts.js';
 import { ResourceManifest } from './resources.js';
-import { resolveTemplate, type PreparedTemplate } from './template.js';
+import type { PreparedTemplate } from './template.js';
+import { RepositoryResolver } from './repository.js';
 import { resolveInput, type ResolvedInput } from './input.js';
 import { MIN_NODE, runtimeIsSupported } from './runtime.js';
 import {
@@ -31,6 +32,21 @@ export async function runDoctor(
   env: Record<string, string | undefined> = process.env,
   log: Logger = NOOP_LOGGER,
 ): Promise<{ json: string; exitCode: number }> {
+  const sourceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-doctor-sources-'));
+  const repositoryResolver = new RepositoryResolver(sourceRoot, log.warn, log.info, env, 10_000);
+  try {
+    return await runDoctorWithResolver(config, env, log, repositoryResolver);
+  } finally {
+    fs.rmSync(sourceRoot, { recursive: true, force: true });
+  }
+}
+
+async function runDoctorWithResolver(
+  config: Config,
+  env: Record<string, string | undefined>,
+  log: Logger,
+  repositoryResolver: RepositoryResolver,
+): Promise<{ json: string; exitCode: number }> {
   const checks: Check[] = [];
   const add = (id: string, status: Check['status'], message: string): void => {
     checks.push({ id, status, message });
@@ -47,7 +63,7 @@ export async function runDoctor(
         env,
         (message) => { inputWarnings.push(message); log.debug(message); },
       );
-      documentConfig = applyFrontMatterTemplate(config, preparedInput.template);
+      documentConfig = applyFrontMatterConfig(config, preparedInput.config);
     } catch (error) {
       inputError = error as Error;
     }
@@ -74,7 +90,7 @@ export async function runDoctor(
     add('template', 'not-run', 'input resolution failed before template selection');
   } else {
     try {
-      preparedTemplate = resolveTemplate(documentConfig.template.value, documentConfig.templateDirAbs);
+      preparedTemplate = await prepareConfiguredTemplate(documentConfig, repositoryResolver);
       const tpl = preparedTemplate;
       add('template', 'pass', `template resolved at ${tpl.dir}`);
     } catch (e) {
@@ -84,7 +100,7 @@ export async function runDoctor(
   }
 
   if (config.inputAbs === null) {
-    addStandaloneLogoCheck(config, add);
+    await addStandaloneLogoCheck(config, repositoryResolver, add);
   }
 
   const browserPath = config.browserPathAbs ?? await managedBrowserPath();
@@ -121,11 +137,21 @@ export async function runDoctor(
           warnings.length === 0 ? 'pass' : 'warning',
           `${result.manifest.list().length} local resource(s) resolved${warnings.length ? `; ${warnings.length} warning(s)` : ''}`,
         );
-        add('logo', config.logoAbs === null ? 'not-run' : 'pass', config.logoAbs ?? 'no logo configured');
+        const configuredLogo = documentConfig.logo.value;
+        add(
+          'logo',
+          configuredLogo.kind === 'template' ? 'not-run' : 'pass',
+          configuredLogo.kind === 'template' ? 'template default or no logo'
+            : configuredLogo.kind === 'none' ? 'logo explicitly disabled'
+              : configuredLogo.kind === 'local' ? documentConfig.logoAbs!
+                : configuredLogo.locator,
+        );
         addFontChecks(config, result.fontWarnings, add);
       } catch (e) {
         add('input', 'fail', (e as Error).message);
-        const logoFailure = config.logoAbs !== null && (e as Error).message.includes(config.logoAbs);
+        const logoText = documentConfig.logo.value.kind === 'local' ? documentConfig.logoAbs
+          : documentConfig.logo.value.kind === 'repository' ? documentConfig.logo.value.locator : null;
+        const logoFailure = logoText !== null && (e as Error).message.includes(logoText);
         add('logo', logoFailure ? 'fail' : 'not-run', logoFailure ? (e as Error).message : 'input preparation did not complete');
         addFailedFontChecks(config, e as Error, add);
       }
@@ -156,17 +182,24 @@ export async function runDoctor(
   };
 }
 
-function addStandaloneLogoCheck(
+async function addStandaloneLogoCheck(
   config: Config,
+  repositoryResolver: RepositoryResolver,
   add: (id: string, status: Check['status'], message: string) => void,
-): void {
-  if (config.logoAbs === null) {
-    add('logo', 'not-run', 'no logo configured');
+): Promise<void> {
+  if (config.logo.value.kind === 'template') {
+    add('logo', 'not-run', 'template default or no logo');
+    return;
+  }
+  if (config.logo.value.kind === 'none') {
+    add('logo', 'pass', 'logo explicitly disabled');
     return;
   }
   try {
-    new ResourceManifest().add(config.logoAbs);
-    add('logo', 'pass', config.logoAbs);
+    const logo = await prepareConfiguredLogo(config, repositoryResolver);
+    if (logo.kind !== 'file') throw new Error('logo did not resolve to a file');
+    new ResourceManifest().add(logo.absPath);
+    add('logo', 'pass', logo.absPath);
   } catch (error) {
     add('logo', 'fail', (error as Error).message);
   }
@@ -274,7 +307,7 @@ async function probeBrowser(browserPath: string): Promise<Pick<Check, 'status' |
     const launcher = path.join(path.dirname(fileURLToPath(import.meta.url)), 'launcher.js');
     const result = spawnSync(process.execPath, [
       launcher, '--input', input, '--output', output, '--browser-path', browserPath,
-      '--template', 'default', '--no-logo', '--no-host-fonts', '--no-font-dirs',
+      '--template', 'default', '--no-logo',
       '--render-timeout-ms', '10000', '--log-level', 'error',
     ], {
       shell: false,

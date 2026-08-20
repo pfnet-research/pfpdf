@@ -26,7 +26,7 @@ pfpdf bundles redistributable Japanese fonts in multiple weights, including Noto
 
 - Bundled fonts are always available; if host fonts are disabled, no OS font discovery is performed
 - Builds the set of permitted directories from `--host-fonts` and any explicitly given `--font-dir`
-- The scan priority is: the effective list of additional font directories, then the fixed order of standard OS directories added by `--host-fonts`, then the bundled fallback. The additional list uses only the CLI `--font-dir` order if at least one is given, and otherwise the order of the `PFPDF_FONT_DIRS` environment variable
+- The scan priority is: the additional font directories in CLI `--font-dir` order, then the fixed order of standard OS directories added by `--host-fonts`, then the bundled fallback
 - Reads family, weight, style, and stretch from the OpenType name table and generates temporary `@font-face` CSS that references each adopted face by logical font URL. `--font-dir` is not an option that automatically selects fonts into the body; it adds candidates that template and document CSS can select by family name
 - Generates CSS with font URLs reachable from the renderer's execution environment, and passes renderer-internal fontconfig metadata only where needed
 - Extracts the non-generic families demanded by the bundled templates' static CSS and enables only the faces that are found. Families that are not found become warnings with source locations, and template tests guarantee that the bundled fallback appears at the end of the font-family list. Selected fonts are not guaranteed for dynamic properties in custom or raw CSS
@@ -42,7 +42,7 @@ pfpdf bundles redistributable Japanese fonts in multiple weights, including Noto
 
 ## 4.4 Separation of templates and logos
 
-`v0.1.0` bundles seven templates: the restrained `academic` for research reports; the calm `book` for long-form text; the space-saving `compact` for short meeting materials and internal memos; the neutral `default`; the warm, casual, booklet-style `notebook`; the corporate `pfn`; and the dense `technical` for documents that emphasize code and tables. None of these templates includes a logo.
+`v0.1.0` bundles seven templates: the restrained `academic` for research reports; the calm `book` for long-form text; the space-saving `compact` for short meeting materials and internal memos; the neutral `default`; the warm, casual, booklet-style `notebook`; the corporate `pfn`; and the dense `technical` for documents that emphasize code and tables. Bundled templates include no logo whose license has not been verified, and every template, including `pfn`, works without one.
 
 ```text
 resources/templates/
@@ -76,21 +76,32 @@ resources/templates/
     vivliostyle.css
 ```
 
-- Select a bundled template with the first Markdown file's front matter `template` or with `--template academic|book|compact|default|notebook|pfn|technical`. Environment variables and CLI arguments take precedence over front matter
-- Templates contain no logo; the file specified with `--logo PATH` or `PFPDF_LOGO` is inserted into the placeholder
-- If no logo is specified, the logo placeholder itself is not emitted. No broken image placeholder is left behind
-- A relative logo path is resolved against the current directory
+- Select a bundled template with the first Markdown file's front matter `template`, or with `--template SOURCE` when the source exactly matches a bundled name. `--template-preset NAME` explicitly requires a bundled preset. CLI arguments take precedence over front matter
+- A custom or repository template may declare a default logo by putting a template-relative path in the `src` of its `logo` slot. Bundled templates have no default logo
+- Front matter `logo` accepts a local path or `false`. CLI `--logo SOURCE` accepts a local path or Git locator and overrides front matter and the template default; `--no-logo` disables both
+- If no logo is explicit and the slot has no `src`, the logo placeholder itself is not emitted. No broken image placeholder is left behind
+- A relative front matter logo path is resolved from the first Markdown file's parent directory; a relative CLI logo path is resolved from the current directory
 - The logo and template are trusted input; only their existence and readability are pre-checked. Their content is not sandboxed
 
 ## 4.5 Custom templates
 
-- A user-specified custom template directory is given via `--template-dir PATH`, avoiding ambiguity with bundled template names
-- Custom template paths are accepted only from the CLI or environment, not from front matter
+- A plain `--template SOURCE` value that does not exactly match a bundled preset name is a custom-template directory path. To select a same-named directory, use an unambiguous path spelling such as `./default`
+- Custom template paths are accepted only from the CLI, not from front matter
 - Custom templates are treated like trusted local code, with explicit documentation that they may execute raw HTML and scripts
 - The custom template format has no `apiVersion`, JSON Schema, or cross-version compatibility guarantee. Users who need to preserve a template's appearance and structure should pin the pfpdf version. Within a given version, the following DOM slot contract prevents ambiguous string substitution
 - A custom template directory contains `template.html`, `style.css`, and `vivliostyle.css` directly, and only the presence of the files required by the selected pfpdf version is checked
 
-### 4.5.1 DOM slot contract
+### 4.5.1 Git repository sources
+
+- `--template 'git::URL//PATH?ref=REVISION'` selects a custom template directory inside a Git repository. `--logo` uses the same form to select a regular file
+- `PATH` is a `/`-separated relative path from the repository root. Subdirectories are allowed; absolute paths, empty components, `.`, `..`, and backslashes are code `2`. A template must select a directory and a logo a regular file
+- Supported URL schemes are `https://`, `ssh://`, and `file://`; `file://` is for local use and tests. Passwords and HTTPS userinfo are rejected to avoid credential disclosure. Private repositories authenticate through a Git credential helper or SSH agent
+- `ref` accepts a branch, tag, or commit. If omitted, remote `HEAD` is used and the resolved commit is reported as a warning. Reproducible CI should specify a full commit hash
+- A repository source is checked out under an OS temporary directory at depth 1, detached HEAD, with submodules disabled. The same URL / ref is shared within one process. There is no persistent cache; a conversion checkout lives in the build workspace and is reclaimed with it, subject to `--keep-work-dir`
+- Locator syntax, path, and file-type errors are code `2`; Git startup, network, authentication, fetch / checkout failures, and timeouts are code `1`. The conversion timeout is 300 seconds and a doctor's external-process check is 10 seconds. Git is launched with an argument array rather than a shell, with interactive prompts disabled
+- Repository templates remain trusted code. Front matter cannot select one; only an explicit CLI selection causes network access and template-script execution
+
+### 4.5.2 DOM slot contract
 
 `template.html` is a complete HTML document that declares insertion points with the `data-pfpdf-slot` attribute.
 
@@ -109,8 +120,8 @@ resources/templates/
 - The builder sets the root `html` element's `lang` / `dir` to the metadata's canonical language tag and direction. Fixed template values and the host locale are not given precedence
 - The builder parses the template as an inert DOM and replaces the child nodes of slot elements via DOM APIs. Metadata is never string-interpolated into the template source
 - The builder inserts a heading and a continuation label for the table of contents according to the document language. The continuation label is provided as the named string `.pfpdf-toc-continuation-marker`, which templates style in paged media margin boxes. An empty marker immediately after the table of contents clears the named string, so the continuation label does not carry over onto body pages. This styling hook adds no new DOM slot and does not change the `toc` slot contract
-- The `logo` slot is specified on an `img` element. The builder sets the logical `src` and preserves other attributes such as classes. If the template provides no `alt`, it sets `alt=""` to mark the image as decorative
-- If `--logo` is specified but there is no `logo` slot, the user's specification is not silently dropped; the result is exit code `2`. When no logo is specified, the slot element itself is removed
+- The `logo` slot is specified on an `img` element. Its own `src` is the template default logo and is resolved as an ordinary resource relative to the template directory. An explicit logo replaces it with a logical `src`, while other attributes such as classes are preserved. If the template provides no `alt`, the builder sets `alt=""` to mark the image as decorative
+- If an explicit logo is specified but there is no `logo` slot, the user's specification is not silently dropped; the result is exit code `2`. If neither a default `src` nor an explicit logo exists, or if `--no-logo` is given, the slot element itself is removed
 - If `author` or `series` is unspecified, the corresponding slot element itself is removed. The title is required and the date always has an explicit or generated value, so if those slots exist their content is always set
 - All bundled templates have a `series` slot and add no fixed publication name, document type, brand name, table of contents name, metadata prefix, callout name, or figure/table numbering. To also display the series in running headers, use a named string rather than duplicating the same slot
 - When `confidential: false`, the `confidential` slot element itself is removed. Only when it is true does the slot remain in the template, with the display text set by the builder. Bundled templates display it on the cover or leading header and on every subsequent page, including the table of contents and body, in template-specific styling

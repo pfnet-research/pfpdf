@@ -56,9 +56,8 @@ Linux では browser archive だけでは shared library が揃いません。
 - 改行、ESC、C0 / C1、bidi formatting character を含む path / URL の診断 escape と、不正 UTF-8 filename の raw byte 表示
 - Node.js runtime の対応 / 非対応 semver range 境界に対する起動時検査
 - 正常終了、通常エラー、捕捉可能な中断での workspace cleanup
-- template の default、front matter、environment、CLI の優先順位と、それ以外の設定の CLI、environment、default の優先順位。CLI が常に勝ち、不正な front matter template は上書き時も拒否すること
-- 環境変数の boolean、enum、数値、path list の厳密な parse
-- 排他的 flag の同時指定、`--font-dir` 以外の option 重複、unknown option / positional argument / value 欠落、template selector と logo / font directory / managed browser / workspace 保持の明示 reset が環境変数の論理設定全体を上書きすること、path list の空 / 重複 component、timeout の最小・最大・overflow
+- `template` / `toc` / `logo`のdefault、front matter、CLIの優先順位。CLIが常に勝ち、不正なfront matter値は上書き時も拒否すること
+- 排他的 flag の同時指定、`--font-dir` 以外の option 重複、unknown option / positional argument / value 欠落、timeout の最小・最大・overflow
 - bundled / custom template の必要 file と logo 省略時の出力
 - custom template の必須 / 重複 / 未知 DOM slot、metadata の text 挿入、未指定 author / series slot の削除、title の許可 tag 以外の拒否、logo 指定と slot 欠落の拒否
 - trusted attribute を保持し、処理した `data-pfpdf-slot` が残らず、`window.pfpdf` の runtime 上書きを code `1` にすること
@@ -99,8 +98,8 @@ Linux では browser archive だけでは shared library が揃いません。
 - 同一出力への 2 build を意図的に競合させても byte が混在せず、最後に commit した完全な PDF だけが残る
 - `npm pack` した tarball を新しい一時 project から `npm exec` で実行できる
 - browser がない初回実行で pinned Vivliostyle CLI の標準取得処理が動作するか、上流の診断をそのまま利用者へ示す
-- `PFPDF_BROWSER_PATH` で明示した互換 browser を利用できる
-- 環境変数で template、browser を設定でき、CLI 引数が常に上書きする
+- `--browser-path` で明示した互換 browser を利用できる
+- front matterでtemplate、toc、logoを設定でき、CLI引数が常に上書きする
 - 現在の pfpdf version に対応する custom template directory を利用できる
 - host font が無効なときは OS の font directory を読み込まない
 - renderer が integration test で検査したものと同じ `document.html` を入力にする

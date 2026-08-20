@@ -56,9 +56,8 @@ On Linux, the browser archive alone does not provide all the required shared lib
 - Diagnostic escaping of paths and URLs containing newlines, ESC, C0 / C1, and bidi formatting characters, and raw byte display of invalid UTF-8 filenames
 - The startup check against boundary values of the supported and unsupported Node.js semver ranges
 - Workspace cleanup on normal termination, ordinary errors, and catchable interruptions
-- Precedence of default, front matter, environment, and CLI for templates; precedence of CLI, environment, and defaults for other settings; the CLI always winning; and invalid front matter templates remaining errors under an override
-- Strict parsing of environment variable booleans, enums, numbers, and path lists
-- Simultaneous use of mutually exclusive flags; duplicate options other than `--font-dir`; unknown options, positional arguments, and missing values; explicit resets of the template selector and of the logo / font directory / managed browser / workspace retention overriding the entire logical configuration from environment variables; empty or duplicate components in path lists; and timeout minimum / maximum / overflow
+- Precedence of default, front matter, and CLI for `template` / `toc` / `logo`; the CLI always winning; and invalid front matter remaining errors under an override
+- Simultaneous use of mutually exclusive flags; duplicate options other than `--font-dir`; unknown options, positional arguments, missing values, and timeout minimum / maximum / overflow
 - Required files of bundled and custom templates, and the output when the logo is omitted
 - Required, duplicate, and unknown DOM slots in custom templates; text insertion of metadata; removal of unspecified author / series slots; rejection of anything but permitted tags in titles; rejection of a logo specification when the slot is missing
 - Trusted attributes are preserved, no processed `data-pfpdf-slot` remains, and a runtime overwrite of `window.pfpdf` results in code `1`
@@ -99,8 +98,8 @@ On Linux, the browser archive alone does not provide all the required shared lib
 - Even when two builds to the same output are deliberately raced, no bytes are intermixed, and only the complete PDF committed last remains
 - The tarball produced by `npm pack` runs from a fresh temporary project via `npm exec`
 - On a first run without a browser, the pinned Vivliostyle CLI's standard acquisition works, or the upstream diagnostics are shown to the user as-is
-- A compatible browser explicitly specified via `PFPDF_BROWSER_PATH` can be used
-- The template and browser can be configured via environment variables, and CLI arguments always override them
+- A compatible browser explicitly specified via `--browser-path` can be used
+- Templates, tables of contents, and logos can be configured via front matter, and CLI arguments always override them
 - A custom template directory targeting the current pfpdf version can be used
 - When host fonts are disabled, the OS font directories are not read
 - The renderer takes the same `document.html` inspected by the integration tests as input

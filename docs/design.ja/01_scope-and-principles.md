@@ -25,7 +25,7 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input foo --output foo.pdf
 - 表紙、目次、改ページ、数式、コードハイライト、ローカル画像を扱える
 - 再配布可能な標準フォントを既定とし、ホストフォントは明示的に許可された場合だけ読み込む
 - 複数の bundled template(`academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical`)を選択でき、ロゴなどの非同梱アセットは利用側から注入できる
-- CLI 引数と環境変数から実行設定を制御でき、同じ項目では CLI 引数を常に優先する
+- 文書設定はfront matterを正本としてCLI引数で上書きでき、実行設定はCLI引数で制御できる
 - 入力元ディレクトリを変更せず、一時ファイルを正常終了時と捕捉可能な異常終了時に回収する
 - 異常時は部分的な成果物を成功扱いせず、非 0 の終了コードを返す
 - Markdown file の境界が GFM block の意味を変えないよう各 file を独立 parse し、静的 local resource は renderer-neutral な manifest で解決する
@@ -57,7 +57,7 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input foo --output foo.pdf
 - npm package に CLI、変換処理、template、CSS、MathJax、highlight.js、標準フォントを含める
 - browser の取得と cache 管理は pinned Vivliostyle CLI と、その dependency である Puppeteer 系 browser manager の標準動作に任せる。pfpdf は独自 downloader、cache lock、partial download recovery、prune を実装しない
 - 初回に大きな browser download が発生し得ることを README で明示する
-- `--browser-path` / `PFPDF_BROWSER_PATH` で既存の互換 browser を明示できる逃げ道を用意する
+- `--browser-path` で既存の互換 browser を明示できる逃げ道を用意する
 - Linux では browser archive だけでは shared library が揃わないため、対応 distribution と必要 package を 07 章と tutorial の troubleshooting 章に列挙する。`--doctor` で不足 library を可能な範囲で報告し、root 権限で暗黙 install はしない
 
 ### 対応環境
@@ -84,17 +84,17 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input foo --output foo.pdf
 - bundled MathJax / highlight.js の初期化・変換失敗と、利用者が document readiness contract へ登録した promise の rejection は成功扱いしない。利用者が指定した remote resource の timeout、DNS、TLS、HTTP error は pfpdf が分類・保証せず、出力の安定性を含めて利用者の責任とする
 - browser の確認と取得、readiness、PDF 描画・後処理・構造検査には既定 300 秒の共通 deadline を適用し、必要な文書だけ明示的に上書きできるようにする。timeout を無期限にする値は提供しない
 
-## 1.7 設定は CLI 引数と環境変数に限定する
+## 1.7 設定は front matter と CLI 引数に限定する
 
-project config file は設けません。repository ごとの繰り返し設定は Makefile、npm script、CI workflow などに CLI 引数または環境変数として記録します。
+project config file は設けません。文書の内容と見た目を決める設定はfront matterへ記録し、repository ごとの実行設定は Makefile、npm script、CI workflow などに CLI 引数として記録します。
 
 設定の優先順位は次のとおりです。
 
 ```text
-明示的な CLI 引数 > 環境変数 > 組み込み既定値
+明示的な CLI 引数 > front matter > 組み込み既定値
 ```
 
-同じ項目が CLI と環境変数の双方にあれば、値の種類にかかわらず CLI を常に採用します。boolean の `--no-toc` / `--no-host-fonts` のような明示的な否定は CLI の値 `false` として環境変数より優先します。logo、追加 font directory、browser path、workspace 保持には専用の CLI reset flag を設け、対応する環境変数を 1 回の実行だけ無効化できます。reset flag を定義していない設定を組み込み既定へ戻す場合は、不要な環境変数を実行環境から外すか、既定値を CLI で明示します。
+`template` / `toc` / `logo` はfront matterを正本とし、対応するCLI optionがあればその実行だけ上書きします。browser path、追加font directory、host font、timeout、workspace保持、log levelはCLIだけで指定します。再現可能buildの標準入力である`SOURCE_DATE_EPOCH`と、child processが通常継承する一般的なprocess environmentは、この設定優先順位とは別に扱います。
 
 ## 1.8 正典と翻訳の契約
 

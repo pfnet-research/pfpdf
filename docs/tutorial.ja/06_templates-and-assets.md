@@ -35,11 +35,21 @@ bundled template は利用者が指定していない出版名、文書種別、
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
 ```
 
-front matter から選べるのは bundled template だけです。custom template は trusted local code であり実行環境の path に依存するため、`--template-dir` または `PFPDF_TEMPLATE_DIR` で指定します。template 選択全体の優先順は、組み込みの `default`、front matter、環境変数、CLI です。
+front matter から選べるのは bundled template だけです。CLI の `--template SOURCE` は、bundled preset 名との完全一致ならpreset、それ以外はlocal directoryまたはGit locatorとして扱います。presetであることを明示する場合は`--template-preset`を使います。template選択全体の優先順は、組み込みの`default`、front matter、CLIです。
 
 ## 6.2 ロゴの注入
 
-template にはロゴ画像は含まれていません。表紙などにロゴを入れたい場合は、利用者が権利を持つロゴファイルを `--logo` または環境変数 `PFPDF_LOGO` で指定します。
+bundled template にはロゴ画像を含めていません。通常は先頭Markdownのfront matterに、利用者が権利を持つlocal fileを指定します。custom templateは`logo` slotの`src`にtemplate相対pathを書くことで既定ロゴを持てます。
+
+```md
+---
+title: 四半期報告書
+template: pfn
+logo: assets/logo.png
+---
+```
+
+front matterの相対pathは、そのMarkdownの親directory基準です。`logo: false`ならtemplate既定値を含めてロゴを表示しません。Git locatorや一時的な上書きには`--logo` / `--no-logo`を使います。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
@@ -47,9 +57,9 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
 ```
 
 - ロゴの相対パスはカレントディレクトリ基準で解決されます
-- ロゴを指定しない場合、ロゴ領域自体が表示されません。壊れた画像 placeholder は残りません
-- repository ごとに毎回指定するのが面倒な場合は、Makefile や CI workflow に `--logo` を記録するか、`PFPDF_LOGO` を設定してください
-- `PFPDF_LOGO` が設定された環境で一時的にロゴを使わない場合は `--no-logo` を指定します
+- 明示ロゴがなければ template の既定 `src` を使います。それもなければロゴ領域自体を削除し、壊れた画像 placeholder を残しません
+- repository logoを継続的に使う場合は、MakefileやCI workflowに`--logo`を記録してください
+- front matterまたはtemplate既定ロゴを一時的に使わない場合は`--no-logo`を指定します
 
 ```make
 docs.pdf: $(wildcard docs/*.md)
@@ -59,7 +69,7 @@ docs.pdf: $(wildcard docs/*.md)
 
 ## 6.3 custom template
 
-bundled template で足りない場合は、`--template-dir` で独自の template directory を指定できます。directory には次の 3 ファイルを置きます。
+bundled template で足りない場合は、`--template` で独自の template directory を指定できます。directory には次の 3 ファイルを置きます。
 
 ```text
 my-template/
@@ -69,7 +79,7 @@ my-template/
 ```
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template-dir my-template
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template ./my-template
 ```
 
 - custom template は信頼できるローカルコードとして扱われ、raw HTML や script を実行できます
@@ -97,13 +107,36 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template-dir m
 </html>
 ```
 
-`--logo` を指定した template に `logo` slot がない場合は、指定を黙って無視せずエラーになります。ロゴ未指定なら `logo` slot 自体が出力から削除されます。authorまたはseries未指定時も対応するslotが削除されます。`toc` slot がない場合、目次は `content` の先頭に挿入されます。
+既定ロゴを持たせる場合は、例えば `src="assets/brand/logo.svg"` を `logo` slot に設定します。`--logo` はlocal pathでもGit locatorでもこの`src`を上書きします。明示ロゴを指定したtemplateに`logo` slotがない場合は、指定を黙って無視せずエラーになります。既定`src`も明示ロゴもなければ`logo` slot自体が出力から削除されます。authorまたはseries未指定時も対応するslotが削除されます。`toc` slotがない場合、目次は`content`の先頭に挿入されます。
 
-## 6.4 ローカルアセット
+## 6.4 Git repository source
+
+template または logo は Git repository 内のサブディレクトリ／file から直接取得できます。repository URL と repository 内 path の境界は `//`、revision は `ref` で指定します。
+
+```bash
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
+  --template 'git::https://github.com/example/pdf-assets.git//templates/corporate?ref=0123456789abcdef0123456789abcdef01234567'
+```
+
+別の repository logo で既定ロゴを上書きする例です。
+
+```bash
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
+  --template pfn \
+  --logo 'git::ssh://git@example.com/pdf-assets.git//logos/brand/main.svg?ref=v2.0.0'
+```
+
+- `PATH` は repository root からの相対 path で、`templates/brand/print` や `logos/brand/main.svg` のようなサブディレクトリを指定できます
+- revision には branch、tag、commit を使えます。省略時は remote `HEAD` を取得して warning を出します。CI では完全な commit hash に固定してください
+- private repository は Git credential helper または SSH agent で認証します。token や password を URL へ埋め込まないでください
+- submodule は取得しません。repository template も raw HTML や script を実行できる trusted code です
+- repository source を繰り返し使う offline build では、あらかじめ clone し、`--template` や `--logo` で local path を渡せます
+
+## 6.5 ローカルアセット
 
 画像や CSS などのローカルファイルは、Markdown からの相対パスで参照します(02 章参照)。空白や日本語を含むパスも使えます。入力ディレクトリが読み取り専用でも変換できます。
 
-## 6.5 フォント
+## 6.6 フォント
 
 pfpdf には再配布可能な日本語フォント(Noto Sans CJK JP など)が同梱されており、bundled template は既定でこの同梱フォントを明示します。通常の文書は OS の font 探索結果に依存しません。ただし custom / raw CSS が OS 固有の family を直接要求した場合、Chromium 自体の font discovery まで pfpdf が隔離することはできません。再現性が必要な文書では、custom / raw CSS から OS 固有の family を要求しないでください。
 
@@ -120,9 +153,6 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --font-dir ~/my-
 ```
 
 - `--font-dir` は複数回指定できます
-- 環境変数では `PFPDF_HOST_FONTS=true`、`PFPDF_FONT_DIRS`(区切りは OS の path 区切り文字)を使います
-- CLI の `--no-host-fonts` は環境変数の指定を打ち消します
-- CLI の `--no-font-dirs` は環境変数の追加 directory list を空にします。`--font-dir` との同時指定はできません
 - font directory の指定は利用可能な `@font-face` を追加します。実際に使う family は custom template や文書の CSS で `font-family` に指定してください。directory を追加しただけで本文 font が自動変更されることはありません
 
 ### host font の注意点

@@ -1,6 +1,6 @@
 /**
  * End-to-end PDF smoke test. Requires a Chromium download on first run, so it
- * only runs when PFPDF_TEST_E2E=1 (see npm run test:e2e).
+ * only runs when RUN_E2E=1 (see npm run test:e2e).
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -10,8 +10,11 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const enabled = process.env.PFPDF_TEST_E2E === '1';
+const enabled = process.env.RUN_E2E === '1';
 const cliPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'launcher.js');
+const browserArgs = process.env.BROWSER_PATH
+  ? ['--browser-path', process.env.BROWSER_PATH]
+  : [];
 
 function visibleRowsInPbm(pbm: Buffer, maxYRatio: number): number {
   const firstNewline = pbm.indexOf(0x0a);
@@ -53,7 +56,7 @@ test('builds a PDF from Japanese Markdown', { skip: !enabled }, () => {
   const output = path.join(dir, 'doc.pdf');
   const res = spawnSync(
     process.execPath,
-    [cliPath, '--input', input, '--output', output, '--render-timeout-ms', '600000'],
+    [cliPath, ...browserArgs, '--input', input, '--output', output, '--render-timeout-ms', '600000'],
     { encoding: 'utf8', env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' }, timeout: 660000 },
   );
   assert.equal(res.status, 0, res.stderr);
@@ -116,7 +119,7 @@ test('book template uses bundled serif fonts for multilingual text', { skip: !en
   const output = path.join(dir, 'doc.pdf');
   const render = spawnSync(
     process.execPath,
-    [cliPath, '--input', input, '--output', output, '--template', 'book', '--no-toc', '--render-timeout-ms', '600000'],
+    [cliPath, ...browserArgs, '--input', input, '--output', output, '--template', 'book', '--no-toc', '--render-timeout-ms', '600000'],
     { encoding: 'utf8', env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' }, timeout: 660000 },
   );
   assert.equal(render.status, 0, render.stderr);
@@ -169,7 +172,7 @@ test('rendered math contains visible glyphs, not only rule geometry', { skip: !e
   const output = path.join(dir, 'doc.pdf');
   const render = spawnSync(
     process.execPath,
-    [cliPath, '--input', input, '--output', output, '--no-toc', '--render-timeout-ms', '600000'],
+    [cliPath, ...browserArgs, '--input', input, '--output', output, '--no-toc', '--render-timeout-ms', '600000'],
     { encoding: 'utf8', env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' }, timeout: 660000 },
   );
   assert.equal(render.status, 0, render.stderr);
@@ -194,7 +197,7 @@ test('renders Mermaid fences to the PDF and rejects invalid diagrams', { skip: !
   );
   const render = spawnSync(
     process.execPath,
-    [cliPath, '--input', input, '--output', output, '--no-toc', '--render-timeout-ms', '600000'],
+    [cliPath, ...browserArgs, '--input', input, '--output', output, '--no-toc', '--render-timeout-ms', '600000'],
     { encoding: 'utf8', env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' }, timeout: 660000 },
   );
   assert.equal(render.status, 0, render.stderr);
@@ -211,7 +214,7 @@ test('renders Mermaid fences to the PDF and rejects invalid diagrams', { skip: !
   fs.writeFileSync(invalidOutput, 'EXISTING');
   const invalid = spawnSync(
     process.execPath,
-    [cliPath, '--input', input, '--output', invalidOutput, '--no-toc', '--render-timeout-ms', '60000'],
+    [cliPath, ...browserArgs, '--input', input, '--output', invalidOutput, '--no-toc', '--render-timeout-ms', '60000'],
     { encoding: 'utf8', env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' }, timeout: 70000 },
   );
   assert.equal(invalid.status, 2, invalid.stderr);
@@ -234,7 +237,7 @@ test('builds linked BibTeX citations and bibliography text', { skip: !enabled },
   const output = path.join(dir, 'doc.pdf');
   const render = spawnSync(
     process.execPath,
-    [cliPath, '--input', input, '--output', output, '--no-toc', '--render-timeout-ms', '600000'],
+    [cliPath, ...browserArgs, '--input', input, '--output', output, '--no-toc', '--render-timeout-ms', '600000'],
     { encoding: 'utf8', env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' }, timeout: 660000 },
   );
   assert.equal(render.status, 0, render.stderr);
@@ -257,7 +260,7 @@ test('BibTeX parse failure preserves an existing output', { skip: !enabled }, ()
   );
   const output = path.join(dir, 'doc.pdf');
   fs.writeFileSync(output, 'EXISTING');
-  const result = spawnSync(process.execPath, [cliPath, '--input', input, '--output', output], {
+  const result = spawnSync(process.execPath, [cliPath, ...browserArgs, '--input', input, '--output', output], {
     encoding: 'utf8',
     env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' },
   });
@@ -272,7 +275,7 @@ test('failed build keeps the existing output and exits non-zero', { skip: !enabl
   fs.writeFileSync(input, '# no title here\n');
   const output = path.join(dir, 'doc.pdf');
   fs.writeFileSync(output, 'EXISTING');
-  const res = spawnSync(process.execPath, [cliPath, '--input', input, '--output', output], {
+  const res = spawnSync(process.execPath, [cliPath, ...browserArgs, '--input', input, '--output', output], {
     encoding: 'utf8',
     env: { ...process.env },
   });
@@ -291,7 +294,7 @@ test('registered readiness rejection fails rendering with code 1', { skip: !enab
   fs.writeFileSync(output, 'EXISTING');
   const result = spawnSync(
     process.execPath,
-    [cliPath, '--input', input, '--output', output, '--render-timeout-ms', '60000'],
+    [cliPath, ...browserArgs, '--input', input, '--output', output, '--render-timeout-ms', '60000'],
     { encoding: 'utf8', env: { ...process.env, SOURCE_DATE_EPOCH: '0' }, timeout: 70000 },
   );
   assert.equal(result.status, 1, result.stderr);

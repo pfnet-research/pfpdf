@@ -1,5 +1,5 @@
 NODE ?= node
-PFPDF = $(NODE) dist/launcher.js
+PFPDF = $(NODE) dist/launcher.js $(if $(BROWSER_PATH),--browser-path "$(BROWSER_PATH)")
 DOCS_ROOT ?= build/docs
 SOURCE_DATE_EPOCH ?= $(shell git log -1 --format=%ct 2>/dev/null || echo 0)
 export SOURCE_DATE_EPOCH

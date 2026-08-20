@@ -64,14 +64,14 @@ function normalizeGeneratedIds(svg: Element, rootId: string): void {
     let result = value;
     for (let i = 0; i < entries.length; i++) {
       const [oldId] = entries[i]!;
-      result = result.replaceAll(`url(#${oldId})`, `url(#__PFPDF_MERMAID_ID_${i}__)`);
+      result = result.replaceAll(`url(#${oldId})`, `url(#__MERMAID_REWRITE_ID_${i}__)`);
       result = result.replace(
         new RegExp(`#${escapeRegExp(oldId)}(?=[^A-Za-z0-9_-]|$)`, 'g'),
-        `#__PFPDF_MERMAID_ID_${i}__`,
+        `#__MERMAID_REWRITE_ID_${i}__`,
       );
     }
     for (let i = 0; i < entries.length; i++) {
-      result = result.replaceAll(`__PFPDF_MERMAID_ID_${i}__`, entries[i]![1]);
+      result = result.replaceAll(`__MERMAID_REWRITE_ID_${i}__`, entries[i]![1]);
     }
     return result.replace(/\S+/g, (token) => replacements.get(token) ?? token);
   };

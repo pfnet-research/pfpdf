@@ -10,6 +10,8 @@ title: 四半期報告書
 author: 山田 太郎
 series: 技術報告シリーズ
 template: pfn
+toc: true
+logo: assets/logo.svg
 date: 2026-08-01
 page_size: A4
 confidential: false
@@ -18,7 +20,7 @@ dir: ltr
 ---
 ```
 
-文書 metadata として使える key は次の 9 つです。これに加えて第 3 章で説明する build input の `bibliography` も使用できます。それ以外の未知の key や重複する key はエラーになります。
+文書 metadata として使える key は次の 9 つです。さらに文書設定の `toc` / `logo` と、第 3 章で説明する build input の `bibliography` も使用できます。それ以外の未知の key や重複する key はエラーになります。
 
 | key | 型 | 既定値 | 説明 |
 |---|---|---|---|
@@ -26,6 +28,8 @@ dir: ltr
 | `author` | string | なし | 著者名 |
 | `series` | string | なし | 全 bundled template の主要ラベル位置に表示するシリーズ名 |
 | `template` | bundled template 名 | `default` | 文書に使用する bundled template |
+| `toc` | boolean | `true` | 目次を生成するかどうか |
+| `logo` | path string / `false` | template 既定値 | 表紙ロゴ。`false` ならロゴを表示しません |
 | `date` | string | 実行日 | 表紙に表示する日付 |
 | `page_size` | keyword / 寸法 | `A4` | ページサイズ |
 | `confidential` | boolean | `false` | `true` のとき全 page に Confidential 表示を出します |
@@ -33,7 +37,8 @@ dir: ltr
 | `dir` | `ltr` / `rtl` / `auto` | `auto` | 文書の文字方向。HTML root の `dir` に使います |
 
 - `title` は必須です。front matter に書くか、`--title` で指定してください。どちらにもない場合はエラー(終了 code `2`)になります
-- `template` には `academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical` のいずれかを指定します。`PFPDF_TEMPLATE` / `PFPDF_TEMPLATE_DIR` があれば front matter より優先され、CLI の `--template` / `--template-dir` はさらにそれらを上書きします
+- front matter の `template` には `academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical` のいずれかを指定します。CLI の `--template` / `--template-preset` は front matter を上書きします
+- `logo` の相対 path は front matter を書いた Markdown の親 directory 基準です。front matter では local file だけを指定でき、Git repository source は `--logo` で指定します
 - `series` を省略するとシリーズ表示領域自体が削除されます。bundled template は固定の出版名、文書種別、ブランド名、定型ラベルを補いません
 - 表紙のタイトルを改行したいときは `title: "長いタイトル<br>サブタイトル"` のように `<br>` を使います。使える tag は `<br>` / `<br/>` だけです
 - front matter は YAML mapping として読みます。pfpdf が利用するのは上表と第 3 章で説明する `bibliography` だけで、metadata key は表に記載した型である必要があります。複雑な YAML 値を書けても metadata としては利用されません
@@ -76,7 +81,7 @@ PDF と一緒に配布する spreadsheet など、`.md` 以外の相対 local fi
 
 ## 2.4 目次と改ページ
 
-- 目次は既定で生成されます。不要なら `--no-toc` を指定します
+- 目次は既定で生成されます。通常は front matter の `toc: false` で無効化し、一時的な上書きには `--toc` / `--no-toc` を使います
 - 改ページしたい位置には、単独の行に `___`(underscore 3 つ)を書きます
 
 ```md

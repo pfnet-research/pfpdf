@@ -26,7 +26,7 @@
 
 - bundled font を常に利用可能にし、ホストフォントが無効なら OS の font discovery を行わない
 - `--host-fonts` と明示された `--font-dir` から、利用を許可された directory の集合を作る
-- 探索順位は、effective な追加 font directory list、`--host-fonts` が追加する OS 標準 directory の固定順、bundled fallback の順とする。追加 list は CLI の `--font-dir` が 1 個以上あればその指定順だけを使い、なければ環境変数 `PFPDF_FONT_DIRS` の順を使う
+- 探索順位は、CLIの`--font-dir`で指定した追加font directory list、`--host-fonts`が追加するOS標準directoryの固定順、bundled fallbackの順とする
 - OpenType の name table から family、weight、style、stretch を読み、採用した各 face を logical font URL で参照する一時的な `@font-face` CSS を生成する。`--font-dir` は font を自動的に本文へ選択する option ではなく、template / document CSS が family 名で選べる候補を追加する
 - renderer の実行環境から参照可能な font URL を使う CSS を生成し、必要な場合だけ renderer 内部向けの fontconfig metadata を渡す
 - bundled template の静的 CSS が要求する non-generic family を抽出し、見つかった face だけを有効にする。見つからない family は source location 付き warning とし、bundled fallback が font-family list の末尾にあることを template test で保証する。custom / raw CSS の dynamic property まで選択 font を保証しない
@@ -42,7 +42,7 @@
 
 ## 4.4 template とロゴの分離
 
-`v0.1.0` には研究報告向けの抑制した `academic`、長文向けの落ち着いた `book`、短い会議資料や社内メモ向けの省スペースな `compact`、中立な `default`、温かくカジュアルな小冊子向けデザインの `notebook`、企業文書向けデザインの `pfn`、コードと表を重視した高密度な技術文書向けデザインの `technical` を bundled template として含めます。bundled template 自体にはロゴを含めません。
+`v0.1.0` には研究報告向けの抑制した `academic`、長文向けの落ち着いた `book`、短い会議資料や社内メモ向けの省スペースな `compact`、中立な `default`、温かくカジュアルな小冊子向けデザインの `notebook`、企業文書向けデザインの `pfn`、コードと表を重視した高密度な技術文書向けデザインの `technical` を bundled template として含めます。bundled template 自体にはライセンス未確認のロゴを含めず、`pfn` を含む全 template がロゴなしで動作します。
 
 ```text
 resources/templates/
@@ -76,21 +76,32 @@ resources/templates/
     vivliostyle.css
 ```
 
-- 先頭 Markdown の front matter `template` または `--template academic|book|compact|default|notebook|pfn|technical` で bundled template を選択する。環境変数と CLI は front matter より優先する
-- template 内にはロゴを含めず、`--logo PATH` または `PFPDF_LOGO` で指定された file を placeholder へ挿入する
-- logo が未指定なら logo placeholder 自体を出力しない。壊れた image placeholder を残さない
-- logo の相対 path はカレントディレクトリを基準に解決する
+- 先頭 Markdown の front matter `template`、または bundled 名と完全一致する `--template SOURCE` で bundled template を選択する。`--template-preset NAME` は bundled preset であることを明示する。CLIはfront matterより優先する
+- custom / repository template は `logo` slot の `src` に template 相対 path を持つ既定ロゴを宣言できる。bundled template は既定ロゴを持たない
+- front matterの`logo`はlocal pathまたは`false`を受け付ける。CLIの`--logo SOURCE`はlocal pathまたはGit locatorでfront matterとtemplate既定ロゴを上書きし、`--no-logo`は両方を無効化する
+- logo が明示指定されず slot に `src` もなければ logo placeholder 自体を出力しない。壊れた image placeholder を残さない
+- front matter logoの相対pathは先頭Markdownの親directory、CLI logoの相対pathはカレントディレクトリを基準に解決する
 - logo と template は trusted input とし、存在して読み取れることだけを事前検査する。内容を sandbox 化しない
 
 ## 4.5 custom template
 
-- 利用者が指定する custom template directory は `--template-dir PATH` で扱い、bundled template 名と曖昧にならないようにする
-- custom template の path は front matter では受け付けず、CLI または環境変数からだけ指定する
+- `--template SOURCE` が bundled preset 名と完全一致しない通常文字列なら、custom template directory path として扱う。同名directoryを選ぶ場合は`./default`のようにpathであることが分かる表記を使う
+- custom template の path は front matter では受け付けず、CLIからだけ指定する
 - custom template は信頼できるローカルコードと同様に扱い、raw HTML や script を実行し得ることを明記する
 - custom template format に `apiVersion`、JSON Schema、version 間の互換性保証は設けない。template の見た目と構造を維持したい利用者は pfpdf の version を固定する。ただし、同じ pfpdf version 内で曖昧な文字列置換を避けるため、次の DOM slot contract は明確に定義する
 - custom template directory は `template.html`、`style.css`、`vivliostyle.css` を直接持ち、選択した pfpdf version が必要とする file の存在だけを検査する
 
-### 4.5.1 DOM slot contract
+### 4.5.1 Git repository source
+
+- `--template 'git::URL//PATH?ref=REVISION'` で Git repository 内の custom template directoryを指定できる。`--logo`も同じ形式で通常 file を指定する
+- `PATH` は repository root からの `/` 区切り相対 path とし、サブディレクトリを許可するが、absolute path、空 component、`.`、`..`、backslash は code `2` とする。template は directory、logo は通常 file でなければならない
+- 対応 URL scheme は `https://`、`ssh://`、`file://` とする。`file://` は local / test 用である。password、および HTTPS URL の userinfo は credential 漏洩を避けるため拒否し、private repository は Git credential helper または SSH agent で認証する
+- `ref` は branch、tag、commit を受け付ける。省略時は remote `HEAD` を使うが、解決 commit を warning に出す。再現可能な CI では完全な commit hash を指定する
+- repository source は OS の一時 directory に depth 1、detached HEAD、submodule 無効で checkout し、同一 process 内の同じ URL / ref は共有する。persistent cache は持たず、`--keep-work-dir` の対象となる build workspace と一緒に回収する
+- locator の構文 / path / file type error は code `2`、Git 起動、network、認証、fetch / checkout failure と timeout は code `1` とする。conversion の timeout は 300 秒、doctor の外部 process check は 10 秒とする。Git child process は shell を介さず argument array で起動し、interactive prompt を無効化する
+- repository template も trusted code として扱う。front matter から repository source を指定できず、CLIによる明示選択だけが network access と template script の実行を発生させる
+
+### 4.5.2 DOM slot contract
 
 `template.html` は完全な HTML document とし、`data-pfpdf-slot` attribute で挿入位置を宣言します。
 
@@ -109,8 +120,8 @@ resources/templates/
 - builder は root `html` の `lang` / `dir` を metadata の canonical language tag / direction へ設定する。template 側の固定値や host locale を優先しない
 - builder は inert な DOM として template を parse し、slot element の child node を DOM API で置換する。metadata を template source へ文字列補間しない
 - 目次には文書言語に応じた見出しと継続ラベルを builder が挿入する。継続ラベルは `.pfpdf-toc-continuation-marker` の named string として提供し、template は paged media の margin box で装飾する。目次直後の空 marker が named string を解除するため、本文ページには継続ラベルを残さない。この styling hook は新しい DOM slot を追加せず、`toc` slot の contract を変更しない
-- `logo` slot は `img` element に指定する。builder は logical `src` を設定し、class など他の attribute は保持する。template に `alt` がなければ decorative image として `alt=""` を設定する
-- `--logo` が指定されたのに `logo` slot がない場合は、利用者の指定を黙って捨てず終了 code `2` とする。logo 未指定時は slot element 自体を削除する
+- `logo` slot は `img` element に指定する。slot 自身の `src` は template の既定ロゴであり、template directory 相対の通常 resource として解決する。明示 logo は logical `src` で上書きし、class など他の attribute は保持する。template に `alt` がなければ decorative image として `alt=""` を設定する
+- 明示 logo が指定されたのに `logo` slot がない場合は、利用者の指定を黙って捨てず終了 code `2` とする。既定 `src` も明示 logo もない場合、または `--no-logo` の場合は slot element 自体を削除する
 - `author` または `series` が未指定なら対応する slot element 自体を削除する。title は必須、date は明示値または生成値を常に持つため、それらの slot が存在すれば必ず内容を設定する
 - bundled template はすべて `series` slot を持ち、固定の出版名、文書種別、ブランド名、目次名、metadata 接頭辞、callout 名、図表番号を追加しない。series を柱にも表示する場合は同じ slot を重複させず named string を使う
 - `confidential: false` のときは `confidential` slot element 自体を削除する。true の場合だけ template に残し、表示 text は builder が設定する。bundled template は表紙または先頭 header と、目次・本文を含む以後の全 page に template 固有の表現で表示する

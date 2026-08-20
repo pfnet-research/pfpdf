@@ -54,9 +54,10 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output docs.pdf
 - **Templates and logo injection** — a research-oriented `academic`, a
   long-form `book`, a space-efficient `compact`, a neutral `default`, a warm
   and casual `notebook`, a corporate `pfn`, and a dense, code-first `technical`
-  template are bundled; select one in front matter and override it from the
-  CLI when needed. Logos are never bundled and are injected with
-  `--logo PATH` or `PFPDF_LOGO` (when omitted, the logo area is hidden)
+  template are bundled; select a template, table-of-contents policy, and local
+  logo in front matter, and override them from the CLI when needed. Custom
+  templates may carry a default logo, while CLI template and logo overrides can
+  use local paths or Git repository locators. No logo is bundled
 - **Redistributable bundled fonts** — no dependency on OS fonts by default;
   host fonts are an explicit opt-in via `--host-fonts` / `--font-dir`
 - **Managed rendering** — uses the bundled Vivliostyle CLI and its standard

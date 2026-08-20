@@ -5,7 +5,7 @@
 - repository / CI は `package-lock.json` で完全な dependency tree と integrity を固定する。公開 package の install では `package-lock.json` が使われないため、`package.json` の direct runtime dependency は exact version とし、review 済み lockfile と同じ tree から `npm-shrinkwrap.json` を隔離した staging directory で生成して tarball に含める
 - Node.js の対応 semver range は pinned Vivliostyle CLI と全 direct runtime dependency の要件の共通部分から確定し、非連続 range も単純な最低 version へ広げない。`package.json` の `engines`、起動時検査、4 つの対応環境の CI で同じ range を使う
 - TypeScript の compile target と公開 JavaScript の構文は range の最古 runtime で load できる値にし、version error を出す entrypoint 自体が未対応構文で parse error にならないことを最古 runtime の packed-package test で確認する
-- browser の取得と cache は pinned Vivliostyle CLI の標準機構に任せ、pfpdf は `--browser-path` / `PFPDF_BROWSER_PATH` による明示 override だけを提供する
+- browser の取得と cache は pinned Vivliostyle CLI の標準機構に任せ、pfpdf は `--browser-path` による明示 override だけを提供する
 - npm tarball には compile 済み JavaScript、template、CSS、font、MathJax、highlight.js、license 文書を含める
 - `npm pack --dry-run` で内容を review し、`npm-shrinkwrap.json` が含まれ `package-lock.json` が含まれないことを確認するが、独自の size budget、SBOM、署名、provenance は release 要件にしない
 - pfpdf 自身の lifecycle script による暗黙の browser download や root 権限の変更は行わない。transitive dependency の lifecycle script も lockfile review と clean install test で確認する。browser 取得が必要な場合は最初の明示的な実行時に upstream の標準機構を使う

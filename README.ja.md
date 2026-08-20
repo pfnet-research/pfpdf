@@ -35,7 +35,7 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output docs.pdf
 - **数式とコードハイライト** — `$...$` / `$$...$$` の数式と fenced code block の highlight が同梱アセットで動作します
 - **BibTeX 参考文献** — front matter で `.bib` を指定し、`\cite{key}` から番号付き引用、参考文献一覧、PDF 内部リンクを生成します。記法は[チュートリアル](docs/tutorial.ja/03_gfm.md#39-bibtex-参考文献)を参照してください
 - **raw HTML** — 信頼済み文書向けに inline / block の HTML を保持し、レイアウトの自由度を確保します
-- **template とロゴの注入** — 研究報告向け `academic`、長文向け `book`、短い資料向け `compact`、中立な `default`、カジュアルな小冊子向け `notebook`、企業文書向け `pfn`、高密度な技術文書向け `technical` の 7 つの template を同梱。front matter で選択でき、CLI から上書きできます。ロゴは同梱せず、`--logo PATH` または `PFPDF_LOGO` で利用側のファイルを注入します(未指定ならロゴ領域は表示されません)
+- **template とロゴの注入** — 研究報告向け `academic`、長文向け `book`、短い資料向け `compact`、中立な `default`、カジュアルな小冊子向け `notebook`、企業文書向け `pfn`、高密度な技術文書向け `technical` の 7 つの template を同梱。front matter でtemplate・目次・local logoを選択でき、CLIから上書きできます。custom templateは既定ロゴを持て、CLIのtemplateとlogoはlocal pathまたはGit repository locatorを利用できます。bundled logoは含めません
 - **再配布可能な同梱フォント** — 既定では OS のフォントに依存しません。host font は `--host-fonts` / `--font-dir` による明示的な opt-in です
 - **管理された renderer** — 同梱 Vivliostyle CLI と標準の browser 管理を使い、必要なら browser path を明示できます
 

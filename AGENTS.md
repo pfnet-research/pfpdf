@@ -41,11 +41,12 @@ design docs, not here.
   exit code. Never treat partial output as success.
 - Exit codes: `0` success, `1` runtime/renderer errors, `2` input/CLI errors.
   Machine-readable results go to stdout; logs and diagnostics go to stderr.
-- Configuration comes from CLI arguments and environment variables only; CLI
-  always wins. Do not introduce project config files.
+- Document configuration comes from front matter and CLI arguments; CLI always
+  wins. Runtime configuration comes from CLI arguments. Do not introduce project
+  config files.
 - Do not bundle logos, non-redistributable fonts, or other assets whose
   licenses have not been verified. The `pfn` template must keep working without
-  a logo; logos are injected by users via `--logo` / `PFPDF_LOGO`.
+  a logo; logos are selected in front matter or injected via `--logo`.
 - Treat inputs as trusted documents: no sanitization of raw HTML, no sandbox
   claims. Do not present the asset server as a security boundary.
 

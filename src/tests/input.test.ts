@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { readFrontMatterTemplate, resolveInput, parsePageSize, validateTitle } from '../input.js';
+import { readFrontMatterConfig, resolveInput, parsePageSize, validateTitle } from '../input.js';
 import { InputError } from '../errors.js';
 
 const noop = (): void => {};
@@ -15,14 +15,20 @@ function tmpFile(content: string, name = 'doc.md'): string {
   return p;
 }
 
-test('front matter parses scalars', () => {
-  const p = tmpFile('---\ntitle: Hello\nauthor: Alice\nseries: Example Reports\ntemplate: pfn\nconfidential: true\n---\n\n# Hi\n');
+test('front matter parses scalars and document configuration', () => {
+  const p = tmpFile('---\ntitle: Hello\nauthor: Alice\nseries: Example Reports\ntemplate: pfn\ntoc: false\nlogo: assets/logo.svg\nconfidential: true\n---\n\n# Hi\n');
   const r = resolveInput(p, null, { SOURCE_DATE_EPOCH: '1750000000' }, noop);
   assert.deepEqual(r.metadata.title, { lines: ['Hello'], plainText: 'Hello' });
   assert.equal(r.metadata.author, 'Alice');
   assert.equal(r.metadata.series, 'Example Reports');
-  assert.equal(r.template, 'pfn');
-  assert.equal(readFrontMatterTemplate(p), 'pfn');
+  assert.equal(r.config.template, 'pfn');
+  assert.equal(r.config.toc, false);
+  assert.deepEqual(r.config.logo, {
+    kind: 'local',
+    path: 'assets/logo.svg',
+    absPath: path.join(path.dirname(p), 'assets', 'logo.svg'),
+  });
+  assert.deepEqual(readFrontMatterConfig(p), r.config);
   assert.equal(r.metadata.confidential, true);
   assert.match(r.files[0]!.content, /# Hi/);
 });
@@ -31,8 +37,34 @@ test('front matter template must name a bundled template', () => {
   for (const value of ['false', 'missing']) {
     const p = tmpFile(`---\ntitle: T\ntemplate: ${value}\n---\nbody\n`);
     assert.throws(() => resolveInput(p, null, {}, noop), InputError);
-    assert.throws(() => readFrontMatterTemplate(p), InputError);
+    assert.throws(() => readFrontMatterConfig(p), InputError);
   }
+});
+
+test('front matter toc and logo validate types and repository boundaries', () => {
+  const disabled = resolveInput(
+    tmpFile('---\ntitle: T\ntoc: true\nlogo: false\n---\nbody\n'),
+    null,
+    { SOURCE_DATE_EPOCH: '0' },
+    noop,
+  );
+  assert.equal(disabled.config.toc, true);
+  assert.deepEqual(disabled.config.logo, { kind: 'none' });
+  for (const field of ['toc: yes', 'logo: true', 'logo: ""']) {
+    assert.throws(
+      () => resolveInput(tmpFile(`---\ntitle: T\n${field}\n---\nbody\n`), null, {}, noop),
+      InputError,
+    );
+  }
+  assert.throws(
+    () => resolveInput(
+      tmpFile('---\ntitle: T\nlogo: git::https://example.com/assets.git//logo.svg\n---\n'),
+      null,
+      {},
+      noop,
+    ),
+    InputError,
+  );
 });
 
 test('missing title is code 2', () => {

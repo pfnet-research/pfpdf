@@ -25,7 +25,7 @@ npx --yes @pfnet-research/pfpdf@0.1.0 --input foo --output foo.pdf
 - Support cover pages, tables of contents, page breaks, math, code highlighting, and local images
 - Default to redistributable bundled fonts, and load host fonts only when explicitly permitted
 - Offer several bundled templates (`academic`, `book`, `compact`, `default`, `notebook`, `pfn`, and `technical`) while allowing users to inject non-bundled assets such as logos
-- Allow runtime configuration through CLI arguments and environment variables, with CLI arguments always taking precedence for the same setting
+- Keep document configuration authoritative in front matter with CLI overrides, and control runtime configuration through CLI arguments
 - Never modify the input source directory, and clean up temporary files on normal exit and on catchable abnormal exit
 - Never report success for a partial artifact; return a nonzero exit code on failure
 - Parse each Markdown file independently so that file boundaries do not change the meaning of GFM blocks, and resolve static local resources through a renderer-neutral manifest
@@ -57,7 +57,7 @@ General users receive pfpdf as an npm package. The `bin` field in `package.json`
 - The npm package includes the CLI, the conversion logic, templates, CSS, MathJax, highlight.js, and the bundled fonts
 - Browser acquisition and cache management are delegated to the pinned Vivliostyle CLI and the standard behavior of its dependency, the Puppeteer-family browser manager. pfpdf does not implement its own downloader, cache locking, partial-download recovery, or pruning
 - The README explicitly notes that a large browser download may occur on first run
-- `--browser-path` and `PFPDF_BROWSER_PATH` provide an escape hatch for selecting an existing compatible browser explicitly
+- `--browser-path` provides an escape hatch for selecting an existing compatible browser explicitly
 - On Linux, the browser archive alone does not provide all required shared libraries, so supported distributions and required packages are listed in chapter 07 and in the tutorial's troubleshooting chapter. `--doctor` reports missing libraries where possible, and no implicit installation with root privileges is performed
 
 ### Supported environments
@@ -84,17 +84,17 @@ The files required for math and code highlighting are not fetched from a CDN; fi
 - Initialization or transformation failures in bundled MathJax or highlight.js, and rejected promises registered through the document-readiness contract, prevent a successful build. pfpdf does not classify or guarantee timeout, DNS, TLS, or HTTP failures for user-specified remote resources; those failures and their effects on output stability remain the user's responsibility
 - A common deadline, 300 seconds by default, covers browser verification and acquisition, readiness, and PDF rendering, post-processing, and structural inspection, and may be overridden explicitly only for documents that need it. There is no way to make the timeout unlimited
 
-## 1.7 Configuration is limited to CLI arguments and environment variables
+## 1.7 Configuration is limited to front matter and CLI arguments
 
-There is no project configuration file. Store recurring repository settings as CLI arguments or environment variables in Makefiles, npm scripts, CI workflows, or similar automation.
+There is no project configuration file. Store settings that determine document content and appearance in front matter, and store recurring runtime settings as CLI arguments in Makefiles, npm scripts, CI workflows, or similar automation.
 
 The configuration precedence is as follows.
 
 ```text
-Explicit CLI arguments > environment variables > built-in defaults
+Explicit CLI arguments > front matter > built-in defaults
 ```
 
-If the same setting appears both on the CLI and in an environment variable, the CLI value always wins regardless of the kind of value. Explicit boolean negations such as `--no-toc` / `--no-host-fonts` take precedence over environment variables as the CLI value `false`. Dedicated CLI reset flags for the logo, additional font directories, browser path, and workspace retention can disable the corresponding environment variable for a single invocation. To restore a setting without a reset flag to its built-in default, remove the unneeded environment variable from the execution environment or specify the default explicitly on the CLI.
+Front matter is authoritative for `template` / `toc` / `logo`; a corresponding CLI option overrides it for that invocation. Browser paths, additional font directories, host fonts, timeouts, workspace retention, and log levels are CLI-only. The standard reproducible-build input `SOURCE_DATE_EPOCH` and the general process environment normally inherited by child processes are handled separately from this configuration precedence.
 
 ## 1.8 Contract between the canon and its translations
 

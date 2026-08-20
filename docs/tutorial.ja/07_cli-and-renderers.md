@@ -12,18 +12,15 @@ Required:
 Options:
   --title TEXT             front matter の title を上書きする
   --toc / --no-toc         目次生成を有効 / 無効化する。既定は有効
-  --template NAME          bundled template 名。front matter を上書き。既定値は default
-  --template-dir PATH      custom template directory
-  --logo PATH / --no-logo  template に渡す logo file / 環境変数の logo を無効化
+  --template SOURCE        preset 名、local directory、または git::URL//PATH?ref=REVISION
+  --template-preset NAME   bundled template preset を明示選択
+  --logo SOURCE            local file または git::URL//PATH?ref=REVISION。template 既定値を上書き
+  --no-logo                local / repository / template 既定 logo を無効化
   --host-fonts             OS 標準の font directory を使用する
-  --no-host-fonts          環境変数の host font 指定を無効化する
   --font-dir PATH          追加 font directory。複数回指定可能
-  --no-font-dirs           環境変数の追加 font directory を無効化
   --browser-path PATH      renderer が使う browser
-  --managed-browser        環境変数の browser path を無効化
   --render-timeout-ms N    renderer 準備から PDF 検査完了まで。既定は 300000
-  --keep-work-dir / --no-keep-work-dir
-                           一時 workspace の保持 / 環境変数の保持指定を無効化
+  --keep-work-dir          一時 workspace を保持する
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config 適用後の設定と設定元を表示して終了する
   --doctor                 renderer、browser、asset を診断する
@@ -31,33 +28,16 @@ Options:
   -h, --help               ヘルプを表示する
 ```
 
-## 7.2 環境変数
+## 7.2 設定の優先順位
 
-CLI 引数の多くは環境変数でも設定できます。同じ項目が両方にある場合は、常に CLI 引数が優先されます。template の選択は front matter にも書け、優先順は組み込み既定値、front matter、環境変数、CLI 引数です。
+文書の内容と見た目を決める `template` / `toc` / `logo` は front matter を正本とし、CLI optionを指定した実行だけ上書きできます。優先順は組み込み既定値、front matter、CLI引数です。browser、font directory、timeout、log、workspace保持などの実行設定はCLIだけで指定します。
 
-| 環境変数 | 対応する CLI |
-|---|---|
-| `PFPDF_TOC` | `--toc` / `--no-toc` |
-| `PFPDF_HOST_FONTS` | `--host-fonts` / `--no-host-fonts` |
-| `PFPDF_FONT_DIRS` | `--font-dir` / `--no-font-dirs`(複数は path 区切り文字で連結) |
-| `PFPDF_TEMPLATE` | `--template` |
-| `PFPDF_TEMPLATE_DIR` | `--template-dir` |
-| `PFPDF_LOGO` | `--logo` / `--no-logo` |
-| `PFPDF_BROWSER_PATH` | `--browser-path` / `--managed-browser` |
-| `PFPDF_RENDER_TIMEOUT_MS` | `--render-timeout-ms` |
-| `PFPDF_KEEP_WORK_DIR` | `--keep-work-dir` / `--no-keep-work-dir` |
-| `PFPDF_LOG_LEVEL` | `--log-level` |
-| `SOURCE_DATE_EPOCH` | 対応 CLI なし。表示日付と PDF metadata の再現性に使用 |
-
-- boolean の環境変数は `true` / `false` / `1` / `0` だけを受け付けます
-- `--font-dir` のような list は CLI と環境変数を混ぜません。CLI で 1 個でも指定すれば CLI の list 全体が使われます
-- `--template` と `--template-dir` を同じ場所で両方指定した場合や、`--toc` と `--no-toc` を同時指定した場合はエラーです。CLI で template の一方を選べば、環境変数側の template 選択全体を上書きします
-- `--font-dir` 以外の option を繰り返した場合は、同じ値でもエラーです。`PFPDF_FONT_DIRS` に空の path component を入れて current directory を表すこともできません
-- optional な環境変数を 1 回だけ無効化するには、`--no-logo`、`--no-font-dirs`、`--managed-browser`、`--no-keep-work-dir` を使います。これらは明示的な CLI 値として環境変数より優先されます
-- どの設定がどこから来たかは `--print-effective-config` で、versioned schema の JSON object として確認できます。`--input` も指定すると front matter の template 選択を反映し、設定元を `front-matter` と表示します
+- `--template` と `--template-preset`、`--toc` と `--no-toc`、`--logo` と `--no-logo` をそれぞれ同時指定した場合はエラーです。`--template`はpreset名との完全一致を先に判定し、それ以外をGit locatorまたはlocal pathとして扱います。`--logo`もGit locatorとlocal pathを同じoptionで扱います
+- `--font-dir` 以外の option を繰り返した場合は、同じ値でもエラーです
+- どの設定がどこから来たかは `--print-effective-config` で、versioned schema の JSON object として確認できます。`--input` も指定すると front matter の `template` / `toc` / `logo` を反映し、設定元を `front-matter` と表示します
 
 ```bash
-PFPDF_TEMPLATE=pfn npx @pfnet-research/pfpdf@latest --print-effective-config
+npx @pfnet-research/pfpdf@latest --input docs --print-effective-config
 ```
 
 ## 7.3 終了コード
@@ -77,7 +57,7 @@ PFPDF_TEMPLATE=pfn npx @pfnet-research/pfpdf@latest --print-effective-config
 同梱の Vivliostyle CLI と、その標準機構が管理する Chromium を使って PDF を描画します。
 
 - browser は初回に自動取得され、以降は cache されます
-- 既にある互換 browser を使いたい場合は `--browser-path` または `PFPDF_BROWSER_PATH` で指定します
+- 既にある互換 browser を使いたい場合は `--browser-path` で指定します
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
