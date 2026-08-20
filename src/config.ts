@@ -4,7 +4,7 @@ import { BUNDLED_TEMPLATE_NAMES } from './bundled-templates.js';
 import { InputError } from './errors.js';
 import { validateTitle } from './input.js';
 
-export type Source = 'cli' | 'environment' | 'default';
+export type Source = 'cli' | 'environment' | 'front-matter' | 'default';
 export type CommandMode = 'convert' | 'doctor' | 'print-effective-config' | 'help' | 'version';
 
 export interface ResolvedValue<T> {
@@ -308,10 +308,20 @@ export function resolveConfig(
   };
 }
 
+/** Apply a bundled template selected by the document when no external source overrides it. */
+export function applyFrontMatterTemplate(config: Config, name: string | null): Config {
+  if (name === null || config.template.source !== 'default') return config;
+  return {
+    ...config,
+    template: { value: { kind: 'bundled', name }, source: 'front-matter' },
+    templateDirAbs: null,
+  };
+}
+
 export function effectiveConfigJson(config: Config): string {
   const entry = <T>(v: ResolvedValue<T>) => ({ value: v.value, source: v.source });
   const obj = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     command: config.command,
     config: {
       input: entry(config.input),
@@ -352,7 +362,7 @@ Required:
 Options:
   --title TEXT             override the front matter title
   --toc / --no-toc         enable / disable table of contents (default: on)
-  --template NAME          bundled template name (default: default)
+  --template NAME          bundled template name; overrides front matter (default: default)
   --template-dir PATH      custom template directory
   --logo PATH / --no-logo  logo file for the template / disable env logo
   --host-fonts             search OS standard font directories

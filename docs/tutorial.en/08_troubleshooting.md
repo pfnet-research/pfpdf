@@ -12,7 +12,7 @@ The command checks the Node.js version, browser availability, fonts, output perm
 
 `--doctor` does not download browsers, create project or output directories, or change OS settings. For the actual launch check it uses an isolated temporary profile, which is deleted afterward. Each external check times out after 10 seconds including cleanup, and the whole run after 60 seconds.
 
-To confirm that settings are taking effect as intended, use `--print-effective-config`. It prints each setting's value, along with whether it came from the CLI, an environment variable, or a default, as JSON.
+To confirm that settings are taking effect as intended, use `--print-effective-config`. It prints each setting's value, along with whether it came from the CLI, an environment variable, front matter, or a default, as JSON. Include `--input` when checking a front matter template selection.
 
 ## 8.2 The Node.js version is too old
 

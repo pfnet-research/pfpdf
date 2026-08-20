@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { resolveInput, parsePageSize, validateTitle } from '../input.js';
+import { readFrontMatterTemplate, resolveInput, parsePageSize, validateTitle } from '../input.js';
 import { InputError } from '../errors.js';
 
 const noop = (): void => {};
@@ -16,13 +16,23 @@ function tmpFile(content: string, name = 'doc.md'): string {
 }
 
 test('front matter parses scalars', () => {
-  const p = tmpFile('---\ntitle: Hello\nauthor: Alice\nseries: Example Reports\nconfidential: true\n---\n\n# Hi\n');
+  const p = tmpFile('---\ntitle: Hello\nauthor: Alice\nseries: Example Reports\ntemplate: pfn\nconfidential: true\n---\n\n# Hi\n');
   const r = resolveInput(p, null, { SOURCE_DATE_EPOCH: '1750000000' }, noop);
   assert.deepEqual(r.metadata.title, { lines: ['Hello'], plainText: 'Hello' });
   assert.equal(r.metadata.author, 'Alice');
   assert.equal(r.metadata.series, 'Example Reports');
+  assert.equal(r.template, 'pfn');
+  assert.equal(readFrontMatterTemplate(p), 'pfn');
   assert.equal(r.metadata.confidential, true);
   assert.match(r.files[0]!.content, /# Hi/);
+});
+
+test('front matter template must name a bundled template', () => {
+  for (const value of ['false', 'missing']) {
+    const p = tmpFile(`---\ntitle: T\ntemplate: ${value}\n---\nbody\n`);
+    assert.throws(() => resolveInput(p, null, {}, noop), InputError);
+    assert.throws(() => readFrontMatterTemplate(p), InputError);
+  }
 });
 
 test('missing title is code 2', () => {

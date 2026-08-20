@@ -12,7 +12,7 @@ Node.js の version、browser の有無、フォント、出力先の権限な�
 
 `--doctor` は browser の download、project / output directory の作成、OS 設定変更を行いません。実起動の検査には隔離した一時 profile を使い、検査後に削除します。各外部 check は cleanup を含めて 10 秒、全体は 60 秒で timeout します。
 
-設定が意図どおりに効いているか確認したいときは `--print-effective-config` を使います。各設定値と、それが CLI・環境変数・既定値のどれから来たかが JSON で表示されます。
+設定が意図どおりに効いているか確認したいときは `--print-effective-config` を使います。各設定値と、それが CLI・環境変数・front matter・既定値のどれから来たかが JSON で表示されます。front matter の template を確認する場合は `--input` も指定します。
 
 ## 8.2 Node.js の version が古い
 

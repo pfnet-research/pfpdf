@@ -76,7 +76,7 @@ resources/templates/
     vivliostyle.css
 ```
 
-- Select a bundled template with `--template academic|book|compact|default|notebook|pfn|technical`
+- Select a bundled template with the first Markdown file's front matter `template` or with `--template academic|book|compact|default|notebook|pfn|technical`. Environment variables and CLI arguments take precedence over front matter
 - Templates contain no logo; the file specified with `--logo PATH` or `PFPDF_LOGO` is inserted into the placeholder
 - If no logo is specified, the logo placeholder itself is not emitted. No broken image placeholder is left behind
 - A relative logo path is resolved against the current directory
@@ -85,6 +85,7 @@ resources/templates/
 ## 4.5 Custom templates
 
 - A user-specified custom template directory is given via `--template-dir PATH`, avoiding ambiguity with bundled template names
+- Custom template paths are accepted only from the CLI or environment, not from front matter
 - Custom templates are treated like trusted local code, with explicit documentation that they may execute raw HTML and scripts
 - The custom template format has no `apiVersion`, JSON Schema, or cross-version compatibility guarantee. Users who need to preserve a template's appearance and structure should pin the pfpdf version. Within a given version, the following DOM slot contract prevents ambiguous string substitution
 - A custom template directory contains `template.html`, `style.css`, and `vivliostyle.css` directly, and only the presence of the files required by the selected pfpdf version is checked

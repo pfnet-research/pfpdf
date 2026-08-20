@@ -1,8 +1,13 @@
 /** End-to-end build pipeline: input -> HTML -> renderer -> committed PDF. */
 import path from 'node:path';
-import type { Config } from './config.js';
+import { applyFrontMatterTemplate, type Config } from './config.js';
 import { RuntimeError } from './errors.js';
-import { resolveInput, parseSourceDateEpoch, type Metadata } from './input.js';
+import {
+  resolveInput,
+  parseSourceDateEpoch,
+  type Metadata,
+  type ResolvedInput,
+} from './input.js';
 import { buildDocumentBody } from './markdown.js';
 import { ResourceManifest } from './resources.js';
 import { resolveTemplate, buildDocumentHtml, type PreparedTemplate } from './template.js';
@@ -31,15 +36,30 @@ interface PreparedDocument {
   fontWarnings: string[];
 }
 
+interface PreparedBoundaries {
+  template?: PreparedTemplate | undefined;
+  input?: ResolvedInput | undefined;
+}
+
 async function prepareDocument(
   config: Config,
   env: Record<string, string | undefined>,
   log: Logger,
   processStart = new Date(),
-  preparedTemplate?: PreparedTemplate,
+  prepared?: PreparedBoundaries,
 ): Promise<PreparedDocument> {
-  const input = resolveInput(config.inputAbs!, config.title.value, env, log.warn, processStart);
-  const template = preparedTemplate ?? resolveTemplate(config.template.value, config.templateDirAbs);
+  const input = prepared?.input ?? resolveInput(
+    config.inputAbs!,
+    config.title.value,
+    env,
+    log.warn,
+    processStart,
+  );
+  const documentConfig = applyFrontMatterTemplate(config, input.template);
+  const template = prepared?.template ?? resolveTemplate(
+    documentConfig.template.value,
+    documentConfig.templateDirAbs,
+  );
   const manifest = new ResourceManifest();
   const fonts = resolveFonts(manifest, config.fontDirsAbs, config.hostFonts.value);
   for (const warning of fonts.warnings) log.warn(warning);
@@ -77,6 +97,7 @@ export async function buildHtml(
   env: Record<string, string | undefined>,
   log: Logger,
   preparedTemplate?: PreparedTemplate,
+  preparedInput?: ResolvedInput,
 ): Promise<{
   html: string;
   manifest: ResourceManifest;
@@ -84,7 +105,11 @@ export async function buildHtml(
   fontWarnings: string[];
 }> {
   const { html, manifest, generated, fontWarnings } = await prepareDocument(
-    config, env, log, new Date(), preparedTemplate,
+    config,
+    env,
+    log,
+    new Date(),
+    { template: preparedTemplate, input: preparedInput },
   );
   return { html, manifest, generated, fontWarnings };
 }

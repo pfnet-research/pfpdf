@@ -12,7 +12,7 @@ Required:
 Options:
   --title TEXT             front matter の title を上書きする
   --toc / --no-toc         目次生成を有効 / 無効化する。既定は有効
-  --template NAME          bundled template 名。既定値は default
+  --template NAME          bundled template 名。front matter を上書き。既定値は default
   --template-dir PATH      custom template directory
   --logo PATH / --no-logo  template に渡す logo file / 環境変数の logo を無効化
   --host-fonts             OS 標準の font directory を使用する
@@ -33,7 +33,7 @@ Options:
 
 ## 7.2 環境変数
 
-CLI 引数の多くは環境変数でも設定できます。同じ項目が両方にある場合は、常に CLI 引数が優先されます。
+CLI 引数の多くは環境変数でも設定できます。同じ項目が両方にある場合は、常に CLI 引数が優先されます。template の選択は front matter にも書け、優先順は組み込み既定値、front matter、環境変数、CLI 引数です。
 
 | 環境変数 | 対応する CLI |
 |---|---|
@@ -54,7 +54,7 @@ CLI 引数の多くは環境変数でも設定できます。同じ項目が両�
 - `--template` と `--template-dir` を同じ場所で両方指定した場合や、`--toc` と `--no-toc` を同時指定した場合はエラーです。CLI で template の一方を選べば、環境変数側の template 選択全体を上書きします
 - `--font-dir` 以外の option を繰り返した場合は、同じ値でもエラーです。`PFPDF_FONT_DIRS` に空の path component を入れて current directory を表すこともできません
 - optional な環境変数を 1 回だけ無効化するには、`--no-logo`、`--no-font-dirs`、`--managed-browser`、`--no-keep-work-dir` を使います。これらは明示的な CLI 値として環境変数より優先されます
-- どの設定がどこから来たかは `--print-effective-config` で、versioned schema の JSON object として確認できます
+- どの設定がどこから来たかは `--print-effective-config` で、versioned schema の JSON object として確認できます。`--input` も指定すると front matter の template 選択を反映し、設定元を `front-matter` と表示します
 
 ```bash
 PFPDF_TEMPLATE=pfn npx @pfnet-research/pfpdf@latest --print-effective-config

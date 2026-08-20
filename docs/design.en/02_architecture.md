@@ -29,6 +29,7 @@ The CLI and conversion logic are implemented in TypeScript and run as compiled J
 - Validates booleans, enums, numbers, and paths, and rejects invalid values
 - Resolves each path against the appropriate base directory and normalizes it to an absolute path before passing it to the renderer
 - Always prefers CLI values over environment variables, and reuses the effective configuration and the source of each value for `--print-effective-config` and `--doctor`
+- Template resolution happens in two stages: environment and CLI selections are resolved before reading input, and the front matter `template` returned by `InputResolver` replaces the built-in `default` only when no external selection exists. The resulting precedence is built-in default, front matter, environment variable, then CLI argument
 - Mutually exclusive values such as `template` and `template-dir` are resolved as a single logical setting rather than as individual strings. If both are specified from the same source, the process exits with code `2`; if one is specified on the CLI, it replaces the entire logical setting from the environment
 - Combining positive and negative forms of the same logical setting in the same CLI invocation — for example `--host-fonts` and `--no-host-fonts`, `--toc` and `--no-toc`, `--logo` and `--no-logo` — exits with code `2`, regardless of argument order
 - Repeating any value-taking or boolean option other than `--font-dir` in one invocation exits with code `2`, even when the repeated values are identical. Unknown options, unexpected positional arguments, and missing option values also produce code `2`; behavior never depends on a "last value wins" rule
@@ -40,7 +41,7 @@ The CLI and conversion logic are implemented in TypeScript and run as compiled J
 - Converts CLI paths to absolute paths
 - Determines the list of Markdown files using locale-independent rules, and also detects names that collide on case-insensitive filesystems
 - Verifies that front matter appears in only one place: at the top of the first Markdown file
-- Validates the types of the title, author, series, date, page size, confidential flag, and document language / direction
+- Validates the types and values of the title, author, series, date, page size, confidential flag, document language / direction, and bundled template name. An invalid front matter template remains an error even when an external selection overrides it
 - Keeps the allowed-HTML and plain-text representations of metadata separate, preventing escaping mistakes in individual template placeholders
 - For file input, uses the parent directory as the resource base; for directory input, uses the input directory itself
 - Passes the exact Markdown byte sequence used for validation to the parser, rather than reading the path again and potentially processing different content
@@ -162,7 +163,7 @@ Required:
 Options:
   --title TEXT             override the front matter title
   --toc / --no-toc         enable / disable table of contents generation. Default is enabled
-  --template NAME          bundled template name. Default is default
+  --template NAME          bundled template name; overrides front matter. Default is default
   --template-dir PATH      custom template directory
   --logo PATH / --no-logo  logo file passed to the template / disable the environment logo
   --host-fonts             use the OS standard font directories
@@ -240,17 +241,17 @@ Options:
 - Environment variables containing multiple values or paths are never evaluated as shell commands
 - `PFPDF_FONT_DIRS` is split on `path.delimiter`; an empty component is code `2` rather than being interpreted as the current directory. If the same canonical directory appears multiple times, only its first position is kept, with a warning
 - Child processes inherit the caller's environment variables, like ordinary CLI tools
-- `--print-effective-config` prints exactly one JSON object with a versioned schema to stdout, including each value and whether its source is the CLI, the environment, or a default. Tokens, credentials, and raw environment variable values are not included, and the contents of proxy URLs and custom CAs, which may contain secrets, are not shown
+- `--print-effective-config` prints exactly one JSON object with a versioned schema to stdout, including each value and whether its source is the CLI, the environment, front matter, or a default. When `--input` is present, the result includes the template selected by the first Markdown file. Tokens, credentials, and raw environment variable values are not included, and the contents of proxy URLs and custom CAs, which may contain secrets, are not shown
 - `--doctor` inspects, based on the effective configuration: Node.js, the browser, templates, logos, font directories, and output permissions
 - `--doctor` and `--print-effective-config` generate no PDF and never display secrets or the entire environment in diagnostics
 - `--doctor` performs no browser download, no creation of the user's project or output directory, and no configuration changes. Only when actually launching the browser requires it does it create a dedicated profile / workspace in the OS's secure temporary directory, reclaimed in `finally`. A cleanup failure remains a `fail` for the check. Output permissions are judged, best effort, from the nearest existing parent directory, with no guarantee that an actual create / rename would succeed. Each external process check is cut off at 10 seconds including cleanup, the whole command at 60 seconds, and timeouts are reported as `fail`
 - `--doctor` and `--print-effective-config` do not require `--input` and `--output`
 - `--doctor` without input / output inspects only the runtime and global settings, and inspects document resources and the write destination only when they are specified. Unspecified items are never displayed as verified successes
 - `--doctor` writes a JSON object with a versioned schema to stdout, giving each check `pass` / `warning` / `fail` / `not-run` and its rationale. The exit code is `1` when a problem is detected, `0` when there are only warnings or no problems
-- For scalars and lists, if the CLI provides a value, the entire CLI value is used; otherwise the environment variable; otherwise the built-in default. Lists are never implicitly concatenated across sources
+- For scalars and lists other than the template, if the CLI provides a value, the entire CLI value is used; otherwise the environment variable; otherwise the built-in default. For the template alone, front matter is used when no external selection exists, followed by the built-in default. Lists are never implicitly concatenated across sources
 - `--no-logo`, `--no-font-dirs`, `--managed-browser`, and `--no-keep-work-dir` are explicit CLI reset values, not "unspecified", and disable the corresponding environment variables. The effective configuration distinguishes `null`, an empty list, and default values with `source: "cli"`
 
-The top level of the JSON schema contains at least `schemaVersion: 2` and `command`. The effective configuration has `config.<name> = {"value": ..., "source": "cli|environment|default"}`; doctor has an overall `status` and `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}`. The overall status is fail if any check fails, otherwise warning if any check warns, and pass if at least one check ran and all passed. Key and check output order is fixed, and exactly one line of compact UTF-8 JSON plus a trailing LF is written to stdout. Adding optional fields in the future is allowed under the same schemaVersion, but changing the meaning or type of an existing field, or removing one, bumps the version.
+The effective configuration has `schemaVersion: 3` and `command` at the top level, with `config.<name> = {"value": ..., "source": "cli|environment|front-matter|default"}`. Doctor remains at `schemaVersion: 2` and has an overall `status` plus `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}`. Doctor's overall status is fail if any check fails, otherwise warning if any check warns, and pass if at least one check ran and all passed. Key and check output order is fixed, and exactly one line of compact UTF-8 JSON plus a trailing LF is written to stdout. Adding optional fields in the future is allowed under the same schemaVersion, but changing the meaning or type of an existing field, or removing one, bumps the version.
 
 ### 2.9.4 Exit codes
 

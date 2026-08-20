@@ -14,7 +14,16 @@ pfpdf には 7 つの template が同梱されています。
 | `pfn` | 企業文書向けのデザイン。ロゴは同梱されず、外部から注入します |
 | `technical` | コード、表、長い識別子を読みやすく配置する高密度な技術文書向けデザイン |
 
-`--template` または環境変数 `PFPDF_TEMPLATE` で選択します。
+通常は先頭 Markdown の front matter に `template` を書いて選択します。
+
+```md
+---
+title: 四半期報告書
+template: pfn
+---
+```
+
+一時的に別の見た目で出力する場合は `--template` を指定します。CLI は front matter の選択を上書きします。
 
 用途に迷う場合は、短い配布資料や参照用メモには `compact`、章単位で読み進める長文には `book`、親しみやすさを重視する教材には `notebook`、ブランド性を重視する公式文書には `pfn` を選ぶのが目安です。中立的な汎用文書には `default`、論文や調査報告には `academic`、設計書や API 仕様には `technical` が適します。
 
@@ -25,6 +34,8 @@ bundled template は利用者が指定していない出版名、文書種別、
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
 ```
+
+front matter から選べるのは bundled template だけです。custom template は trusted local code であり実行環境の path に依存するため、`--template-dir` または `PFPDF_TEMPLATE_DIR` で指定します。template 選択全体の優先順は、組み込みの `default`、front matter、環境変数、CLI です。
 
 ## 6.2 ロゴの注入
 

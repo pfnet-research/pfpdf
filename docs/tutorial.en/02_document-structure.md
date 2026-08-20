@@ -9,6 +9,7 @@ Write document metadata as YAML front matter at the top of the first Markdown fi
 title: Quarterly Report
 author: Taro Yamada
 series: Technical Report Series
+template: pfn
 date: 2026-08-01
 page_size: A4
 confidential: false
@@ -17,13 +18,14 @@ dir: ltr
 ---
 ```
 
-Only the following eight keys are allowed. Unknown or duplicate keys are errors.
+The following nine keys are available as document metadata. The `bibliography` build-input key described in Chapter 03 is also accepted. All other unknown keys, and duplicate keys, are errors.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `title` | string | none (required) | Document title. On the cover, lines can be broken with `<br>` |
 | `author` | string | none | Author name |
 | `series` | string | none | Series name shown in the primary label position of every bundled template |
+| `template` | bundled template name | `default` | Bundled template used for the document |
 | `date` | string | run date | Date shown on the cover |
 | `page_size` | keyword / dimensions | `A4` | Page size |
 | `confidential` | boolean | `false` | When `true`, shows a Confidential mark on every page |
@@ -31,9 +33,10 @@ Only the following eight keys are allowed. Unknown or duplicate keys are errors.
 | `dir` | `ltr` / `rtl` / `auto` | `auto` | Text direction of the document. Used for the `dir` attribute of the HTML root |
 
 - `title` is required. Write it in the front matter or pass it with `--title`. If it appears in neither, that is an error (exit code `2`)
+- `template` must be one of `academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical`. `PFPDF_TEMPLATE` / `PFPDF_TEMPLATE_DIR` override front matter, and the CLI's `--template` / `--template-dir` override both
 - If `series` is omitted, the series display area is removed entirely. The bundled templates never fill it with a fixed publication name, document type, brand name, or boilerplate label
 - To break the title across lines on the cover, use `<br>`, as in `title: "Long Title<br>Subtitle"`. The only tags allowed are `<br>` / `<br/>`
-- The front matter is parsed as a YAML mapping. pfpdf uses only the keys in the table above, and each must have the type listed there. You can write complex YAML values, but they are not used as metadata
+- The front matter is parsed as a YAML mapping. pfpdf uses only the keys in the table above and the `bibliography` key described in Chapter 03; each metadata key must have the type listed in the table. You can write complex YAML values, but they are not used as metadata
 - If the first line of a source file is `---`, pfpdf treats it as a front matter delimiter. The first file must contain a closing `---` or `...`; the same opening delimiter in any later file is an error because it would introduce duplicate front matter. To place a horizontal rule at the top of a file, use `***`
 - The `page_size` keywords are `A3` / `A4` / `A5`, `JIS-B4` / `JIS-B5`, `ISO-B4` / `ISO-B5`, and `Letter` / `Legal`. The ambiguous `B4` / `B5` are not allowed. You can also specify an explicit width and height, such as `210mm 297mm`
 - For an English document, specify a BCP 47 language tag such as `lang: en`. When omitted, the default is `ja` regardless of the host language
