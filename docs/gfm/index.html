@@ -1,0 +1,180 @@
+<!DOCTYPE html><html lang="en"> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Writing GFM — Documentation — pfpdf</title><meta name="description" content="pfpdf: Writing GFM"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"><link rel="canonical" href="https://pfnet-research.github.io/pfpdf/docs/gfm/"><link rel="alternate" hreflang="en" href="https://pfnet-research.github.io/pfpdf/docs/gfm/"><link rel="alternate" hreflang="ja" href="https://pfnet-research.github.io/pfpdf/ja/docs/gfm/"><link rel="alternate" hreflang="x-default" href="https://pfnet-research.github.io/pfpdf/docs/gfm/"><meta property="og:type" content="website"><meta property="og:site_name" content="pfpdf"><meta property="og:title" content="Writing GFM — Documentation — pfpdf"><meta property="og:description" content="pfpdf: Writing GFM"><meta property="og:url" content="https://pfnet-research.github.io/pfpdf/docs/gfm/"><meta property="og:image" content="https://pfnet-research.github.io/pfpdf/ogp.png"><meta name="twitter:card" content="summary_large_image"><script>
+      (() => {
+        const stored = localStorage.getItem('pfpdf-theme');
+        const dark = stored === 'dark'
+          || (stored === null && matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.dataset.theme = 'dark';
+      })();
+    </script><style>:root{--paper: #ffffff;--bg: #ffffff;--bg-raised: #ffffff;--ink: #1c2224;--ink-muted: #55636a;--accent: #0f5e5a;--accent-strong: #0a4744;--accent-contrast: #ffffff;--border: #dde3e4;--code-bg: #f1f4f4;--shadow: 0 1px 2px rgb(16 42 44 / 12%), 0 8px 24px rgb(16 42 44 / 10%);color-scheme:light}:root[data-theme=dark]{--bg: #10181a;--bg-raised: #172124;--ink: #e6ebec;--ink-muted: #9db0b5;--accent: #4cc4bb;--accent-strong: #7fd8d1;--accent-contrast: #0c2a2c;--border: #2a383c;--code-bg: #1d292c;--shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 35%);color-scheme:dark}*{box-sizing:border-box}html{scroll-behavior:smooth}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Hiragino Sans,Hiragino Kaku Gothic ProN,Noto Sans JP,Meiryo,sans-serif;line-height:1.75;font-size:16px;-webkit-font-smoothing:antialiased}code,pre,kbd,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,Liberation Mono,monospace}a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:.2em}a:hover{color:var(--accent-strong)}h1,h2,h3,h4{line-height:1.3;letter-spacing:.01em;font-weight:700}.container{max-width:72rem;margin-inline:auto;padding-inline:1.25rem}.paper-frame{background:var(--paper);box-shadow:var(--shadow);border-radius:4px;overflow:hidden}.paper-frame img{display:block;width:100%;height:auto;background:#fff}.button{display:inline-block;border-radius:6px;padding:.55rem 1.1rem;font-weight:600;text-decoration:none;border:1px solid var(--accent);transition:background-color .12s ease,color .12s ease}.button.primary{background:var(--accent);color:var(--accent-contrast)}.button.primary:hover{background:var(--accent-strong);border-color:var(--accent-strong);color:var(--accent-contrast)}.button.secondary{color:var(--accent)}.button.secondary:hover{color:var(--accent-strong);border-color:var(--accent-strong)}.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:.9rem 1.1rem;overflow-x:auto;line-height:1.6;font-size:.9rem}:root[data-theme=dark] .astro-code,:root[data-theme=dark] .astro-code span{color:var(--shiki-dark)!important;background-color:transparent!important}:root[data-theme=dark] pre.astro-code{background:var(--code-bg)!important}
+.docs-shell[data-astro-cid-uklqfkhd]{max-width:96rem;margin-inline:auto;padding-inline:1.5rem}.docs-grid[data-astro-cid-uklqfkhd]{display:grid;grid-template-columns:17rem minmax(0,1fr) 16rem;gap:3rem;align-items:start;padding-top:2rem}.sidebar[data-astro-cid-uklqfkhd],.toc[data-astro-cid-uklqfkhd]{position:sticky;top:4.5rem;font-size:.9rem;max-height:calc(100vh - 6rem);overflow-y:auto}.sidebar-title[data-astro-cid-uklqfkhd]{font-weight:700;color:var(--ink-muted);text-transform:uppercase;font-size:.75rem;letter-spacing:.08em}.sidebar[data-astro-cid-uklqfkhd] ol[data-astro-cid-uklqfkhd],.toc[data-astro-cid-uklqfkhd] ul[data-astro-cid-uklqfkhd]{list-style:none;padding:0;margin:0}.sidebar[data-astro-cid-uklqfkhd] li[data-astro-cid-uklqfkhd],.toc[data-astro-cid-uklqfkhd] li[data-astro-cid-uklqfkhd]{margin-block:.15rem}.sidebar[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd],.toc[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd]{color:var(--ink-muted);text-decoration:none;display:block;border-radius:6px;padding:.3rem .6rem}.sidebar[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd]{display:grid;grid-template-columns:1.4rem minmax(0,1fr);gap:.3rem}.chapter-number[data-astro-cid-uklqfkhd]{color:var(--ink-muted);font-variant-numeric:tabular-nums}.sidebar[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd]:hover,.toc[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd]:hover{color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}.sidebar[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd][aria-current=page],.toc[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd][data-active]{color:var(--accent);font-weight:700;background:color-mix(in srgb,var(--accent) 14%,transparent)}.sidebar[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd][aria-current=page] .chapter-number[data-astro-cid-uklqfkhd]{color:inherit}.docs-body[data-astro-cid-uklqfkhd]{min-width:0;overflow-wrap:break-word}.docs-body[data-astro-cid-uklqfkhd] h1{font-size:1.9rem}.docs-body[data-astro-cid-uklqfkhd] h2,.docs-body[data-astro-cid-uklqfkhd] h3{scroll-margin-top:5rem}.docs-body[data-astro-cid-uklqfkhd] img{max-width:100%;height:auto}.docs-body[data-astro-cid-uklqfkhd] table{border-collapse:collapse;display:block;overflow-x:auto}.docs-body[data-astro-cid-uklqfkhd] th,.docs-body[data-astro-cid-uklqfkhd] td{border:1px solid var(--border);padding:.35rem .8rem}.docs-body[data-astro-cid-uklqfkhd] th{background:var(--code-bg)}.docs-body[data-astro-cid-uklqfkhd] blockquote{margin-inline:0;padding-inline-start:1rem;border-inline-start:3px solid var(--accent);color:var(--ink-muted)}.pager[data-astro-cid-uklqfkhd]{display:flex;justify-content:space-between;gap:1rem;margin-top:3rem;border-top:1px solid var(--border);padding-top:1rem}@media(max-width:78rem){.docs-grid[data-astro-cid-uklqfkhd]{grid-template-columns:15rem minmax(0,1fr);gap:2.5rem}.toc[data-astro-cid-uklqfkhd]{display:none}}@media(max-width:56rem){.docs-grid[data-astro-cid-uklqfkhd]{grid-template-columns:1fr}.sidebar[data-astro-cid-uklqfkhd]{position:static;max-height:none}}
+.site-header[data-astro-cid-3ef6ksr2]{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}.inner[data-astro-cid-3ef6ksr2]{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:3.25rem}.wordmark[data-astro-cid-3ef6ksr2]{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;font-size:1.15rem;color:var(--ink);text-decoration:none;letter-spacing:.02em}.wordmark[data-astro-cid-3ef6ksr2]:after{content:"_";color:var(--accent)}.nav[data-astro-cid-3ef6ksr2]{display:flex;align-items:center;gap:1.1rem}.nav[data-astro-cid-3ef6ksr2] a[data-astro-cid-3ef6ksr2]{color:var(--ink);text-decoration:none;font-weight:500;font-size:.95rem}.nav[data-astro-cid-3ef6ksr2] a[data-astro-cid-3ef6ksr2]:hover{color:var(--accent)}.lang-switch[data-astro-cid-3ef6ksr2]{border:1px solid var(--border);border-radius:999px;padding:.1rem .7rem;font-size:.85rem}#theme-toggle[data-astro-cid-3ef6ksr2]{background:none;border:1px solid var(--border);border-radius:999px;width:2rem;height:2rem;cursor:pointer;display:grid;place-items:center}.theme-icon[data-astro-cid-3ef6ksr2]{width:.9rem;height:.9rem;border-radius:50%;background:var(--ink);box-shadow:inset -.28rem -.28rem 0 0 var(--bg)}.nav-toggle[data-astro-cid-3ef6ksr2],.hamburger[data-astro-cid-3ef6ksr2]{display:none}@media(max-width:40rem){.hamburger[data-astro-cid-3ef6ksr2]{display:grid;gap:.28rem;cursor:pointer;padding:.4rem}.hamburger[data-astro-cid-3ef6ksr2] span[data-astro-cid-3ef6ksr2]{display:block;width:1.2rem;height:2px;background:var(--ink)}.nav[data-astro-cid-3ef6ksr2]{display:none;position:absolute;inset-inline:0;top:100%;flex-direction:column;align-items:flex-start;background:var(--bg-raised);border-bottom:1px solid var(--border);padding:1rem 1.25rem}.nav-toggle[data-astro-cid-3ef6ksr2]:checked~.nav[data-astro-cid-3ef6ksr2]{display:flex}}.site-footer[data-astro-cid-sz7xmlte]{margin-top:4rem;border-top:1px solid var(--border);padding-block:2rem;color:var(--ink-muted);font-size:.9rem}nav[data-astro-cid-sz7xmlte]{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;margin-bottom:.75rem}nav[data-astro-cid-sz7xmlte] a[data-astro-cid-sz7xmlte]{color:var(--ink-muted);text-decoration:none}nav[data-astro-cid-sz7xmlte] a[data-astro-cid-sz7xmlte]:hover{color:var(--accent)}.license-note[data-astro-cid-sz7xmlte],.copyright[data-astro-cid-sz7xmlte]{margin:.25rem 0}
+</style></head> <body> <header class="site-header" data-astro-cid-3ef6ksr2> <div class="container inner" data-astro-cid-3ef6ksr2> <a class="wordmark" href="../../" data-astro-cid-3ef6ksr2>pfpdf</a> <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true" data-astro-cid-3ef6ksr2> <label class="hamburger" for="nav-toggle" aria-label="Menu" data-astro-cid-3ef6ksr2> <span data-astro-cid-3ef6ksr2></span><span data-astro-cid-3ef6ksr2></span><span data-astro-cid-3ef6ksr2></span> </label> <nav class="nav" aria-label="Site" data-astro-cid-3ef6ksr2> <a href="../../gallery/" data-astro-cid-3ef6ksr2>Gallery</a> <a href="../getting-started/" data-astro-cid-3ef6ksr2>Docs</a> <a href="https://github.com/pfnet-research/pfpdf" rel="external" data-astro-cid-3ef6ksr2>GitHub</a> <a class="lang-switch" href="../../ja/docs/gfm/" title="Read this page in Japanese" rel="alternate" data-astro-cid-3ef6ksr2> 日本語 </a> <button type="button" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode" data-astro-cid-3ef6ksr2> <span class="theme-icon" aria-hidden="true" data-astro-cid-3ef6ksr2></span> </button> </nav> </div> </header> <script>
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme === 'dark';
+    if (dark) {
+      delete root.dataset.theme;
+    } else {
+      root.dataset.theme = 'dark';
+    }
+    localStorage.setItem('pfpdf-theme', dark ? 'light' : 'dark');
+  });
+</script>  <main>  <div class="docs-shell docs-grid" data-astro-cid-uklqfkhd> <nav class="sidebar" aria-label="Chapters" data-astro-cid-uklqfkhd> <p class="sidebar-title" data-astro-cid-uklqfkhd>Chapters</p> <ol data-astro-cid-uklqfkhd> <li data-astro-cid-uklqfkhd> <a href="../getting-started/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>1.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>Getting Started</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="../document-structure/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>2.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>Document Structure</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="./" aria-current="page" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>3.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>Writing GFM</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="../raw-html/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>4.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>Raw HTML</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="../math-and-code/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>5.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>Math and Code Highlighting</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="../templates-and-assets/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>6.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>Templates, Logos, Assets, and Fonts</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="../cli-and-renderers/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>7.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>CLI and Renderers</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="../troubleshooting/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>8.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>Troubleshooting</span> </a> </li> </ol> </nav> <article class="docs-body" data-astro-cid-uklqfkhd> <h1 id="3-writing-gfm">3. Writing GFM</h1>
+<p>pfpdf uses GitHub Flavored Markdown (GFM). Standard GFM syntax works as written, and every construct in this chapter is rendered directly in this PDF.</p>
+<h2 id="31-headings-and-paragraphs">3.1 Headings and paragraphs</h2>
+<p>Markdown headings from <code>#</code> to <code>######</code> are supported. Each heading gets an anchor that is unique in source order, and all six levels appear in the table of contents. Headings with the same text get <code>-2</code>, <code>-3</code> suffixes. <code>h1</code> through <code>h6</code> elements written directly in raw HTML are not included in the automatic table of contents; give them an explicit <code>id</code> if you want to use them as link targets.</p>
+<h2 id="32-emphasis">3.2 Emphasis</h2>
+<p><em>Emphasis</em>, <strong>strong emphasis</strong>, <del>strikethrough</del>, and valid nesting (<em><strong>strong + emphasis</strong></em>) are all supported.</p>
+<h3 id="japanese-emphasis">Japanese emphasis</h3>
+<p>You can use <code>**</code> directly in Japanese prose. It converts correctly even when adjacent to full-width punctuation or brackets.</p>
+<ul>
+<li>これは<strong>重要</strong>です。</li>
+<li>これは**「強調表示」**の例です。</li>
+<li>これは**重要な点。**続きのテキストも書けます。</li>
+<li>ここは**（重要事項）**です。</li>
+</ul>
+<p>You rarely need to write <code>&#x3C;strong></code> tags; use <code>**</code> whenever GFM can express the emphasis you need.</p>
+<h2 id="33-lists">3.3 Lists</h2>
+<p>Nested lists, numbered lists, and task lists are all supported.</p>
+<ul class="contains-task-list">
+<li>
+<p>Fruits</p>
+<ul>
+<li>Apples</li>
+<li>Mandarins
+<ol>
+<li>Satsuma mandarin</li>
+<li>Ponkan</li>
+</ol>
+</li>
+</ul>
+</li>
+<li>
+<p>Vegetables</p>
+</li>
+<li class="task-list-item">
+<p><input type="checkbox" checked disabled> A completed task</p>
+</li>
+<li class="task-list-item">
+<p><input type="checkbox" disabled> An incomplete task</p>
+</li>
+</ul>
+<h2 id="34-tables">3.4 Tables</h2>
+<p>For tables, prefer GFM table syntax over raw HTML. Column alignment can also be specified.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Item</th><th align="left">Left</th><th align="center">Center</th><th align="right">Right</th></tr></thead><tbody><tr><td>A</td><td align="left">left</td><td align="center">center</td><td align="right">100</td></tr><tr><td>B</td><td align="left">left</td><td align="center">center</td><td align="right">2,000</td></tr></tbody></table>
+<h2 id="35-links-and-images">3.5 Links and images</h2>
+<ul>
+<li>Inline links: <a href="https://vivliostyle.org/">Vivliostyle</a></li>
+<li>Autolinks: a bare URL such as <a href="https://commonmark.org/">https://commonmark.org/</a> becomes a link</li>
+<li>Images: use a relative path, as in <code>![Alt text](assets/example.svg)</code></li>
+</ul>
+<p><img src="../../assets/docs/en/example.svg" alt="Sample image"></p>
+<h3 id="long-urls-and-identifiers">Long URLs and identifiers</h3>
+<p>pfpdf automatically adds display-only line-break opportunities to URLs, email addresses, paths, and snake_case, kebab-case, or camelCase identifiers that contain at least 16 graphemes. It prefers breaks at <code>/</code> and <code>?</code> in URLs, <code>.</code> in hostnames, and separators in identifiers. It does not add whitespace or zero-width characters to link targets or copied text.</p>
+<p><a href="https://example.invalid/reports/2026/very-long-document-name?format=print&#x26;language=en">https://example.invalid/reports/2026/very-long-document-name?format=print&#x26;language=en</a></p>
+<p>Inline code, code blocks, math, and the contents of <code>kbd</code> and <code>samp</code> are excluded, since exact preservation takes priority there. Long lines of code are displayed using the template’s existing wrapping rules.</p>
+<h2 id="36-quotes-and-code">3.6 Quotes and code</h2>
+<blockquote>
+<p>This is a blockquote.
+It can span multiple lines.</p>
+</blockquote>
+<p>Wrap inline code in <code>`backticks`</code>. See Chapter 05 for code blocks.</p>
+<h2 id="37-horizontal-rules">3.7 Horizontal rules</h2>
+<p><code>---</code> or <code>***</code> produces a horizontal rule (thematic break).</p>
+<hr>
+<p>An unindented, standalone <code>___</code> line is reserved for page breaks in pfpdf (see Chapter 02), so it cannot be used as a horizontal rule. It is not treated as page-break syntax when it appears inside a blockquote or list, when it has surrounding whitespace, or when it contains four or more underscores.</p>
+<h2 id="38-github-features-not-part-of-gfm">3.8 GitHub features not part of GFM</h2>
+<p>Some features rendered by GitHub.com belong to the GitHub service rather than the GFM specification. pfpdf does not convert the following:</p>
+<ul>
+<li><code>@user</code> mentions and <code>#123</code> issue / pull request references</li>
+<li>emoji shortcodes such as <code>:smile:</code></li>
+<li>alerts such as <code>> [!NOTE]</code></li>
+</ul>
+<p>Mermaid is supported as a dedicated pfpdf extension; see the <code>mermaid</code> fenced code block in Chapter 05. For anything else, express it with raw HTML (Chapter 04) or images.</p>
+<h2 id="39-bibtex-bibliographies">3.9 BibTeX bibliographies</h2>
+<p>Specify <code>.bib</code> files in the front matter of the first Markdown file. Relative paths are resolved against the directory containing the Markdown file that holds the front matter. Multiple files can be given as a list.</p>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#B392F0">---</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#85E89D">title</span><span style="color:#24292E;--shiki-dark:#E1E4E8">: </span><span style="color:#032F62;--shiki-dark:#9ECBFF">Survey Report</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#85E89D">bibliography</span><span style="color:#24292E;--shiki-dark:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">  - </span><span style="color:#032F62;--shiki-dark:#9ECBFF">bibliography/references.bib</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#B392F0">---</span></span></code></pre>
+<p>In the body, cite BibTeX keys with the same <code>\cite</code> command as in TeX. Separate multiple keys with commas.</p>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="md"><code><span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">See the prior work\cite{smith2024} and the comparative studies\cite{smith2024,tanaka2025}.</span></span></code></pre>
+<p>Citations appear as numbers such as <code>[1]</code> and link to the corresponding bibliography entries in the PDF. To choose where the bibliography appears, place <code>\printbibliography</code> on a top-level line by itself. Add an ordinary Markdown heading immediately before it to include the bibliography in the table of contents.</p>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="md"><code><span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark:#79B8FF;--shiki-dark-font-weight:bold"># References</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">\printbibliography</span></span></code></pre>
+<p>If <code>\printbibliography</code> is omitted, the list is appended at the end of the document. A <code>\cite</code> inside inline code, code blocks, raw HTML, or math is not interpreted as a citation, so literal usage examples can be written in inline code like <code>`\cite{key}`</code>. To escape a <code>\cite</code> with a backslash instead, write <code>\\cite{key}</code>.</p>
+<p>The initial version supports BibTeX / BibLaTeX <code>.bib</code> files with a numeric style. Nonexistent keys, duplicate keys, invalid BibTeX, and unreadable files cause a failure with exit code <code>2</code>, without generating a partial PDF. TeX’s <code>\ref</code> is not a bibliography citation; it is reserved for future figure / table / equation / section references.</p> <nav class="pager" data-astro-cid-uklqfkhd> <span data-astro-cid-uklqfkhd> <a href="../document-structure/" data-astro-cid-uklqfkhd>← Previous: Document Structure</a> </span> <span data-astro-cid-uklqfkhd> <a href="../raw-html/" data-astro-cid-uklqfkhd>Next: Raw HTML →</a> </span> </nav> </article> <aside class="toc" aria-label="On this page" data-astro-cid-uklqfkhd>  <p class="sidebar-title" data-astro-cid-uklqfkhd>On this page</p> <ul id="toc-list" data-astro-cid-uklqfkhd> <li data-astro-cid-uklqfkhd> <a href="#31-headings-and-paragraphs" data-astro-cid-uklqfkhd>3.1 Headings and paragraphs</a> </li><li data-astro-cid-uklqfkhd> <a href="#32-emphasis" data-astro-cid-uklqfkhd>3.2 Emphasis</a> </li><li data-astro-cid-uklqfkhd> <a href="#33-lists" data-astro-cid-uklqfkhd>3.3 Lists</a> </li><li data-astro-cid-uklqfkhd> <a href="#34-tables" data-astro-cid-uklqfkhd>3.4 Tables</a> </li><li data-astro-cid-uklqfkhd> <a href="#35-links-and-images" data-astro-cid-uklqfkhd>3.5 Links and images</a> </li><li data-astro-cid-uklqfkhd> <a href="#36-quotes-and-code" data-astro-cid-uklqfkhd>3.6 Quotes and code</a> </li><li data-astro-cid-uklqfkhd> <a href="#37-horizontal-rules" data-astro-cid-uklqfkhd>3.7 Horizontal rules</a> </li><li data-astro-cid-uklqfkhd> <a href="#38-github-features-not-part-of-gfm" data-astro-cid-uklqfkhd>3.8 GitHub features not part of GFM</a> </li><li data-astro-cid-uklqfkhd> <a href="#39-bibtex-bibliographies" data-astro-cid-uklqfkhd>3.9 BibTeX bibliographies</a> </li> </ul>  </aside> </div>  </main> <footer class="site-footer" data-astro-cid-sz7xmlte> <div class="container" data-astro-cid-sz7xmlte> <nav aria-label="Footer" data-astro-cid-sz7xmlte> <a href="../getting-started/" data-astro-cid-sz7xmlte>Docs</a> <a href="../../gallery/" data-astro-cid-sz7xmlte>Gallery</a> <a href="https://github.com/pfnet-research/pfpdf" rel="external" data-astro-cid-sz7xmlte>GitHub</a> <a href="https://www.npmjs.com/package/pfpdf" rel="external" data-astro-cid-sz7xmlte>npm</a> <a href="https://github.com/pfnet-research/pfpdf/releases" rel="external" data-astro-cid-sz7xmlte>Releases (PDF docs)</a> <a href="https://github.com/pfnet-research/pfpdf/blob/main/LICENSE" rel="external" data-astro-cid-sz7xmlte>License</a> </nav> <p class="license-note" data-astro-cid-sz7xmlte>pfpdf: MIT License. The Vivliostyle CLI dependency is AGPL-3.0; see THIRD_PARTY_LICENSES.md for the rest.</p> <p class="copyright" data-astro-cid-sz7xmlte>© Preferred Networks, Inc.</p> </div> </footer>  </body></html> <script>
+  (() => {
+    // Highlight the section currently under the top of the viewport in the
+    // "on this page" list. A scroll handler is used rather than
+    // IntersectionObserver so that sections shorter than the viewport (and the
+    // final section, which may never reach the top) still resolve correctly.
+    const list = document.getElementById('toc-list');
+    if (list === null) return;
+    const links = [...list.querySelectorAll('a')];
+    const targets = links
+      .map((link) => ({ link, heading: document.getElementById(decodeURIComponent(link.hash.slice(1))) }))
+      .filter((entry) => entry.heading !== null);
+    if (targets.length === 0) return;
+
+    const OFFSET = 96; // sticky header height plus a little breathing room
+
+    function activate(active) {
+      for (const { link } of targets) {
+        link.toggleAttribute('data-active', link === active);
+      }
+    }
+
+    function update() {
+      const atBottom = window.scrollY + window.innerHeight >= document.body.scrollHeight - 2;
+      let current = targets[0].link;
+      if (atBottom) {
+        current = targets[targets.length - 1].link;
+      } else {
+        for (const { link, heading } of targets) {
+          if (heading.getBoundingClientRect().top <= OFFSET) current = link;
+        }
+      }
+      activate(current);
+    }
+
+    let queued = false;
+    function schedule() {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        update();
+      });
+    }
+
+    addEventListener('scroll', schedule, { passive: true });
+    addEventListener('resize', schedule);
+    update();
+  })();
+</script> 

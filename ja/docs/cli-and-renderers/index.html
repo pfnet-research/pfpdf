@@ -1,0 +1,151 @@
+<!DOCTYPE html><html lang="ja"> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>CLI と renderer — ドキュメント — pfpdf</title><meta name="description" content="pfpdf: CLI と renderer"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"><link rel="canonical" href="https://pfnet-research.github.io/pfpdf/ja/docs/cli-and-renderers/"><link rel="alternate" hreflang="en" href="https://pfnet-research.github.io/pfpdf/docs/cli-and-renderers/"><link rel="alternate" hreflang="ja" href="https://pfnet-research.github.io/pfpdf/ja/docs/cli-and-renderers/"><link rel="alternate" hreflang="x-default" href="https://pfnet-research.github.io/pfpdf/docs/cli-and-renderers/"><meta property="og:type" content="website"><meta property="og:site_name" content="pfpdf"><meta property="og:title" content="CLI と renderer — ドキュメント — pfpdf"><meta property="og:description" content="pfpdf: CLI と renderer"><meta property="og:url" content="https://pfnet-research.github.io/pfpdf/ja/docs/cli-and-renderers/"><meta property="og:image" content="https://pfnet-research.github.io/pfpdf/ogp.png"><meta name="twitter:card" content="summary_large_image"><script>
+      (() => {
+        const stored = localStorage.getItem('pfpdf-theme');
+        const dark = stored === 'dark'
+          || (stored === null && matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.dataset.theme = 'dark';
+      })();
+    </script><style>:root{--paper: #ffffff;--bg: #ffffff;--bg-raised: #ffffff;--ink: #1c2224;--ink-muted: #55636a;--accent: #0f5e5a;--accent-strong: #0a4744;--accent-contrast: #ffffff;--border: #dde3e4;--code-bg: #f1f4f4;--shadow: 0 1px 2px rgb(16 42 44 / 12%), 0 8px 24px rgb(16 42 44 / 10%);color-scheme:light}:root[data-theme=dark]{--bg: #10181a;--bg-raised: #172124;--ink: #e6ebec;--ink-muted: #9db0b5;--accent: #4cc4bb;--accent-strong: #7fd8d1;--accent-contrast: #0c2a2c;--border: #2a383c;--code-bg: #1d292c;--shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 35%);color-scheme:dark}*{box-sizing:border-box}html{scroll-behavior:smooth}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Hiragino Sans,Hiragino Kaku Gothic ProN,Noto Sans JP,Meiryo,sans-serif;line-height:1.75;font-size:16px;-webkit-font-smoothing:antialiased}code,pre,kbd,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,Liberation Mono,monospace}a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:.2em}a:hover{color:var(--accent-strong)}h1,h2,h3,h4{line-height:1.3;letter-spacing:.01em;font-weight:700}.container{max-width:72rem;margin-inline:auto;padding-inline:1.25rem}.paper-frame{background:var(--paper);box-shadow:var(--shadow);border-radius:4px;overflow:hidden}.paper-frame img{display:block;width:100%;height:auto;background:#fff}.button{display:inline-block;border-radius:6px;padding:.55rem 1.1rem;font-weight:600;text-decoration:none;border:1px solid var(--accent);transition:background-color .12s ease,color .12s ease}.button.primary{background:var(--accent);color:var(--accent-contrast)}.button.primary:hover{background:var(--accent-strong);border-color:var(--accent-strong);color:var(--accent-contrast)}.button.secondary{color:var(--accent)}.button.secondary:hover{color:var(--accent-strong);border-color:var(--accent-strong)}.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:.9rem 1.1rem;overflow-x:auto;line-height:1.6;font-size:.9rem}:root[data-theme=dark] .astro-code,:root[data-theme=dark] .astro-code span{color:var(--shiki-dark)!important;background-color:transparent!important}:root[data-theme=dark] pre.astro-code{background:var(--code-bg)!important}
+.docs-shell[data-astro-cid-uklqfkhd]{max-width:96rem;margin-inline:auto;padding-inline:1.5rem}.docs-grid[data-astro-cid-uklqfkhd]{display:grid;grid-template-columns:17rem minmax(0,1fr) 16rem;gap:3rem;align-items:start;padding-top:2rem}.sidebar[data-astro-cid-uklqfkhd],.toc[data-astro-cid-uklqfkhd]{position:sticky;top:4.5rem;font-size:.9rem;max-height:calc(100vh - 6rem);overflow-y:auto}.sidebar-title[data-astro-cid-uklqfkhd]{font-weight:700;color:var(--ink-muted);text-transform:uppercase;font-size:.75rem;letter-spacing:.08em}.sidebar[data-astro-cid-uklqfkhd] ol[data-astro-cid-uklqfkhd],.toc[data-astro-cid-uklqfkhd] ul[data-astro-cid-uklqfkhd]{list-style:none;padding:0;margin:0}.sidebar[data-astro-cid-uklqfkhd] li[data-astro-cid-uklqfkhd],.toc[data-astro-cid-uklqfkhd] li[data-astro-cid-uklqfkhd]{margin-block:.15rem}.sidebar[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd],.toc[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd]{color:var(--ink-muted);text-decoration:none;display:block;border-radius:6px;padding:.3rem .6rem}.sidebar[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd]{display:grid;grid-template-columns:1.4rem minmax(0,1fr);gap:.3rem}.chapter-number[data-astro-cid-uklqfkhd]{color:var(--ink-muted);font-variant-numeric:tabular-nums}.sidebar[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd]:hover,.toc[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd]:hover{color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}.sidebar[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd][aria-current=page],.toc[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd][data-active]{color:var(--accent);font-weight:700;background:color-mix(in srgb,var(--accent) 14%,transparent)}.sidebar[data-astro-cid-uklqfkhd] a[data-astro-cid-uklqfkhd][aria-current=page] .chapter-number[data-astro-cid-uklqfkhd]{color:inherit}.docs-body[data-astro-cid-uklqfkhd]{min-width:0;overflow-wrap:break-word}.docs-body[data-astro-cid-uklqfkhd] h1{font-size:1.9rem}.docs-body[data-astro-cid-uklqfkhd] h2,.docs-body[data-astro-cid-uklqfkhd] h3{scroll-margin-top:5rem}.docs-body[data-astro-cid-uklqfkhd] img{max-width:100%;height:auto}.docs-body[data-astro-cid-uklqfkhd] table{border-collapse:collapse;display:block;overflow-x:auto}.docs-body[data-astro-cid-uklqfkhd] th,.docs-body[data-astro-cid-uklqfkhd] td{border:1px solid var(--border);padding:.35rem .8rem}.docs-body[data-astro-cid-uklqfkhd] th{background:var(--code-bg)}.docs-body[data-astro-cid-uklqfkhd] blockquote{margin-inline:0;padding-inline-start:1rem;border-inline-start:3px solid var(--accent);color:var(--ink-muted)}.pager[data-astro-cid-uklqfkhd]{display:flex;justify-content:space-between;gap:1rem;margin-top:3rem;border-top:1px solid var(--border);padding-top:1rem}@media(max-width:78rem){.docs-grid[data-astro-cid-uklqfkhd]{grid-template-columns:15rem minmax(0,1fr);gap:2.5rem}.toc[data-astro-cid-uklqfkhd]{display:none}}@media(max-width:56rem){.docs-grid[data-astro-cid-uklqfkhd]{grid-template-columns:1fr}.sidebar[data-astro-cid-uklqfkhd]{position:static;max-height:none}}
+.site-header[data-astro-cid-3ef6ksr2]{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}.inner[data-astro-cid-3ef6ksr2]{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:3.25rem}.wordmark[data-astro-cid-3ef6ksr2]{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;font-size:1.15rem;color:var(--ink);text-decoration:none;letter-spacing:.02em}.wordmark[data-astro-cid-3ef6ksr2]:after{content:"_";color:var(--accent)}.nav[data-astro-cid-3ef6ksr2]{display:flex;align-items:center;gap:1.1rem}.nav[data-astro-cid-3ef6ksr2] a[data-astro-cid-3ef6ksr2]{color:var(--ink);text-decoration:none;font-weight:500;font-size:.95rem}.nav[data-astro-cid-3ef6ksr2] a[data-astro-cid-3ef6ksr2]:hover{color:var(--accent)}.lang-switch[data-astro-cid-3ef6ksr2]{border:1px solid var(--border);border-radius:999px;padding:.1rem .7rem;font-size:.85rem}#theme-toggle[data-astro-cid-3ef6ksr2]{background:none;border:1px solid var(--border);border-radius:999px;width:2rem;height:2rem;cursor:pointer;display:grid;place-items:center}.theme-icon[data-astro-cid-3ef6ksr2]{width:.9rem;height:.9rem;border-radius:50%;background:var(--ink);box-shadow:inset -.28rem -.28rem 0 0 var(--bg)}.nav-toggle[data-astro-cid-3ef6ksr2],.hamburger[data-astro-cid-3ef6ksr2]{display:none}@media(max-width:40rem){.hamburger[data-astro-cid-3ef6ksr2]{display:grid;gap:.28rem;cursor:pointer;padding:.4rem}.hamburger[data-astro-cid-3ef6ksr2] span[data-astro-cid-3ef6ksr2]{display:block;width:1.2rem;height:2px;background:var(--ink)}.nav[data-astro-cid-3ef6ksr2]{display:none;position:absolute;inset-inline:0;top:100%;flex-direction:column;align-items:flex-start;background:var(--bg-raised);border-bottom:1px solid var(--border);padding:1rem 1.25rem}.nav-toggle[data-astro-cid-3ef6ksr2]:checked~.nav[data-astro-cid-3ef6ksr2]{display:flex}}.site-footer[data-astro-cid-sz7xmlte]{margin-top:4rem;border-top:1px solid var(--border);padding-block:2rem;color:var(--ink-muted);font-size:.9rem}nav[data-astro-cid-sz7xmlte]{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;margin-bottom:.75rem}nav[data-astro-cid-sz7xmlte] a[data-astro-cid-sz7xmlte]{color:var(--ink-muted);text-decoration:none}nav[data-astro-cid-sz7xmlte] a[data-astro-cid-sz7xmlte]:hover{color:var(--accent)}.license-note[data-astro-cid-sz7xmlte],.copyright[data-astro-cid-sz7xmlte]{margin:.25rem 0}
+</style></head> <body> <header class="site-header" data-astro-cid-3ef6ksr2> <div class="container inner" data-astro-cid-3ef6ksr2> <a class="wordmark" href="../../" data-astro-cid-3ef6ksr2>pfpdf</a> <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true" data-astro-cid-3ef6ksr2> <label class="hamburger" for="nav-toggle" aria-label="Menu" data-astro-cid-3ef6ksr2> <span data-astro-cid-3ef6ksr2></span><span data-astro-cid-3ef6ksr2></span><span data-astro-cid-3ef6ksr2></span> </label> <nav class="nav" aria-label="Site" data-astro-cid-3ef6ksr2> <a href="../../gallery/" data-astro-cid-3ef6ksr2>ギャラリー</a> <a href="../getting-started/" data-astro-cid-3ef6ksr2>ドキュメント</a> <a href="https://github.com/pfnet-research/pfpdf" rel="external" data-astro-cid-3ef6ksr2>GitHub</a> <a class="lang-switch" href="../../../docs/cli-and-renderers/" title="Read this page in English" rel="alternate" data-astro-cid-3ef6ksr2> EN </a> <button type="button" id="theme-toggle" aria-label="ダークモード切替" title="ダークモード切替" data-astro-cid-3ef6ksr2> <span class="theme-icon" aria-hidden="true" data-astro-cid-3ef6ksr2></span> </button> </nav> </div> </header> <script>
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme === 'dark';
+    if (dark) {
+      delete root.dataset.theme;
+    } else {
+      root.dataset.theme = 'dark';
+    }
+    localStorage.setItem('pfpdf-theme', dark ? 'light' : 'dark');
+  });
+</script>  <main>  <div class="docs-shell docs-grid" data-astro-cid-uklqfkhd> <nav class="sidebar" aria-label="章一覧" data-astro-cid-uklqfkhd> <p class="sidebar-title" data-astro-cid-uklqfkhd>章一覧</p> <ol data-astro-cid-uklqfkhd> <li data-astro-cid-uklqfkhd> <a href="../getting-started/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>1.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>はじめに</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="../document-structure/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>2.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>文書の構成</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="../gfm/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>3.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>GFM の書き方</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="../raw-html/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>4.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>raw HTML</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="../math-and-code/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>5.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>数式とコードハイライト</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="../templates-and-assets/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>6.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>template、ロゴ、アセット、フォント</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="./" aria-current="page" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>7.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>CLI と renderer</span> </a> </li><li data-astro-cid-uklqfkhd> <a href="../troubleshooting/" data-astro-cid-uklqfkhd> <span class="chapter-number" data-astro-cid-uklqfkhd>8.</span> <span class="chapter-title" data-astro-cid-uklqfkhd>troubleshooting</span> </a> </li> </ol> </nav> <article class="docs-body" data-astro-cid-uklqfkhd> <h1 id="7-cli-と-renderer">7. CLI と renderer</h1>
+<h2 id="71-cli-の全体像">7.1 CLI の全体像</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="text"><code><span class="line"><span>Usage: pfpdf --input INPUT --output OUTPUT [OPTIONS]</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>Required:</span></span>
+<span class="line"><span>  --input PATH       Markdown ファイルまたは Markdown を含むディレクトリ</span></span>
+<span class="line"><span>  --output PATH      .pdf の出力先</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>Options:</span></span>
+<span class="line"><span>  --title TEXT             front matter の title を上書きする</span></span>
+<span class="line"><span>  --toc / --no-toc         目次生成を有効 / 無効化する。既定は有効</span></span>
+<span class="line"><span>  --template SOURCE        preset 名、local directory、または git::URL//PATH?ref=REVISION</span></span>
+<span class="line"><span>  --template-preset NAME   bundled template preset を明示選択</span></span>
+<span class="line"><span>  --logo SOURCE            local file または git::URL//PATH?ref=REVISION。template 既定値を上書き</span></span>
+<span class="line"><span>  --no-logo                local / repository / template 既定 logo を無効化</span></span>
+<span class="line"><span>  --host-fonts             OS 標準の font directory を使用する</span></span>
+<span class="line"><span>  --font-dir PATH          追加 font directory。複数回指定可能</span></span>
+<span class="line"><span>  --browser-path PATH      renderer が使う browser</span></span>
+<span class="line"><span>  --render-timeout-ms N    renderer 準備から PDF 検査完了まで。既定は 300000</span></span>
+<span class="line"><span>  --keep-work-dir          一時 workspace を保持する</span></span>
+<span class="line"><span>  --log-level LEVEL        error / warn / info / debug</span></span>
+<span class="line"><span>  --print-effective-config 適用後の設定と設定元を表示して終了する</span></span>
+<span class="line"><span>  --doctor                 renderer、browser、asset を診断する</span></span>
+<span class="line"><span>  --version                バージョンを表示する</span></span>
+<span class="line"><span>  -h, --help               ヘルプを表示する</span></span></code></pre>
+<h2 id="72-設定の優先順位">7.2 設定の優先順位</h2>
+<p>文書の内容と見た目を決める <code>template</code> / <code>toc</code> / <code>logo</code> は front matter を正本とし、CLI optionを指定した実行だけ上書きできます。優先順は組み込み既定値、front matter、CLI引数です。browser、font directory、timeout、log、workspace保持などの実行設定はCLIだけで指定します。</p>
+<ul>
+<li><code>--template</code> と <code>--template-preset</code>、<code>--toc</code> と <code>--no-toc</code>、<code>--logo</code> と <code>--no-logo</code> をそれぞれ同時指定した場合はエラーです。<code>--template</code>はpreset名との完全一致を先に判定し、それ以外をGit locatorまたはlocal pathとして扱います。<code>--logo</code>もGit locatorとlocal pathを同じoptionで扱います</li>
+<li><code>--font-dir</code> 以外の option を繰り返した場合は、同じ値でもエラーです</li>
+<li>どの設定がどこから来たかは <code>--print-effective-config</code> で、versioned schema の JSON object として確認できます。<code>--input</code> も指定すると front matter の <code>template</code> / <code>toc</code> / <code>logo</code> を反映し、設定元を <code>front-matter</code> と表示します</li>
+</ul>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#B392F0">npx</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> @pfnet-research/pfpdf@latest</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> --input</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> docs</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> --print-effective-config</span></span></code></pre>
+<h2 id="73-終了コード">7.3 終了コード</h2>
+<p><code>v0.1.0</code> は named file / directory だけを扱います。<code>--input -</code> や <code>--output -</code> で stdin / stdout を指定することはできません。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th align="right">code</th><th>意味</th></tr></thead><tbody><tr><td align="right"><code>0</code></td><td>成功</td></tr><tr><td align="right"><code>1</code></td><td>renderer、browser などの実行時エラー</td></tr><tr><td align="right"><code>2</code></td><td>CLI 引数、入力、front matter のエラー</td></tr></tbody></table>
+<p>エラー時に部分的な PDF が成功として残ることはありません。pfpdf は同じ出力ディレクトリの一時ファイルへ生成し、PDF header / EOF に加えて xref、catalog、page tree と 1 page 以上を構造 parse し、renderer の成功も確認してから最終名へ置換します。既存の出力ファイルがある状態で変換に失敗した場合、既存ファイルは保持されます。</p>
+<h2 id="74-renderer">7.4 renderer</h2>
+<p>同梱の Vivliostyle CLI と、その標準機構が管理する Chromium を使って PDF を描画します。</p>
+<ul>
+<li>browser は初回に自動取得され、以降は cache されます</li>
+<li>既にある互換 browser を使いたい場合は <code>--browser-path</code> で指定します</li>
+</ul>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#B392F0">npx</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> @pfnet-research/pfpdf@latest</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> --input</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> docs</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> --output</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> docs.pdf</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#79B8FF">  --browser-path</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> /usr/bin/chromium</span></span></code></pre>
+<h2 id="75-timeout">7.5 timeout</h2>
+<p>browser の確認と初回取得、readiness、PDF 描画・後処理・構造検査の合計には既定で 300,000 ms(5 分)の timeout があります。大きな文書や低速な初回 download で不足する場合だけ、1,000 から 3,600,000 ms の範囲で変更します。<code>0</code> など無期限にする値は使えません。</p>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#B392F0">npx</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> @pfnet-research/pfpdf@latest</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> --input</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> docs</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> --output</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> docs.pdf</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#79B8FF">  --render-timeout-ms</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> 600000</span></span></code></pre>
+<p>timeout は処理 phase ごとに最初から数え直されず、renderer が最初の外部 process を起動する直前から PDF の後処理・構造検査が完了するまでの absolute deadline です。timeout になった場合は child process を停止し、既存出力を保持して終了 code <code>1</code> を返します。</p>
+<h2 id="76-再現可能な-build">7.6 再現可能な build</h2>
+<p>CI などで同じ入力から同じ結果を得たい場合は、環境変数 <code>SOURCE_DATE_EPOCH</code> を設定します。front matter の <code>date</code> が省略されているとき、実行日ではなくこの値の UTC 日付が使われます。</p>
+<p>front matter に表示用の <code>date</code> が書かれていても、PDF metadata の timestamp は別に存在します。そのため <code>SOURCE_DATE_EPOCH</code> がない build は warning になり、再現可能とは扱われません。</p>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">SOURCE_DATE_EPOCH</span><span style="color:#D73A49;--shiki-dark:#F97583">=</span><span style="color:#24292E;--shiki-dark:#E1E4E8">$(</span><span style="color:#6F42C1;--shiki-dark:#B392F0">git</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> log</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> -1</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> --format=%ct</span><span style="color:#24292E;--shiki-dark:#E1E4E8">) </span><span style="color:#6F42C1;--shiki-dark:#B392F0">\</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#9ECBFF">  npx</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> --yes</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> @pfnet-research/pfpdf@0.1.0</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> --input</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> docs</span><span style="color:#005CC5;--shiki-dark:#79B8FF"> --output</span><span style="color:#032F62;--shiki-dark:#9ECBFF"> docs.pdf</span></span></code></pre>
+<h2 id="77-デバッグ">7.7 デバッグ</h2>
+<ul>
+<li><code>--log-level debug</code> で詳細な log と stack trace を表示します</li>
+<li><code>--keep-work-dir</code> で一時 workspace を残し、生成された <code>document.html</code> / CSS、resource manifest、readiness / page error を含む renderer diagnostics を確認できます。pinned renderer が browser console event を提供しない場合、console 全体は記録されません。logical asset URL は変換終了後の server なしでは読めないため、HTML を直接開いて同じ描画になるとは限りません。diagnostics を含む workspace には入力由来の秘密情報が残り得るため、確認後は削除してください</li>
+</ul> <nav class="pager" data-astro-cid-uklqfkhd> <span data-astro-cid-uklqfkhd> <a href="../templates-and-assets/" data-astro-cid-uklqfkhd>← 前の章: template、ロゴ、アセット、フォント</a> </span> <span data-astro-cid-uklqfkhd> <a href="../troubleshooting/" data-astro-cid-uklqfkhd>次の章: troubleshooting →</a> </span> </nav> </article> <aside class="toc" aria-label="このページの目次" data-astro-cid-uklqfkhd>  <p class="sidebar-title" data-astro-cid-uklqfkhd>このページの目次</p> <ul id="toc-list" data-astro-cid-uklqfkhd> <li data-astro-cid-uklqfkhd> <a href="#71-cli-の全体像" data-astro-cid-uklqfkhd>7.1 CLI の全体像</a> </li><li data-astro-cid-uklqfkhd> <a href="#72-設定の優先順位" data-astro-cid-uklqfkhd>7.2 設定の優先順位</a> </li><li data-astro-cid-uklqfkhd> <a href="#73-終了コード" data-astro-cid-uklqfkhd>7.3 終了コード</a> </li><li data-astro-cid-uklqfkhd> <a href="#74-renderer" data-astro-cid-uklqfkhd>7.4 renderer</a> </li><li data-astro-cid-uklqfkhd> <a href="#75-timeout" data-astro-cid-uklqfkhd>7.5 timeout</a> </li><li data-astro-cid-uklqfkhd> <a href="#76-再現可能な-build" data-astro-cid-uklqfkhd>7.6 再現可能な build</a> </li><li data-astro-cid-uklqfkhd> <a href="#77-デバッグ" data-astro-cid-uklqfkhd>7.7 デバッグ</a> </li> </ul>  </aside> </div>  </main> <footer class="site-footer" data-astro-cid-sz7xmlte> <div class="container" data-astro-cid-sz7xmlte> <nav aria-label="Footer" data-astro-cid-sz7xmlte> <a href="../getting-started/" data-astro-cid-sz7xmlte>ドキュメント</a> <a href="../../gallery/" data-astro-cid-sz7xmlte>ギャラリー</a> <a href="https://github.com/pfnet-research/pfpdf" rel="external" data-astro-cid-sz7xmlte>GitHub</a> <a href="https://www.npmjs.com/package/pfpdf" rel="external" data-astro-cid-sz7xmlte>npm</a> <a href="https://github.com/pfnet-research/pfpdf/releases" rel="external" data-astro-cid-sz7xmlte>Releases (PDF 版ドキュメント)</a> <a href="https://github.com/pfnet-research/pfpdf/blob/main/LICENSE" rel="external" data-astro-cid-sz7xmlte>ライセンス</a> </nav> <p class="license-note" data-astro-cid-sz7xmlte>pfpdf: MIT License。依存する Vivliostyle CLI は AGPL-3.0、その他は THIRD_PARTY_LICENSES.md を参照してください。</p> <p class="copyright" data-astro-cid-sz7xmlte>© Preferred Networks, Inc.</p> </div> </footer>  </body></html> <script>
+  (() => {
+    // Highlight the section currently under the top of the viewport in the
+    // "on this page" list. A scroll handler is used rather than
+    // IntersectionObserver so that sections shorter than the viewport (and the
+    // final section, which may never reach the top) still resolve correctly.
+    const list = document.getElementById('toc-list');
+    if (list === null) return;
+    const links = [...list.querySelectorAll('a')];
+    const targets = links
+      .map((link) => ({ link, heading: document.getElementById(decodeURIComponent(link.hash.slice(1))) }))
+      .filter((entry) => entry.heading !== null);
+    if (targets.length === 0) return;
+
+    const OFFSET = 96; // sticky header height plus a little breathing room
+
+    function activate(active) {
+      for (const { link } of targets) {
+        link.toggleAttribute('data-active', link === active);
+      }
+    }
+
+    function update() {
+      const atBottom = window.scrollY + window.innerHeight >= document.body.scrollHeight - 2;
+      let current = targets[0].link;
+      if (atBottom) {
+        current = targets[targets.length - 1].link;
+      } else {
+        for (const { link, heading } of targets) {
+          if (heading.getBoundingClientRect().top <= OFFSET) current = link;
+        }
+      }
+      activate(current);
+    }
+
+    let queued = false;
+    function schedule() {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        update();
+      });
+    }
+
+    addEventListener('scroll', schedule, { passive: true });
+    addEventListener('resize', schedule);
+    update();
+  })();
+</script> 

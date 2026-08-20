@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120">
+  <rect x="4" y="4" width="312" height="112" rx="8" fill="#f0f6fc" stroke="#4a90d9" stroke-width="2"/>
+  <text x="160" y="55" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#1f3b57">pfpdf</text>
+  <text x="160" y="82" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#4a6b8a">sample local asset (SVG)</text>
+</svg>

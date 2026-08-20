@@ -1,0 +1,151 @@
+{
+  "template": "academic",
+  "language": "en",
+  "pageCount": 11,
+  "pdf": "sample.en.pdf",
+  "pages": [
+    {
+      "page": 1,
+      "thumb": {
+        "file": "page-01.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-01.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 2,
+      "thumb": {
+        "file": "page-02.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-02.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 3,
+      "thumb": {
+        "file": "page-03.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-03.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 4,
+      "thumb": {
+        "file": "page-04.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-04.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 5,
+      "thumb": {
+        "file": "page-05.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-05.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 6,
+      "thumb": {
+        "file": "page-06.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-06.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 7,
+      "thumb": {
+        "file": "page-07.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-07.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 8,
+      "thumb": {
+        "file": "page-08.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-08.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 9,
+      "thumb": {
+        "file": "page-09.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-09.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 10,
+      "thumb": {
+        "file": "page-10.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-10.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 11,
+      "thumb": {
+        "file": "page-11.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-11.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    }
+  ]
+}

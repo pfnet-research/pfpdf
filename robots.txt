@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pfnet-research.github.io/pfpdf/sitemap.xml
