@@ -1,12 +1,12 @@
 {
   "name": "@pfnet-research/pfpdf",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "@pfnet-research/pfpdf",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "license": "MIT",
       "dependencies": {
         "@citation-js/core": "0.8.2",
