@@ -3,6 +3,13 @@
 Notable changes to pfpdf are documented in this file. Versions follow Semantic
 Versioning; breaking changes before 1.0 are called out explicitly.
 
+## [0.2.1](https://github.com/pfnet-research/pfpdf/compare/v0.2.0...v0.2.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* **deps:** update vulnerable runtime and site dependencies ([#7](https://github.com/pfnet-research/pfpdf/issues/7)) ([26274d1](https://github.com/pfnet-research/pfpdf/commit/26274d160d5e6814d0d9b1104749249c6fe72ffb))
+
 ## [0.2.0](https://github.com/pfnet-research/pfpdf/compare/v0.1.0...v0.2.0) (2026-08-20)
 
 
