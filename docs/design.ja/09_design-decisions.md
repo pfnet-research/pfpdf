@@ -460,3 +460,14 @@
 - risk: persistent cacheがないため繰返し実行はnetworkとcheckout costを払う。branch / tagも移動し得るため、ref省略はwarning、CIは完全commit hash固定を推奨する。Git executableと認証設定が新しいruntime prerequisiteになる。offline用途は事前cloneと既存local optionで対応する
 - 検証: locatorのscheme / query / traversal / credential検査、local Git fixtureからのcommit checkout、template / logoのnested path、同一repository共有、template既定logo・front matter / CLI上書き・`logo: false` / `--no-logo`、CLI排他性、終了code、日英文書buildをtestする
 - 再検討条件: repository利用が支配的になりpersistent content-addressed cacheが必要になった場合、またはgalleryから名前とsemantic versionで取得する署名付きregistryを導入する場合
+
+## DD-41: 脆弱性修正を依存単位で固定し、サイトの Markdown processor を維持する
+
+- status: Accepted(2026-10-28)
+- 問題: root と `site/` の依存に既知の脆弱性があり、既存の DOMPurify override も脆弱な版を固定している。Astro 5 内の更新だけでは修正できず、Astro 7 の既定 Markdown processor は既存の remark link 変換を実行しない
+- 選択肢: (a) `npm audit fix --force` で一括変更する、(b) 修正版へ個別更新し、必要な間接依存だけ override する、(c) trusted input / static site を理由に更新を見送る
+- 採用: (b)。`js-yaml`、DOMPurify、KaTeX と lockfile 内の修正可能な間接依存を更新する。Vivliostyle CLI 11.1.0、Markdown parser、CJK extension は維持し、CLI 配下の Handlebars、Puppeteer Core、Vite を修正版に固定する。サイトは Astro 7.3.3 と sharp 0.35.5 へ更新し、`@astrojs/markdown-remark` の `unified` processor を明示して tutorial link 変換を維持する。root の lockfile と公開用 shrinkwrap は同一に保つ
+- 非採用理由: (a) は `remark-math` の旧 major への downgrade まで提案し、PDF renderer 本体にも不要な変更を広げる。(c) は build 時やローカル preview の依存に修正可能な問題を残す。サイトを既定 processor へ移行する案は link plugin の書換えと Markdown 出力差の検証を同時に要求するため、今回は採用しない
+- risk: Puppeteer Core と KaTeX の override は上流の依存範囲を超えるため、監査結果だけで互換性を保証できない。Astro major 更新にも出力差の可能性がある。trust model は変更せず、raw HTML の sanitization や sandbox を保証しない
+- 検証: 両 project の `npm ci`、`npm audit`、`npm ls --all`、root の test / lint、PDF smoke test、4 文書 PDF、全 template のサイト asset 生成とリンク検査付きサイト build。対応 OS の PDF smoke test は既存の CI matrix でも確認する
+- 再検討条件: 上流が修正版を依存に取り込んだ場合は override の撤去を検討する。新しい advisory が公開された場合は固定版を再監査する

@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import { unified } from '@astrojs/markdown-remark';
 import { SITE_URL } from './src/lib/site-config.mjs';
 import { remarkTutorialLinks } from './src/lib/remark-tutorial-links.mjs';
 
@@ -12,7 +13,7 @@ export default defineConfig({
     format: 'directory',
   },
   markdown: {
-    remarkPlugins: [remarkTutorialLinks],
+    processor: unified({ remarkPlugins: [remarkTutorialLinks] }),
     shikiConfig: {
       themes: { light: 'github-light', dark: 'github-dark' },
     },
