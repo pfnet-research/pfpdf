@@ -381,7 +381,9 @@
 - 非採用理由: (a) は指定により不採用(将来の移行は容易)。(b) は生成物の履歴が repository を肥大させる
 - risk: force push のため docs branch 上での手動変更は失われるが、docs branch は生成物であり手動変更しない運用とする
 - 検証: 配信物一式を任意の subdirectory に置いても link・画像・CSS が壊れないことを build 時の link check で担保する。source と workflow に org 名が現れないことを grep で確認した
-- 再検討条件: custom domain 導入時(SITE_URL の上書きのみで移行できる想定)、または deploy-pages 方式へ移行する場合
+- custom domain 運用(2026-10-28): Repository の Settings → Secrets and variables → Actions → Variables で `SITE_URL` を公開先の HTTPS URL(末尾 `/` 付き)に設定する。workflow は `${{ vars.SITE_URL }}` を環境変数へ渡し、未設定なら従来どおり `GITHUB_REPOSITORY` から URL を導出する。site build の最後に同じ `SITE_URL` の hostname から `dist/CNAME` を生成し、URL の scheme や path は含めない。`github.io` 配信では `CNAME` を削除する。ドメインを source に固定したり、生成物の docs branch に手動追加したりしない
+- custom domain の判断理由: GitHub の Pages 設定で追加された `CNAME` だけに依存すると、次の orphan commit の force push で消える。別のドメイン変数を導入すると canonical URL と配信ドメインが食い違う可能性があるため、`SITE_URL` に一本化する。導入時はこの変数を設定してから再デプロイし、必要なら Settings → Pages で custom domain を再保存する。変数を空に戻すと次のデプロイで custom domain は解除される
+- 再検討条件: deploy-pages 方式へ移行する場合
 
 ## DD-34: gallery のページ表示は sample PDF から生成した WebP 画像を基本とする
 

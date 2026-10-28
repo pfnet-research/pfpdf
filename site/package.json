@@ -8,7 +8,7 @@
     "predev": "node scripts/prepare-assets.mjs",
     "dev": "astro dev",
     "prebuild": "node scripts/prepare-assets.mjs",
-    "build": "astro build && node scripts/relativize-links.mjs dist && node scripts/check-links.mjs dist",
+    "build": "astro build && node scripts/relativize-links.mjs dist && node scripts/check-links.mjs dist && node scripts/write-pages-domain.mjs dist",
     "preview": "astro preview"
   },
   "dependencies": {

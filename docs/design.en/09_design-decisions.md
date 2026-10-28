@@ -381,7 +381,9 @@ Each decision follows this format:
 - Rejected because: (a) was ruled out by request (migrating later is easy). (b) bloats the repository with generated history
 - Risk: Force pushes discard manual edits on the docs branch, but the branch is a build artifact and is never edited by hand
 - Verification: The build-time link check guarantees the output keeps working when placed under any subdirectory. A grep confirms the org name appears nowhere in the site sources or the workflow
-- Reconsider when: A custom domain is introduced (overriding SITE_URL should suffice), or the deployment moves to deploy-pages
+- Custom domain operation (2026-10-28): Set `SITE_URL` to the public HTTPS URL (with a trailing `/`) under repository Settings → Secrets and variables → Actions → Variables. The workflow passes `${{ vars.SITE_URL }}` into the environment; when unset, the URL is still derived from `GITHUB_REPOSITORY`. At the end of the site build, generate `dist/CNAME` from the hostname of that same `SITE_URL`, excluding the scheme and path. Remove `CNAME` for `github.io` hosting. Do not hardcode the domain in source or add it manually to the generated docs branch
+- Custom domain rationale: Relying only on the `CNAME` added through GitHub's Pages settings loses it on the next orphan force push. A separate domain variable could diverge from canonical URLs, so `SITE_URL` is the single source. On adoption, set the variable before redeploying and save the custom domain again in Settings → Pages if needed. Clearing the variable removes the custom domain on the next deployment
+- Reconsider when: The deployment moves to deploy-pages
 
 ## DD-34: Gallery pages display WebP images generated from the sample PDFs
 
