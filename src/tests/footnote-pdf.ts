@@ -23,9 +23,10 @@ interface ViewerWindow extends Window {
   footnoteViewer: CoreViewer;
 }
 
-async function viewerPages(input: string, template: string, toc: boolean): Promise<FootnotePage[]> {
+async function viewerPages(input: string, template: string, renderedHtml: string, toc: boolean): Promise<FootnotePage[]> {
   const built = await buildHtml(resolveConfig(['--input', input, '--output', path.join(path.dirname(input), 'viewer.pdf'),
     '--template', template, ...(toc ? [] : ['--no-toc'])], path.dirname(input)), { SOURCE_DATE_EPOCH: '0' }, log);
+  assert.equal(built.html, renderedHtml, 'fallback must inspect the exact document.html consumed by the PDF renderer');
   built.generated.set('generated/footnote-viewer.html', Buffer.from('<!doctype html><html><body><div id="viewport"></div></body></html>'));
   const server = new AssetServer(built.manifest, built.generated);
   await server.start();
@@ -64,7 +65,7 @@ async function viewerPages(input: string, template: string, toc: boolean): Promi
   }
 }
 
-export async function footnotePdfPages(input: string, output: string, template: string, toc = false): Promise<FootnotePage[]> {
+export async function footnotePdfPages(input: string, output: string, template: string, renderedHtml: string, toc = false): Promise<FootnotePage[]> {
   if (hasBbox) {
     const extracted = spawnSync('pdftotext', ['-bbox', output, '-'], { encoding: 'utf8' });
     assert.equal(extracted.status, 0, extracted.stderr);
@@ -73,7 +74,7 @@ export async function footnotePdfPages(input: string, output: string, template: 
       words: Array.from(page[2]!.matchAll(/<word xMin="[^"]+" yMin="([^"]+)"[^>]*>([^<]*)<\/word>/g), (word) => ({ y: Number(word[1]), text: word[2]! })),
     }));
   }
-  const pages = await viewerPages(input, template, toc);
+  const pages = await viewerPages(input, template, renderedHtml, toc);
   assert.ok(pages.length > 0 && pages.every((page) => page.height > 0), 'renderer pages must have physical dimensions');
   if (hasTextTool) {
     const extracted = spawnSync('pdftotext', [output, '-'], { encoding: 'utf8' });

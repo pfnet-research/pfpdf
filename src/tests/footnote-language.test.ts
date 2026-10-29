@@ -62,12 +62,16 @@ test('PDF page footnotes follow inferred Japanese and English across templates',
       const output = path.join(dir, `${template}-${japanese ? 'ja' : 'en'}.pdf`);
       fs.writeFileSync(input, content('', japanese));
       const browser = process.env.BROWSER_PATH ? ['--browser-path', process.env.BROWSER_PATH] : [];
-      const result = spawnSync(process.execPath, [cli, '--input', input, '--output', output, '--template', template, ...browser], {
+      const result = spawnSync(process.execPath, [cli, '--input', input, '--output', output, '--template', template, '--keep-work-dir', ...browser], {
         encoding: 'utf8', env: { ...process.env, ...env }, timeout: 330000,
       });
       assert.equal(result.status, 0, result.stderr);
       assert.equal(fs.readFileSync(output).subarray(0, 5).toString(), '%PDF-');
-      const pages = await footnotePdfPages(input, output, template, true);
+      const workspace = /workspace kept at (.+?);/.exec(result.stderr)?.[1];
+      assert.ok(workspace, result.stderr);
+      const html = fs.readFileSync(path.join(workspace, 'document.html'), 'utf8');
+      fs.rmSync(workspace, { recursive: true, force: true });
+      const pages = await footnotePdfPages(input, output, template, html, true);
       const referencePage = pages.find((page) => page.words.some((word) => word.text === 'Repeat'));
       assert.ok(referencePage, `${template}: reference text is missing`);
       const note = referencePage.words.find((word) => word.text === 'NOTEBODY');

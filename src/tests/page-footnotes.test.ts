@@ -146,19 +146,17 @@ test('all templates place notes at the bottom of their first-reference page', { 
     const { html, workspace } = renderPdf(input, output, template);
     try {
       assert.match(html, /role="doc-footnote"/);
-      const pages = await footnotePdfPages(input, output, template);
-      {
-        const first = pages.findIndex((page) => page.words.some((word) => word.text === 'FIRSTREF'));
-        const later = pages.findIndex((page) => page.words.some((word) => word.text === 'LATERREF'));
-        assert.ok(first >= 0 && later > first, template);
-        const firstNote = pages[first]!.words.find((word) => word.text === 'NOTEONE');
-        const secondNote = pages[later]!.words.find((word) => word.text === 'NOTETWO');
-        assert.ok(firstNote && secondNote, `${template}: a note is missing on its first-reference page`);
-        assert.ok(firstNote.y > pages[first]!.height * 0.7, `${template}: first note is not at the page bottom`);
-        assert.ok(secondNote.y > pages[later]!.height * 0.7, `${template}: second note is not at the page bottom`);
-        assert.equal(pages.flatMap((page) => page.words).filter((word) => word.text === 'NOTEONE').length, 1, 'repeated notes are printed once');
-        assert.ok(pages.flatMap((page) => page.words).map((word) => word.text).join('').toLowerCase().includes('confidential'), template);
-      }
+      const pages = await footnotePdfPages(input, output, template, html);
+      const first = pages.findIndex((page) => page.words.some((word) => word.text === 'FIRSTREF'));
+      const later = pages.findIndex((page) => page.words.some((word) => word.text === 'LATERREF'));
+      assert.ok(first >= 0 && later > first, template);
+      const firstNote = pages[first]!.words.find((word) => word.text === 'NOTEONE');
+      const secondNote = pages[later]!.words.find((word) => word.text === 'NOTETWO');
+      assert.ok(firstNote && secondNote, `${template}: a note is missing on its first-reference page`);
+      assert.ok(firstNote.y > pages[first]!.height * 0.7, `${template}: first note is not at the page bottom`);
+      assert.ok(secondNote.y > pages[later]!.height * 0.7, `${template}: second note is not at the page bottom`);
+      assert.equal(pages.flatMap((page) => page.words).filter((word) => word.text === 'NOTEONE').length, 1, 'repeated notes are printed once');
+      assert.ok(pages.flatMap((page) => page.words).map((word) => word.text).join('').toLowerCase().includes('confidential'), template);
     } finally {
       fs.rmSync(workspace, { recursive: true, force: true });
     }
@@ -175,15 +173,13 @@ test('long page footnotes retain paragraphs, code, links and overflow onto later
     try {
       assert.match(html, /CODEMARK/);
       assert.match(html, /href="https:\/\/example.com"/);
-      const pages = await footnotePdfPages(input, output, template);
-      {
-        const start = pages.findIndex((page) => page.words.some((word) => word.text === 'LONGSTART'));
-        const end = pages.findIndex((page) => page.words.some((word) => word.text === 'LONGEND'));
-        const reference = pages.findIndex((page) => page.words.some((word) => word.text === 'FIRSTREF'));
-        assert.equal(start, reference, `${template}: the long note must begin on its reference page`);
-        assert.ok(start >= 0 && end > start, `${template}: long note must span pages`);
-        assert.ok(pages.flatMap((page) => page.words).some((word) => word.text === 'CODEMARK'), template);
-      }
+      const pages = await footnotePdfPages(input, output, template, html);
+      const start = pages.findIndex((page) => page.words.some((word) => word.text === 'LONGSTART'));
+      const end = pages.findIndex((page) => page.words.some((word) => word.text === 'LONGEND'));
+      const reference = pages.findIndex((page) => page.words.some((word) => word.text === 'FIRSTREF'));
+      assert.equal(start, reference, `${template}: the long note must begin on its reference page`);
+      assert.ok(start >= 0 && end > start, `${template}: long note must span pages`);
+      assert.ok(pages.flatMap((page) => page.words).some((word) => word.text === 'CODEMARK'), template);
     } finally {
       fs.rmSync(workspace, { recursive: true, force: true });
     }
