@@ -558,3 +558,14 @@ Each decision follows this format:
 - Validation: inspect default page footnotes, the absence of a placement option, repeated identifiers across files, ID collisions, repeated references, localized labels, TOC exclusion, and body preservation in HTML. Check all seven template PDFs using coordinates to ensure each note shares its first-reference page and is near the page bottom. Verify long multi-paragraph/code/link note fragmentation and content preservation, Confidential marks, and running-page information
 - Basis: the Vivliostyle [Footnotes Guide](https://docs.vivliostyle.org/en/cookbook/footnotes/), pinned UA stylesheet, and actual PDFs
 - Revisit when: notes must be reprinted on later reference pages, numbering must reset by chapter, or another renderer is added
+
+## DD-53: Join Japanese paragraph source wrapping in the AST
+
+- Status: Accepted (2026-10-29)
+- Problem: Editing-oriented source wrapping inserts visible spaces in Japanese paragraphs, changing layout relative to continuous prose (#23)
+- Options: (a) replace newlines throughout the source, (b) use CSS white-space alone, (c) remove only soft breaks in Japanese Markdown paragraphs after checking neighboring characters and source provenance
+- Decision: (c). Reuse resolved document `lang`; join only source LF / CRLF between Han, kana, Japanese punctuation, or full-width punctuation. Evaluate text continuously through emphasis/strong/link elements; code/math/images/note references are boundaries and paragraphs containing raw HTML are protected. Preserve authored trailing spaces and newline character references; Markdown continuation indentation does not become text. Preserve headings and source positions
+- Rejected: (a) breaks code, raw HTML, hard breaks, and original line numbers. (b) cannot distinguish authored spaces from source wrapping and leaves unintended extraction whitespace
+- Compatibility: English/other languages, Japanese/Latin boundaries, authored spaces, hard breaks, and paragraph boundaries retain previous behavior. The GFM parser is unchanged; record the intended deviation in the Markdown specification and fixtures
+- Validation: Pinned-parser GfmAdapter fixtures, inline elements, character references, CRLF, nesting, raw HTML, code/math, IDs/URLs/positions, exact renderer HTML widths and final PDFs across all seven templates
+- Revisit when: Joining Japanese/Latin boundaries or explicit control of source wrapping inside raw HTML is needed

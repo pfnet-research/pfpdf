@@ -6,6 +6,8 @@ pfpdf uses GitHub Flavored Markdown (GFM). Standard GFM syntax works as written,
 
 Markdown headings from `#` to `######` are supported. Each heading gets an anchor that is unique in source order, and all six levels appear in the table of contents. Headings with the same text get `-2`, `-3` suffixes. `h1` through `h6` elements written directly in raw HTML are not included in the automatic table of contents; give them an explicit `id` if you want to use them as link targets.
 
+For Japanese document language (`lang: ja`, or Japanese inferred when omitted), source wrapping between Han/kana/Japanese punctuation does not add a visible space inside a paragraph, including across emphasis and links. Blank-line paragraph boundaries, English word boundaries, explicit spaces, and Markdown hard breaks are preserved. Code, math and their boundaries, and paragraphs containing raw HTML are unchanged.
+
 ## 3.2 Emphasis
 
 *Emphasis*, **strong emphasis**, ~~strikethrough~~, and valid nesting (***strong + emphasis***) are all supported.

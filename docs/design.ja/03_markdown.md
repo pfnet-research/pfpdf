@@ -124,6 +124,12 @@ Mermaid source の構文・描画 error は source file / line 付き code `2`�
 
 初期版の書式は version 固定した numeric CSL style 1 種です。CSL processor の bibliography 順を番号の正本とし、entry 本文を独自 formatter で再構築しません。custom CSL、locator、prenote、author-only、year-only、`\nocite`、Pandoc の `[@key]` は初期 scope 外です。
 
+### 3.3.8 日本語段落内のソース改行
+
+解決済みの文書言語が `ja` またはその派生 tag の場合、Markdown paragraph 内の soft line break の直前・直後が漢字・かな・和文約物・全角約物なら、ソースの改行だけを除いて表示します。strong / emphasis / link などの inline 要素をまたぐ場合も同じ規則です。リスト・blockquote・脚注中の paragraph にも適用し、LF / CRLF に対応します。
+
+英字同士と和欧の境界、明示空白、行末に空白を記述した soft break、hard break、paragraph 境界は保持します。code・数式・画像・脚注参照を境界とし、raw HTML を含む paragraph と raw HTML block は変更しません。文字参照で明示した改行（`&#10;` / `&NewLine;` など）も保持します。見出し・ID・URL・source position は変更しません。日本語以外の言語では GFM の soft break を維持します。
+
 ## 3.4 raw HTML の扱い
 
 raw HTML は表現の自由度を保つため inline / block とも passthrough します。GFM の構文解析は採用しますが、GitHub.com が変換後に行う sanitization と GFM の「Disallowed Raw HTML」tag filter は適用しません。`table`、`div`、`section`、`figure`、`style`、必要な `script` などを扱えます。入力を trusted code とみなし、local file access を sandbox 化しません(08 章参照)。
@@ -168,3 +174,4 @@ GFM Spec の example は、template wrapper、見出し ID、目次、resource U
 | `\cite{key}` / `\printbibliography` | plain text | 引用 link / 参考文献一覧 | pfpdf extension |
 | `<base>` | raw HTML として保持する | 入力エラー | logical resource URL と内部 link の基準を固定するため |
 | `meta[http-equiv=refresh]` | raw HTML として保持する | 入力エラー | 描画中の document navigation を禁止するため |
+| 日本語 paragraph の CJK 間 soft break | 改行を保持 | `lang: ja` ではソース改行だけを除く | 編集時の折り返しで空白を増やさない。明示空白・code / HTML は保持 |

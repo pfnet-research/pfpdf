@@ -6,6 +6,8 @@ pfpdf の Markdown は GitHub Flavored Markdown(GFM)が基準です。GitHub で
 
 `#` から `######` までの Markdown 見出しが使えます。見出しには source 順で一意な anchor が付き、6 階層すべてが目次に載ります。同名見出しには `-2`、`-3` の suffix が付きます。raw HTML で直接書いた `h1` から `h6` は自動目次の対象ではなく、link target にする場合は `id` を明示します。
 
+文書言語が日本語（`lang: ja` または省略時に日本語と推定）の場合、段落中の漢字・かな・和文約物に挟まれたソース改行は表示上の空白になりません。強調やリンクをまたぐ折り返しにも対応します。空行による段落分け、英単語の境界、明示空白、Markdown の強制改行は保持します。code・数式とその境界、raw HTML を含む段落は変更しません。
+
 ## 3.2 強調
 
 *emphasis*、**strong emphasis**、~~strikethrough~~、および妥当な入れ子(***strong + emphasis***)が使えます。
