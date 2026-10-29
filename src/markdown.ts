@@ -29,6 +29,7 @@ import {
 } from './resources.js';
 import type { BibliographyFile, SourceFile } from './input.js';
 import { insertWordBreakOpportunities } from './text-breaks.js';
+import { joinJapaneseSoftBreaks } from './soft-breaks.js';
 import { renderMermaidToHast } from './mermaid.js';
 
 export interface TocEntry {
@@ -139,6 +140,9 @@ export async function buildDocumentBody(
   opts: { warn: (msg: string) => void; bibliography?: BibliographyFile[]; lang?: string },
 ): Promise<DocumentBody> {
   const parses = parseSources(files);
+  if (opts.lang === 'ja' || opts.lang?.startsWith('ja-')) {
+    for (const parse of parses) joinJapaneseSoftBreaks(parse.file, parse.mdast);
+  }
   const clusters = parses.flatMap((parse) => parse.citations);
   const markerCount = parses.reduce((sum, parse) => sum + parse.bibliographyMarkers, 0);
   if (markerCount > 1) throw new InputError('\\printbibliography may appear only once');
