@@ -12,6 +12,8 @@ Node.js の version、browser の有無、フォント、出力先の権限な�
 
 `--doctor` は browser の download、project / output directory の作成、OS 設定変更を行いません。実起動の検査には隔離した一時 profile を使い、検査後に削除します。各外部 check は cleanup を含めて 10 秒、全体は 60 秒で timeout します。
 
+browser check が失敗した場合、`checks` の `id: "browser"` にある `message` に終了 code・signal・timeout と子 process の stderr を含めます。stderr の抜粋は UTF-8 で最大 4 KiB とし、長い場合は先頭と末尾を残して省略を明示します。未知のエラーでもこの抜粋を確認できます。root / sandbox、user namespace / AppArmor、shared library、実行ファイルの既知の失敗には原因の目安も付けます。診断は JSON の文字列として出力するため、stderr 内の改行が stdout の JSON を分割することはありません。
+
 設定が意図どおりに効いているか確認したいときは `--print-effective-config` を使います。各設定値と、それが CLI・front matter・既定値のどれから来たかが JSON で表示されます。front matter の `template` / `toc` / `logo` を確認する場合は `--input` も指定します。
 
 ## 8.2 Node.js の version が古い
@@ -34,6 +36,8 @@ pfpdf が root 権限で package を自動 install することはありませ�
 ## 8.5 Linux で sandbox が起動できない
 
 shared library が揃っていても、Ubuntu 23.10 以降の unprivileged user namespace 制限などにより Chromium sandbox を起動できない環境があります。これは library 不足とは別の問題で、pfpdf の診断でも区別して報告されます。
+
+`root execution refused` は root 実行に対する browser の拒否です。非 root ユーザーで実行してください。`user namespace or AppArmor restriction` は非 root でも起きる host 側の制限を示します。`browser sandbox unavailable` はその他の sandbox 起動失敗の目安です。いずれも `message` 内に残した元の stderr と合わせて確認してください。
 
 回避には root 権限での設定変更が必要です。例として Ubuntu では、Chromium の実行ファイルに対する AppArmor profile を追加する方法が知られています。変更できない環境では、sandbox を利用できる別の対応環境で変換してください。
 

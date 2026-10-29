@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { getInstalledBrowsers } from '@puppeteer/browsers';
 import { applyFrontMatterConfig, type Config } from './config.js';
 import { buildHtml, prepareConfiguredLogo, prepareConfiguredTemplate, type Logger } from './build.js';
@@ -321,7 +321,7 @@ async function probeBrowser(browserPath: string): Promise<Pick<Check, 'status' |
     try { pdfOk = fs.readFileSync(output).subarray(0, 5).toString('latin1') === '%PDF-'; }
     catch { pdfOk = false; }
     if (result.status !== 0 || !pdfOk) {
-      const detail = result.error?.message ?? `conversion exited with ${result.status ?? result.signal ?? 'unknown status'}`;
+      const detail = browserFailureDetail(result, pdfOk);
       outcome = { status: 'fail', message: `browser failed its isolated headless launch check: ${browserPath}: ${detail}` };
     } else {
       outcome = { status: 'pass', message: `browser launched successfully: ${browserPath}` };
@@ -338,4 +338,61 @@ async function probeBrowser(browserPath: string): Promise<Pick<Check, 'status' |
     return { status: 'fail', message: `cannot remove diagnostic browser profile: ${(e as Error).message}` };
   }
   return outcome;
+}
+
+const MAX_BROWSER_STDERR_BYTES = 4096;
+
+/** Keep the beginning and end of stderr; launch errors can follow a long stack. */
+function boundedBrowserStderr(stderr: string): string {
+  const bytes = Buffer.from(stderr.trim(), 'utf8');
+  if (bytes.length <= MAX_BROWSER_STDERR_BYTES) return bytes.toString('utf8');
+  const marker = '\n[stderr truncated; first and last bytes retained]\n';
+  // Decoding at a partial UTF-8 boundary can add up to three replacement bytes
+  // per end. Reserve that space so the returned excerpt stays within 4 KiB.
+  const endBytes = Math.floor((MAX_BROWSER_STDERR_BYTES - Buffer.byteLength(marker) - 6) / 2);
+  return bytes.subarray(0, endBytes).toString('utf8') + marker
+    + bytes.subarray(-endBytes).toString('utf8');
+}
+
+/** Explain a failed isolated conversion without losing the child diagnostics. */
+export function browserFailureDetail(
+  result: Pick<SpawnSyncReturns<string>, 'error' | 'status' | 'signal' | 'stderr'>,
+  pdfOk: boolean,
+): string {
+  const stderr = result.stderr ?? '';
+  const errorCode = result.error !== undefined && 'code' in result.error ? result.error.code : undefined;
+  let detail: string;
+  if (errorCode === 'ETIMEDOUT') {
+    detail = 'browser check timed out';
+  } else if (errorCode === 'ENOBUFS') {
+    detail = 'browser check exceeded its captured output limit';
+  } else if (result.error !== undefined) {
+    detail = `browser check process failed: ${result.error.message}`;
+  } else if (result.signal !== null) {
+    detail = `browser check terminated by signal ${result.signal}`;
+  } else if (result.status === 0 && !pdfOk) {
+    detail = 'conversion exited with 0 but did not produce a PDF';
+  } else {
+    detail = `conversion exited with ${result.status ?? 'unknown status'}`;
+  }
+
+  let cause: string | undefined;
+  if (/running as root without --no-sandbox|root.*(?:sandbox|not supported)/i.test(stderr)) {
+    cause = 'root execution refused by the browser sandbox; run as a non-root user';
+  } else if (/user.?namespace|apparmor|failed to move to new namespace|namespace sandbox/i.test(stderr)) {
+    cause = 'user namespace or AppArmor restriction; check the host sandbox policy';
+  } else if (/error while loading shared libraries|cannot open shared object file|library not loaded/i.test(stderr)) {
+    cause = 'missing shared library; install the required libraries for this OS';
+  } else if (/no usable sandbox|suid sandbox|sandbox.*(?:failed|not supported)/i.test(stderr)) {
+    cause = 'browser sandbox unavailable; check the host sandbox configuration';
+  } else if (/ENOENT|EACCES|ENOEXEC|exec format error|permission denied|browser.*not (?:found|executable)/i.test(stderr)) {
+    cause = 'browser executable could not be started; check its path, permissions, and architecture';
+  } else if (/timed?\s*out|timeout|deadline exceeded/i.test(stderr)) {
+    cause = 'browser launch or conversion timed out';
+  }
+  if (cause !== undefined) detail += `; ${cause}`;
+  if (result.error !== undefined && errorCode === 'ETIMEDOUT') detail += `: ${result.error.message}`;
+  if (result.signal !== null && result.error !== undefined) detail += ` (signal ${result.signal})`;
+  const excerpt = boundedBrowserStderr(stderr);
+  return excerpt === '' ? detail : `${detail}\n\nstderr:\n${excerpt}`;
 }
