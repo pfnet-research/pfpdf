@@ -36,7 +36,7 @@ function softBreaks(file: SourceFile, node: Text): boolean[] {
     const physical = /^[\r\n]/.test(match[0]);
     // The Markdown parser strips trailing spaces from soft breaks. Keep that
     // authored separator; continuation indentation is structural instead.
-    const explicitSpace = /[ \t]/.test(source[index - 1] ?? '');
+    const explicitSpace = /[ \t]/.test(file.content[start + index - 1] ?? '');
     result.push(physical && !explicitSpace);
   }
   const count = node.value.match(/\r\n|\r|\n/g)?.length ?? 0;
