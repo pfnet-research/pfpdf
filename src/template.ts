@@ -191,6 +191,41 @@ function tocElement(toc: TocEntry[], lang: string): Element {
   ]);
 }
 
+/**
+ * Hidden navigation that Vivliostyle turns into the PDF outline (bookmarks).
+ *
+ * Vivliostyle builds the outline from the nesting of `li` / `ol` in the
+ * document's TOC navigation, but the visible ToC is a flat list styled by
+ * depth classes, so its outline had no hierarchy. This list nests the same
+ * entries by heading depth instead; a deeper heading that skips a level
+ * becomes a child of the nearest shallower one. `epub:type` makes Vivliostyle
+ * prefer it over the visible `role="doc-toc"` list, and `hidden` keeps it out
+ * of the page while Vivliostyle's TOC view still reads it. It is emitted even
+ * when the visible ToC is disabled, since bookmarks are PDF viewer navigation.
+ */
+interface OutlineNode {
+  entry: TocEntry;
+  children: OutlineNode[];
+}
+
+function outlineElement(toc: TocEntry[]): Element {
+  const roots: OutlineNode[] = [];
+  const open: OutlineNode[] = [];
+  for (const entry of toc) {
+    while (open.length > 0 && open.at(-1)!.entry.depth >= entry.depth) open.pop();
+    const node: OutlineNode = { entry, children: [] };
+    (open.at(-1)?.children ?? roots).push(node);
+    open.push(node);
+  }
+  // Leaves get no empty child list, which Vivliostyle would read as a group.
+  const list = (nodes: OutlineNode[]): Element => el('ol', {}, nodes.map((node) =>
+    el('li', {}, [
+      el('a', { href: `#${node.entry.id}` }, [text(node.entry.text)]),
+      ...(node.children.length > 0 ? [list(node.children)] : []),
+    ])));
+  return el('nav', { className: ['pfpdf-outline'], 'epub:type': 'toc', hidden: true }, [list(roots)]);
+}
+
 function tocContinuationReset(): Element {
   return el('span', {
     ariaHidden: 'true',
@@ -304,6 +339,8 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   if (tocEl && !slots.toc) {
     content.children.unshift(tocEl, tocContinuationReset());
   }
+  // Last, so template rules on the first content child are unaffected.
+  if (opts.body.toc.length > 0) content.children.push(outlineElement(opts.body.toc));
 
   // Rewrite template-relative resource URLs. Elements inserted from Markdown
   // were already processed against their source file directories.

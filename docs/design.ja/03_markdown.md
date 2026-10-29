@@ -62,6 +62,8 @@ directive は「次の描画対象 block を新しい page の先頭から始め
 
 目次には Markdown AST の heading node(`h1` から `h6`)を source 順にすべて含め、raw HTML / template 自身の見出しと表紙の metadata title は含めません。raw HTML の見出しへ自動 ID は付けず、link target にする場合は明示 `id` を指定します。同一文書へ結合される `chapter.md` への link は file anchor へ変換します。`chapter.md#fragment` は対象 file 内、`#fragment` は link を書いた source file 内で、percent encoding を 1 回 decode した fragment と最終的な明示 / 見出し ID を Unicode code point 単位で完全一致させます。基本 slug から suffix を推測し直さず、重複見出しの 2 個目へは実際の `-2` 付き ID を使います。相対 Markdown link の query component は意味を定義せず終了 code `2` とします。存在しない target も code `2` とし、case-insensitive な推測や basename だけの曖昧な照合は行いません。
 
+PDF の栞(outline)は、目次と同じ見出しから作ります。Vivliostyle は文書の目次 navigation にある `li` / `ol` の入れ子から栞の階層を作りますが、表示用の目次は depth class で字下げした平らな list です。そのため builder は、同じ見出しを見出しレベルで入れ子にした `nav.pfpdf-outline` を content の末尾に追加します。レベルを飛ばした見出しは、直前の浅い見出しの子にします。この nav は `epub:type="toc"` により表示用の `role="doc-toc"` より優先され、`hidden` により本文には表示されません。Vivliostyle の TOC view は `[hidden]` を表示に戻して読むため、栞には反映されます。栞は PDF viewer の navigation なので、`toc: false` で表示用の目次を省いた場合も出力します。content の末尾に置くのは、template の先頭要素向けの rule に影響させないためです。
+
 ### 3.3.4 日本語 strong emphasis(CJK-friendly)
 
 CommonMark の flanking delimiter rule には、`**` の内側が全角約物・括弧で、外側に空白を置かない CJK 文字が続くと strong emphasis として認識されない問題があります。pfpdf は日本語文書で自然な記法を使えることを優先し、少なくとも次を `<strong>` へ変換します。
