@@ -37,6 +37,14 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
 
 front matter から選べるのは bundled template だけです。CLI の `--template SOURCE` は、bundled preset 名との完全一致ならpreset、それ以外はlocal directoryまたはGit locatorとして扱います。presetであることを明示する場合は`--template-preset`を使います。template選択全体の優先順は、組み込みの`default`、front matter、CLIです。
 
+表紙を省略する場合は front matter の `cover: false` または CLI の `--no-cover` を使います。`--cover` で front matter の非表示を上書きできます。目次の `toc` / `--no-toc` とは独立して指定できます。`compact` では先頭の文書 header を省略します。表紙上の著者・日付・シリーズ・ロゴは表示しませんが、PDF metadata と、テンプレートが持つ本文の Confidential / シリーズの柱は維持します。
+
+```bash
+pfpdf --input report.md --output report.pdf --no-cover --no-toc
+```
+
+custom template で表紙を切り替える場合は、その全体を `data-pfpdf-slot="cover"` の element にします。`content` / `toc` slot と独自の running element は cover の外へ置いてください。cover slot がない custom template の表示は、この切替では変わりません。
+
 ## 6.2 ロゴの注入
 
 bundled template にはロゴ画像を含めていません。通常は先頭Markdownのfront matterに、利用者が権利を持つlocal fileを指定します。custom templateは`logo` slotの`src`にtemplate相対pathを書くことで既定ロゴを持てます。

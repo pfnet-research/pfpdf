@@ -110,6 +110,7 @@ resources/templates/
 | Slot | Count | Inserted content |
 |---|---:|---|
 | `content` | Required, 1 | Body containing one section per source file |
+| `cover` | Optional, 0 or 1 | Entire cover or leading header; removed as an element when `cover: false` |
 | `title` | Optional, 0 or 1 | Title. Only the allowed `<br>` is preserved as an element |
 | `author` | Optional, 0 or 1 | Author text |
 | `series` | Optional, 0 or 1 | Series text |
@@ -128,6 +129,9 @@ resources/templates/
 - All bundled templates have a `series` slot and add no fixed publication name, document type, brand name, table of contents name, metadata prefix, callout name, or figure/table numbering. To also display the series in running headers, use a named string rather than duplicating the same slot
 - When `confidential: false`, the `confidential` slot element itself is removed. Only when it is true does the slot remain in the template, with the display text set by the builder. Bundled templates display it on the cover or leading header and on every subsequent page, including the table of contents and body, in template-specific styling
 - With `--no-toc`, the `toc` slot is removed and nothing is inserted into the content either
+- `cover: false` / `--no-cover` removes the `cover` slot. The content / toc slots cannot be inside it, and html / head / body cannot themselves be the cover. A custom template without a cover slot declares no cover, so the toggle is a no-op
+- Omitting the cover also omits its visual title / author / date / logo, while retaining the HTML title and PDF metadata. Series / Confidential named-string sources move to a non-painted marker, preserving running information on bundled-template contents and body pages. Custom templates should put their own running elements outside the cover slot
+- The body receives a `pfpdf-has-cover` or `pfpdf-no-cover` class. Bundled standalone covers use the `pfpdf-cover` named page; compact uses the first rule of its own named page to keep its header and body on one page. Cover-specific first-page exceptions do not apply to body pages when the cover is omitted
 - Scripts do not run until the final `document.html` is loaded in the browser. Asynchronous work in template scripts registers with the readiness contract
 - `style.css` is loaded as common styles and `vivliostyle.css` as paged media styles, in that order. Both pass through the resource graph, which resolves `@import` and `url()`
 

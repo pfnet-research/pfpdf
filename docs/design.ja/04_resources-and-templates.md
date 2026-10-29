@@ -110,6 +110,7 @@ resources/templates/
 | slot | 個数 | 挿入内容 |
 |---|---:|---|
 | `content` | 必須、1 個 | source file ごとの section を含む本文 |
+| `cover` | 任意、0 または 1 個 | 表紙または先頭 header 全体。`cover: false` で element ごと削除 |
 | `title` | 任意、0 または 1 個 | title。許可済みの `<br>` だけを element として保持 |
 | `author` | 任意、0 または 1 個 | author の text |
 | `series` | 任意、0 または 1 個 | series の text |
@@ -128,6 +129,9 @@ resources/templates/
 - bundled template はすべて `series` slot を持ち、固定の出版名、文書種別、ブランド名、目次名、metadata 接頭辞、callout 名、図表番号を追加しない。series を柱にも表示する場合は同じ slot を重複させず named string を使う
 - `confidential: false` のときは `confidential` slot element 自体を削除する。true の場合だけ template に残し、表示 text は builder が設定する。bundled template は表紙または先頭 header と、目次・本文を含む以後の全 page に template 固有の表現で表示する
 - `--no-toc` の場合は `toc` slot を削除し、content へも挿入しない
+- `cover: false` / `--no-cover` は `cover` slot を削除する。`content` / `toc` slot は cover の内側へ置けず、cover 自体に html / head / body は使えない。cover slot のない custom template は表紙を宣言していないため、切替は no-op とする
+- 表紙を省略すると title / author / date / logo の表紙上の表示も省略するが、HTML title と PDF metadata は維持する。series / Confidential の named string source は非表示 marker へ移し、bundled template の本文・目次ページの柱を維持する。custom template で独自の running element を使う場合は cover slot の外へ置く
+- body に `pfpdf-has-cover` または `pfpdf-no-cover` class を付ける。bundled template は独立表紙に `pfpdf-cover` named page を使い、compact は header と本文を同じページに保つ専用 named page の first 規則を使う。表紙用の first-page 例外を表紙省略時の本文へ適用しない
 - script は最終 `document.html` が browser に load されるまで実行しない。template script の非同期処理は readiness contract へ登録する
 - `style.css` は共通 style、`vivliostyle.css` は paged media style としてこの順で読み込む。両方を resource graph に通し、`@import` と `url()` を解決する
 
