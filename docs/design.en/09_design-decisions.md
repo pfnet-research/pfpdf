@@ -532,3 +532,13 @@ Each decision follows this format:
 - Risk: English with a small Japanese example, multilingual text, and Han-only Chinese cannot be classified perfectly. Specify `lang` to override inference. Inference also changes dates, contents labels, and HTML / PDF language, not just footnotes
 - Validation: Explicit tag precedence, multiple files, Japanese/English/mixed text, code / math / HTML / URL exclusion, empty-prose title fallback, automatic dates, exact renderer HTML and Japanese/English PDFs across all seven templates, repeated-reference labels, links, and exclusion from contents
 - Revisit when: Automatic classification beyond Japanese/English or user-provided translated labels become necessary
+
+## DD-51: Docker execution requires non-root users and a working Chromium sandbox
+
+- Status: Accepted (2026-10-29)
+- Problem: Browsers fail in root Ubuntu containers, and there is no complete workflow covering shared libraries, initial extraction, cache and mount permissions, and host restrictions (#27)
+- Options: (a) disable the sandbox implicitly, (b) add a CLI-only disable option, (c) retain non-root sandboxed execution and provide a verified container example
+- Decision: (c). The Ubuntu 24.04 amd64 Dockerfile includes Node.js, locked dependencies, Chrome shared libraries, and unzip. Run as non-root using the host UID / GID, read-only input, writable output, and a persistent browser cache. Explicitly supply SYS_ADMIN for the container's Chromium sandbox as required by upstream instructions. Root remains unsupported; add no runtime option
+- Rejected: (a) changes the default launch policy without user intent. (b) adds a separate execution policy for a requirement already met by the non-root workflow. Distinguish root refusal, missing libraries, and namespace / AppArmor restrictions using doctor's cause classifications and original stderr
+- Validation: Ubuntu 24.04 amd64, Node 22.23.2, Vivliostyle 11.1.0, Chrome 150.0.7871.115. On an Arm64 Docker daemon with amd64 emulation, verified fresh / reused caches, input / output mounts, host-owned PDFs, doctor success, root refusal, and namespace launch failure without the capability. This is distinct from testing an actual Ubuntu host's AppArmor profile
+- Revisit when: Official support expands to environments without non-root sandboxed execution, or upstream changes the container capability requirement

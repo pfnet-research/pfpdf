@@ -41,6 +41,43 @@ shared library が揃っていても、Ubuntu 23.10 以降の unprivileged user 
 
 回避には root 権限での設定変更が必要です。例として Ubuntu では、Chromium の実行ファイルに対する AppArmor profile を追加する方法が知られています。変更できない環境では、sandbox を利用できる別の対応環境で変換してください。
 
+### Docker で実行する (Ubuntu 24.04、amd64)
+
+repository checkout の `examples/docker/ubuntu24.Dockerfile` は Ubuntu 24.04、Node.js 22.23.2、lockfile の依存から pfpdf を build します。browser の shared library と初回 download の展開に必要な `unzip` を含み、実行 user は非 root です。対象は amd64 です。Arm64 host では Docker の amd64 emulation が必要です。
+
+repository root で次を実行します。host 側でも非 root user を使い、出力と cache をその user が所有する directory にします。
+
+```bash
+docker build --platform linux/amd64 \
+  -f examples/docker/ubuntu24.Dockerfile -t pfpdf-ubuntu24 .
+PFPDF_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/pfpdf-docker"
+mkdir -p input output "$PFPDF_CACHE_DIR"
+cat > input/memo.md <<'EOF'
+---
+title: Docker example
+lang: en
+---
+# Memo
+
+PDF from a container.
+EOF
+docker run --rm --platform linux/amd64 --init \
+  --cap-add=SYS_ADMIN --user "$(id -u):$(id -g)" \
+  --env SOURCE_DATE_EPOCH=0 \
+  --mount "type=bind,source=$(pwd)/input,target=/input,readonly" \
+  --mount "type=bind,source=$(pwd)/output,target=/output" \
+  --mount "type=bind,source=$PFPDF_CACHE_DIR,target=/cache" \
+  pfpdf-ubuntu24 --input /input/memo.md --output /output/memo.pdf
+```
+
+`SYS_ADMIN` は、この container で Chromium sandbox を起動するための capability です。[Puppeteer の Docker 手順](https://pptr.dev/guides/docker)も sandbox 実行にこの capability を要求します。追加 capability を許容する運用環境で使ってください。pfpdf は引き続き trusted document を処理し、root での変換や sandbox を無効にする CLI option は提供しません。
+
+入力は read-only、出力と `/cache` は書込み可能として mount します。`--user` で host と同じ UID / GID を使うため、出力の所有者も host user になります。`HOME=/tmp`、`XDG_CACHE_HOME=/cache` は image に設定済みです。初回は Chromium を `/cache/vivliostyle/browsers` へ download し、同じ cache directory を mount した2回目以降は再利用します。変換後に、同じ `docker run` の末尾を `--doctor` に置き換えると、download 済み browser の起動を検査できます。空 cache の doctor は download せず warning を返します。
+
+`root execution refused` なら実行 UID を確認します。非 root で `user namespace or AppArmor restriction` / `No usable sandbox` が出る場合は、capability、Docker の seccomp policy、host の user namespace / AppArmor policy を確認します。Ubuntu 24.04 host の制限は container 内の user を変更するだけでは解除されません。[Ubuntu の AppArmor の説明](https://ubuntu.com/server/docs/how-to/security/apparmor/)を参照し、host 管理者が browser に適した profile を用意するか、sandbox を利用できる host で実行してください。host 全体の保護を無効にする手順は既定の実行例には含めません。
+
+検証環境: Ubuntu 24.04 amd64 container、Node.js 22.23.2、Vivliostyle CLI 11.1.0、管理対象 Chrome 150.0.7871.115。Arm64 Docker daemon の amd64 emulation 上で、新規 cache・再利用 cache、read-only 入力、host user 所有の出力、doctor 成功を確認しました。root の拒否と capability なしの起動失敗も確認しました。Ubuntu host 固有の AppArmor profile の実機検証は別途必要です。
+
 ## 8.6 日本語が豆腐(□)になる / フォントが意図と違う
 
 - 既定では同梱の日本語フォントが使われるため、通常は tofu になりません

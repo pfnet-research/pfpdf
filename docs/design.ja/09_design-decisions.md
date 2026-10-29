@@ -532,3 +532,13 @@
 - risk: 少量の日本語例を含む英語、多言語、漢字だけの中国語を完全には区別できない。誤判定は `lang` の明示で回避する。推定は date・目次・HTML / PDF language も変えるため、脚注だけの表示変更ではない
 - 検証: 明示 tag 優先、複数 file、日英・混在・code / math / HTML / URL 除外、空本文の title fallback、自動日付、全7 template の正規 renderer HTML と日英 PDF、繰返し参照の label・link・目次除外を検査する
 - 再検討条件: 日英以外の自動分類や、利用者指定の翻訳 label が必要になった場合
+
+## DD-51: Docker は非 root と有効な Chromium sandbox を前提にする
+
+- 状態: 採用 (2026-10-29)
+- 問題: root の Ubuntu container で browser が起動せず、shared library、初回展開、cache と mount 権限、host 制限を含む一通りの手順がない (#27)
+- 選択肢: (a) 暗黙に sandbox を無効化する、(b) CLI-only の無効化 option を加える、(c) 非 root と sandbox を維持した検証済み container 例を提供する
+- 採用: (c)。Ubuntu 24.04 amd64 の Dockerfile に Node.js と lockfile の依存、Chrome の shared library と unzip を含める。runtime は非 root、host UID / GID、read-only 入力、書込み可能な出力と永続 browser cache を使う。container の Chromium sandbox 起動には upstream の手順どおり SYS_ADMIN capability を明示する。root は引き続き非対応とし、runtime option は追加しない
+- 非採用理由: (a) は既定挙動を変え利用者の意図なく browser 起動方針を緩める。(b) は非 root の手順で変換できる要件に対して別の実行 policy を増やす。root 拒否、shared library 不足、namespace / AppArmor 制限は doctor の原因分類と元 stderr で区別する
+- 検証: Ubuntu 24.04 amd64、Node 22.23.2、Vivliostyle 11.1.0、Chrome 150.0.7871.115。Arm64 Docker daemon の amd64 emulation で、fresh / reused cache、入力・出力 mount、host user 所有の PDF、doctor 成功、root 拒否、capability なしの namespace 起動失敗を確認した。Ubuntu host の AppArmor profile そのものの実機検証とは区別する
+- 再検討条件: 非 root と sandbox を利用できない環境を公式対応へ加える場合、または upstream が container で必要な capability を変える場合
