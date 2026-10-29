@@ -34,7 +34,9 @@ design docs, not here.
   `<type>[optional scope][!]: <description>` (for example,
   `fix(markdown): accept longer underscore page breaks`).
 - Pull request descriptions must include English first, followed by a Japanese
-  translation of the same content, including validation results.
+  translation of the same content, including validation results. Do not add
+  language headings; separate the two versions with a `-----` line, with a
+  blank line before and after it.
 
 ## Code rules
 
