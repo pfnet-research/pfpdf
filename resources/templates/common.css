@@ -101,6 +101,11 @@ td {
   word-spacing: normal;
 }
 
+/* GFM's physical column alignment must override the logical default above. */
+th[align="left"], td[align="left"] { text-align: left; }
+th[align="center"], td[align="center"] { text-align: center; }
+th[align="right"], td[align="right"] { text-align: right; }
+
 .pfpdf-table-cell-compact { white-space: nowrap; }
 .pfpdf-table-cell-min-4 { min-width: 4em; }
 

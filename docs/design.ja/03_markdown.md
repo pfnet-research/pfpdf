@@ -28,6 +28,8 @@ Markdown source の文字列を separator だけで連結してから parse し�
 
 表の描画では、4 grapheme以下の非空セルに `.pfpdf-table-cell-compact`、それより長いセルに `.pfpdf-table-cell-min-4` を付けます。短い状態語などを一行に保ちながら、長文セルは折り返せるようにするためです。8列以上の表には `.pfpdf-table-many-columns` を付け、templateが列の意味や位置を推測せず、表全体の文字サイズと余白を調整できるようにします。
 
+全 bundled template は、GFM の列揃え指定を見出しセルと本文セルの両方で維持します。`left` / `right` は文書の `dir` にかかわらず物理的な左右、`center` は中央揃えです。未指定セルの既定値は論理方向の `start` とし、LTR では左、RTL では右に揃えます。長文の折り返しによって揃え指定は変えません。
+
 ## 3.3 pfpdf extension
 
 ### 3.3.1 数式

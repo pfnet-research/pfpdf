@@ -28,6 +28,8 @@ Markdown source strings must not be joined with simple separators before parsing
 
 In table rendering, non-empty cells of 4 graphemes or fewer receive `.pfpdf-table-cell-compact`, and longer cells receive `.pfpdf-table-cell-min-4`. This keeps short status words on a single line while allowing long-text cells to wrap. Tables with 8 or more columns receive `.pfpdf-table-many-columns`, so templates can adjust the whole table's font size and spacing without having to guess column meaning or position.
 
+All bundled templates preserve GFM column alignment in both header and body cells. `left` and `right` refer to physical sides regardless of the document's `dir`, and `center` centers the content. Unspecified cells default to the logical direction `start`: left in LTR and right in RTL. Wrapping long text does not change the specified alignment.
+
 ## 3.3 pfpdf extensions
 
 ### 3.3.1 Math
