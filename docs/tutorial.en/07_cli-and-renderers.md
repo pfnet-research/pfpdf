@@ -21,6 +21,7 @@ Options:
   --browser-path PATH      Browser used by the renderer
   --render-timeout-ms N    From renderer preparation to PDF inspection completion. Default is 300000
   --keep-work-dir          Keep the temporary workspace
+  --strict-front-matter    Reject unknown front matter keys; default: warn and ignore
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config Print the effective configuration and its sources, then exit
   --doctor                 Diagnose renderer, browser, and assets
@@ -34,6 +35,7 @@ The front matter is authoritative for `template` / `toc` / `logo`, which determi
 
 - Combining `--template` with `--template-preset`, `--toc` with `--no-toc`, or `--logo` with `--no-logo` is an error. `--template` first checks for an exact preset-name match and otherwise treats the value as a Git locator or local path. `--logo` likewise accepts either a Git locator or local path
 - Repeating any option other than `--font-dir` is an error, even with the same value
+- `--strict-front-matter` is a CLI-only runtime setting. Without it, unknown front matter keys produce warnings and are ignored. With it, conversion and configuration printing report an input error (code `2`), while doctor reports a failed input check (code `1`). Warnings go to stderr according to the normal log level; `--log-level error` suppresses them
 - To see where each setting came from, use `--print-effective-config`, which outputs a JSON object with a versioned schema. When `--input` is also specified, it reflects front matter `template` / `toc` / `logo` values and reports their source as `front-matter`
 
 ```bash

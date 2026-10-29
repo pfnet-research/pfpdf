@@ -19,6 +19,18 @@ test('built-in configuration defaults are stable', () => {
   });
   assert.deepEqual(config.toc, { value: true, source: 'default' });
   assert.deepEqual(config.logo, { value: { kind: 'template' }, source: 'default' });
+  assert.deepEqual(config.strictFrontMatter, { value: false, source: 'default' });
+});
+
+test('strict front matter is a CLI-only flag recorded in effective configuration', () => {
+  const base = resolveConfig(['--input', 'a.md', '--output', 'a.pdf', '--strict-front-matter'], cwd);
+  assert.deepEqual(base.strictFrontMatter, { value: true, source: 'cli' });
+  const result = JSON.parse(effectiveConfigJson(base)) as {
+    config: { strictFrontMatter: { value: boolean; source: string } };
+  };
+  assert.deepEqual(result.config.strictFrontMatter, base.strictFrontMatter);
+  assert.throws(() => resolveConfig(['--doctor', '--strict-front-matter', '--strict-front-matter'], cwd), InputError);
+  assert.throws(() => resolveConfig(['--doctor', '--strict-front-matter', 'false'], cwd), InputError);
 });
 
 test('front matter document configuration applies over defaults', () => {

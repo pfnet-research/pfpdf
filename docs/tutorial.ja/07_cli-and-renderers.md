@@ -21,6 +21,7 @@ Options:
   --browser-path PATH      renderer が使う browser
   --render-timeout-ms N    renderer 準備から PDF 検査完了まで。既定は 300000
   --keep-work-dir          一時 workspace を保持する
+  --strict-front-matter    未知の front matter key をエラーにする。既定は警告して無視
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config 適用後の設定と設定元を表示して終了する
   --doctor                 renderer、browser、asset を診断する
@@ -34,6 +35,7 @@ Options:
 
 - `--template` と `--template-preset`、`--toc` と `--no-toc`、`--logo` と `--no-logo` をそれぞれ同時指定した場合はエラーです。`--template`はpreset名との完全一致を先に判定し、それ以外をGit locatorまたはlocal pathとして扱います。`--logo`もGit locatorとlocal pathを同じoptionで扱います
 - `--font-dir` 以外の option を繰り返した場合は、同じ値でもエラーです
+- `--strict-front-matter` は CLI だけから指定する実行設定です。省略時は未知 front matter key を警告して無視し、指定時は変換と設定表示では入力エラー (code `2`)、doctor では入力 check の `fail` (code `1`) になります。警告は通常の log level に従い stderr に出し、`--log-level error` なら表示しません
 - どの設定がどこから来たかは `--print-effective-config` で、versioned schema の JSON object として確認できます。`--input` も指定すると front matter の `template` / `toc` / `logo` を反映し、設定元を `front-matter` と表示します
 
 ```bash

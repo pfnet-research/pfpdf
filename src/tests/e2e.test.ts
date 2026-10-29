@@ -109,6 +109,33 @@ test('builds a PDF from Japanese Markdown', { skip: !enabled }, () => {
   }
 });
 
+test('builds a PDF from the reported shared metadata and preserves output in strict mode', { skip: !enabled }, (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-e2e-front-matter-'));
+  t.after(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+  const input = path.join(dir, 'doc.md');
+  const output = path.join(dir, 'doc.pdf');
+  fs.writeFileSync(input, '---\ntitle: Example\nauthor: Alice\ntags:\n  - documentation\n  - example\nstatus: draft\n---\n# Shared metadata\n');
+  const args = [cliPath, ...browserArgs, '--input', input, '--output', output, '--no-toc'];
+  const options = { encoding: 'utf8' as const, env: { ...process.env, SOURCE_DATE_EPOCH: '0' }, timeout: 330000 };
+  const result = spawnSync(process.execPath, args, options);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr.match(/unknown front matter key:/g)?.length, 2);
+  const bytes = fs.readFileSync(output);
+  assert.equal(bytes.subarray(0, 5).toString('latin1'), '%PDF-');
+  const extracted = spawnSync('pdftotext', [output, '-'], { encoding: 'utf8' });
+  if (extracted.error === undefined && extracted.status === 0) {
+    assert.match(extracted.stdout, /Example/);
+    assert.match(extracted.stdout, /Alice/);
+    assert.match(extracted.stdout, /Shared metadata/);
+    assert.doesNotMatch(extracted.stdout, /documentation|draft/);
+  }
+  const strict = spawnSync(process.execPath, [...args, '--strict-front-matter'], options);
+  assert.equal(strict.status, 2, strict.stderr);
+  assert.match(strict.stderr, /unknown front matter key: tags/);
+  assert.deepEqual(fs.readFileSync(output), bytes);
+});
+
 test('book template uses bundled serif fonts for multilingual text', { skip: !enabled }, () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-e2e-serif-'));
   const input = path.join(dir, 'doc.md');

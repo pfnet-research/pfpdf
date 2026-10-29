@@ -95,7 +95,7 @@ async function prepareDocument(
     config.title.value,
     env,
     log.warn,
-    processStart,
+    { processStart, strictFrontMatter: config.strictFrontMatter.value },
   );
   const documentConfig = applyFrontMatterConfig(config, input.config);
   const repositoryResolver = options.repositoryResolver;

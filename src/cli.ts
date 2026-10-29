@@ -64,7 +64,11 @@ export async function main(): Promise<number> {
         process.stdout.write(effectiveConfigJson(
           config.inputAbs === null
             ? config
-            : applyFrontMatterConfig(config, readFrontMatterConfig(config.inputAbs)),
+            : applyFrontMatterConfig(config, readFrontMatterConfig(
+                config.inputAbs,
+                log.warn,
+                { strictFrontMatter: config.strictFrontMatter.value },
+              )),
         ));
         return 0;
       case 'doctor': {

@@ -61,7 +61,8 @@ async function runDoctorWithResolver(
         config.inputAbs,
         config.title.value,
         env,
-        (message) => { inputWarnings.push(message); log.debug(message); },
+        (message) => { inputWarnings.push(message); log.warn(message); },
+        { strictFrontMatter: config.strictFrontMatter.value },
       );
       documentConfig = applyFrontMatterConfig(config, preparedInput.config);
     } catch (error) {

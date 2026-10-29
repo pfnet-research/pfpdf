@@ -20,7 +20,15 @@ dir: ltr
 ---
 ```
 
-文書 metadata として使える key は次の 9 つです。さらに文書設定の `toc` / `logo` と、第 3 章で説明する build input の `bibliography` も使用できます。それ以外の未知の key や重複する key はエラーになります。
+文書 metadata として使える key は次の 9 つです。さらに文書設定の `toc` / `logo` と、第 3 章で説明する build input の `bibliography` も使用できます。それ以外の未知の key は、既定では stderr に警告を出して無視します。重複する key、不正な YAML、既知 key の型違い・不正値は引き続きエラーです。
+
+たとえば他ツール用の `tags` や `status` を残したまま PDF 化できます。`page_szie` のような誤記も警告されるため、意図した設定が反映されたか確認してください。未知 key を従来どおりエラーにする場合は、CLI の `--strict-front-matter` を指定します。
+
+```bash
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-matter
+```
+
+この検証方針は `--print-effective-config --input docs` と `--doctor --input docs` にも適用されます。`--strict-front-matter` は実行設定のため front matter では指定できません。
 
 | key | 型 | 既定値 | 説明 |
 |---|---|---|---|

@@ -35,6 +35,7 @@ export interface Config {
   browserPath: ResolvedValue<string | null>;
   renderTimeoutMs: ResolvedValue<number>;
   keepWorkDir: ResolvedValue<boolean>;
+  strictFrontMatter: ResolvedValue<boolean>;
   logLevel: ResolvedValue<'error' | 'warn' | 'info' | 'debug'>;
   /** Absolute path forms for execution; original text is kept in the ResolvedValue. */
   inputAbs: string | null;
@@ -56,7 +57,7 @@ const VALUE_OPTIONS = new Set([
   '--render-timeout-ms', '--log-level',
 ]);
 const FLAG_OPTIONS = new Set([
-  '--toc', '--no-toc', '--host-fonts', '--no-logo', '--keep-work-dir',
+  '--toc', '--no-toc', '--host-fonts', '--no-logo', '--keep-work-dir', '--strict-front-matter',
   '--print-effective-config', '--doctor', '--version', '--help', '-h',
 ]);
 const PATH_OPTIONS = new Set([
@@ -216,6 +217,9 @@ export function resolveConfig(
     ? { value: true, source: 'cli' }
     : { value: false, source: 'default' };
   const browserPath = str('--browser-path');
+  const strictFrontMatter: ResolvedValue<boolean> = raw['--strict-front-matter'] !== undefined
+    ? { value: true, source: 'cli' }
+    : { value: false, source: 'default' };
 
   const template = resolveTemplateSetting(raw);
   const logo = resolveLogoSetting(raw);
@@ -276,6 +280,7 @@ export function resolveConfig(
     browserPath,
     renderTimeoutMs,
     keepWorkDir,
+    strictFrontMatter,
     logLevel,
     inputAbs: abs(input.value),
     outputAbs: abs(output.value),
@@ -338,6 +343,7 @@ export function effectiveConfigJson(config: Config): string {
       browserPath: entry(config.browserPath),
       renderTimeoutMs: entry(config.renderTimeoutMs),
       keepWorkDir: entry(config.keepWorkDir),
+      strictFrontMatter: entry(config.strictFrontMatter),
       logLevel: entry(config.logLevel),
     },
   };
@@ -374,6 +380,7 @@ Options:
   --browser-path PATH      browser used by the renderer
   --render-timeout-ms N    absolute deadline in ms (default: 300000)
   --keep-work-dir          keep the temporary workspace
+  --strict-front-matter    reject unknown front matter keys (default: warn and ignore)
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config print resolved configuration as JSON and exit
   --doctor                 diagnose renderer, browser, and assets

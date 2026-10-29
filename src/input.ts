@@ -107,6 +107,11 @@ interface FrontMatter {
   lineCount: number;
 }
 
+export interface FrontMatterOptions {
+  /** Reject unknown keys instead of warning and ignoring them. */
+  strictFrontMatter?: boolean;
+}
+
 const ALLOWED_KEYS = new Set([
   'title', 'author', 'series', 'date', 'page_size', 'confidential', 'lang', 'dir',
   'bibliography', 'template', 'toc', 'logo',
@@ -132,7 +137,12 @@ function sourceLines(text: string): SourceLine[] {
   return lines;
 }
 
-function parseFrontMatter(filePath: string, text: string): { fm: FrontMatter | null; body: string } {
+function parseFrontMatter(
+  filePath: string,
+  text: string,
+  warn: (msg: string) => void,
+  options: FrontMatterOptions,
+): { fm: FrontMatter | null; body: string } {
   const lines = sourceLines(text);
   if (lines[0]!.text !== '---') return { fm: null, body: text };
   let closed = -1;
@@ -158,7 +168,11 @@ function parseFrontMatter(filePath: string, text: string): { fm: FrontMatter | n
   }
   const raw = new Map<string, unknown>(Object.entries(parsed));
   for (const key of raw.keys()) {
-    if (!ALLOWED_KEYS.has(key)) throw new InputError(`${filePath}: unknown front matter key: ${key}`);
+    if (ALLOWED_KEYS.has(key)) continue;
+    const message = `${filePath}: unknown front matter key: ${key}`;
+    if (options.strictFrontMatter) throw new InputError(message);
+    warn(`${message}; ignored`);
+    raw.delete(key);
   }
   const body = text.slice(lines[closed]!.end);
   return { fm: { raw, lineCount: closed + 1 }, body };
@@ -238,9 +252,13 @@ function resolveFrontMatterConfig(
 }
 
 /** Read document configuration for configuration diagnostics. */
-export function readFrontMatterConfig(inputAbs: string): FrontMatterConfig {
+export function readFrontMatterConfig(
+  inputAbs: string,
+  warn: (msg: string) => void = (msg) => { process.stderr.write(`pfpdf: warn: ${msg}\n`); },
+  options: FrontMatterOptions = {},
+): FrontMatterConfig {
   const firstPath = resolveInputFilePaths(inputAbs)[0]!;
-  const parsed = parseFrontMatter(firstPath, readInputFile(firstPath));
+  const parsed = parseFrontMatter(firstPath, readInputFile(firstPath), warn, options);
   return resolveFrontMatterConfig(parsed.fm?.raw ?? new Map<string, unknown>(), firstPath);
 }
 
@@ -336,8 +354,9 @@ export function resolveInput(
   cliTitle: string | null,
   env: Record<string, string | undefined>,
   warn: (msg: string) => void,
-  processStart = new Date(),
+  options: FrontMatterOptions & { processStart?: Date } = {},
 ): ResolvedInput {
+  const processStart = options.processStart ?? new Date();
   const filePaths = resolveInputFilePaths(inputAbs);
 
   const files: SourceFile[] = [];
@@ -346,7 +365,7 @@ export function resolveInput(
     const p = filePaths[i]!;
     const text = readInputFile(p);
     if (i === 0) {
-      const parsed = parseFrontMatter(p, text);
+      const parsed = parseFrontMatter(p, text, warn, options);
       fm = parsed.fm;
       files.push({
         path: p,
