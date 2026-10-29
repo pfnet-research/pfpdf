@@ -6,6 +6,7 @@ import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import { BUNDLED_TEMPLATE_NAMES } from './bundled-templates.js';
 import type { FrontMatterConfig } from './config.js';
 import { InputError } from './errors.js';
+import { inferDocumentLanguage } from './language.js';
 
 export interface SourceFile {
   /** Absolute path. */
@@ -434,7 +435,7 @@ export function resolveInput(
   const pageSizeRaw = requireString('page_size');
   const pageSize = pageSizeRaw === null ? parsePageSize('A4') : parsePageSize(pageSizeRaw);
 
-  const lang = canonicalizeLang(requireString('lang') ?? 'ja');
+  const lang = canonicalizeLang(requireString('lang') ?? inferDocumentLanguage(files, title.plainText));
 
   const dirRaw = requireString('dir') ?? 'auto';
   if (dirRaw !== 'ltr' && dirRaw !== 'rtl' && dirRaw !== 'auto') {

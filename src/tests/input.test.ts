@@ -256,7 +256,7 @@ test('title normalization decodes entities and preserves display lines once', ()
 });
 
 test('SOURCE_DATE_EPOCH controls the display date', () => {
-  const p = tmpFile('---\ntitle: T\n---\nbody\n');
+  const p = tmpFile('---\ntitle: T\nlang: ja\n---\nbody\n');
   const r = resolveInput(p, null, { SOURCE_DATE_EPOCH: '1750000000' }, noop);
   assert.equal(r.metadata.date, '2025 年 6 月 15 日');
 });

@@ -141,6 +141,8 @@ GitHub.com also renders features such as footnotes, alerts, mentions, issue refe
 - GFM syntax itself is never omitted on the grounds that raw HTML could substitute for it
 - Unsupported GitHub.com-specific features are never described as "GFM not supported"
 
+Footnote syntax `Text[^note]` and `[^note]: Additional detail` produces endnotes. When the resolved document language has primary language `ja`, the heading is `脚注` and the accessible back-link label is `参照 1 に戻る` (`参照 1（2 回目） に戻る` for a repeated reference). English and all other languages use `Footnotes` / `Back to reference 1`. IDs, numbers, links, and authored note text are preserved, and generated headings are excluded from the table of contents. Placement remains endnotes; page-bottom placement is a separate feature.
+
 ## 3.6 How conformance is checked
 
 GFM Spec examples are run against the `GfmAdapter` before pfpdf-specific post-processing — the template wrapper, heading IDs, the table of contents, and resource URL rewriting — is added. This checks the parser's own conformance without misjudging pfpdf's added attributes as GFM violations.

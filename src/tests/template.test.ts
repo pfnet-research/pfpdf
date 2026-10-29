@@ -354,7 +354,7 @@ test('default template renders title, author, series, date, and content', async 
   assert.match(html, /body text/);
   assert.match(html, /pfpdf-file-0001/);
   assert.doesNotMatch(html, /data-pfpdf-slot/);
-  assert.match(html, /lang="ja"/);
+  assert.match(html, /lang="en"/);
   assert.match(html, /registerReady/);
   assert.match(html, /readiness-gate\.svg/);
   assert.doesNotMatch(html, /readiness-ok|readiness-error/);
@@ -428,7 +428,7 @@ test('compact template keeps metadata and contents in a space-efficient document
 });
 
 test('toc appears by default and disappears with --no-toc', async () => {
-  const input = makeDoc('---\ntitle: T\n---\n\n# A\n\n## B\n');
+  const input = makeDoc('---\ntitle: T\nlang: ja\n---\n\n# A\n\n## B\n');
   const on = await buildHtml(config(['--input', input, '--output', 'x.pdf']), env, log);
   assert.match(on.html, /pfpdf-toc/);
   assert.match(on.html, /<h2 class="pfpdf-toc-title">目次<\/h2><span aria-hidden="true" class="pfpdf-toc-continuation-marker">目次（続き）<\/span><ol class="pfpdf-toc-list">/);
@@ -521,7 +521,7 @@ test('custom template slot validation', async () => {
     InputError,
   );
   // valid minimal template works, toc goes into content head
-  const doc = makeDoc('---\ntitle: T\n---\n# A\n');
+  const doc = makeDoc('---\ntitle: T\nlang: ja\n---\n# A\n');
   const ok = await buildHtml(
     config(['--input', doc, '--output', 'x.pdf', '--template', make('<!doctype html><html lang="en"><head><meta charset="utf-8"></head><body><main data-pfpdf-slot="content"></main></body></html>')]),
     env,
