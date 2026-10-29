@@ -544,3 +544,14 @@ Each decision follows this format:
 - Rejected: (a) also changes body design. (b) loses named strings / running elements and cover-specific first-page CSS, causing missing Confidential labels or wrong margins. Automatically inserting a replacement body metadata header would redisplay intentionally omitted information and add template-specific variants
 - Validation: CLI / front matter precedence and invalid types, optional custom slots, all four cover / toc combinations across all seven templates, exact renderer HTML, final PDF page counts / first-page content / Confidential labels / title and author metadata
 - Revisit when: Settings to display title / author separately within the body, or template-specific multiple covers, are needed
+
+## DD-53: Join Japanese paragraph source wrapping in the AST
+
+- Status: Accepted (2026-10-29)
+- Problem: Editing-oriented source wrapping inserts visible spaces in Japanese paragraphs, changing layout relative to continuous prose (#23)
+- Options: (a) replace newlines throughout the source, (b) use CSS white-space alone, (c) remove only soft breaks in Japanese Markdown paragraphs after checking neighboring characters and source provenance
+- Decision: (c). Reuse resolved document `lang`; join only source LF / CRLF between Han, kana, Japanese punctuation, or full-width punctuation. Evaluate text continuously through emphasis/strong/link elements; code/math/images/note references are boundaries and paragraphs containing raw HTML are protected. Preserve authored trailing spaces and newline character references; Markdown continuation indentation does not become text. Preserve headings and source positions
+- Rejected: (a) breaks code, raw HTML, hard breaks, and original line numbers. (b) cannot distinguish authored spaces from source wrapping and leaves unintended extraction whitespace
+- Compatibility: English/other languages, Japanese/Latin boundaries, authored spaces, hard breaks, and paragraph boundaries retain previous behavior. The GFM parser is unchanged; record the intended deviation in the Markdown specification and fixtures
+- Validation: Pinned-parser GfmAdapter fixtures, inline elements, character references, CRLF, nesting, raw HTML, code/math, IDs/URLs/positions, exact renderer HTML widths and final PDFs across all seven templates
+- Revisit when: Joining Japanese/Latin boundaries or explicit control of source wrapping inside raw HTML is needed
