@@ -527,7 +527,7 @@
 - 問題: DD-16 の固定既定値 `ja` では言語を指定しない英語文書の目次・自動日付が日本語になり、脚注 label は明示 `ja` でも英語になる (#26)
 - 選択肢: (a) 既定 `ja` のまま脚注だけ翻訳する、(b) host locale や外部言語判定 service を使う、(c) 本文の文字種による小さい日英分類を使い、解決済みの言語を全生成 label へ渡す
 - 採用: (c)。明示した well-formed BCP 47 tag を最優先し、未指定時は全 file の Markdown text node（code、数式、raw HTML block、URL を除く）のひらがな・かな・漢字・英字を数える。ひらがな 2 字以上かつ対象文字の 1% 以上、かなを含み日本語文字数が英字数以上、または漢字数が英字数を超える場合は `ja`、それ以外は `en`。判定対象文字がなければ正規化した title を同じ規則で判定し、それでも不明なら `en`。host locale・network・新しい依存は使わない。DD-16 の省略時 `ja` の方針をこの規則で置き換える
-- label: 正規化済み言語を `buildDocumentBody` へ渡し、`ja` と派生 tag の脚注見出し・繰返し参照を含む戻りリンク label を日本語化する。他言語は英語へ fallback する。upstream の番号・ID・矢印・利用者の本文は保持し、生成見出しは目次へ入れない
+- label: 正規化済み言語を `buildDocumentBody` へ渡し、`ja` と派生 tag の脚注・繰返し参照を含む戻りリンク label を日本語化する。他言語は英語へ fallback する。利用者の本文は保持する。DD-52 のページ脚注では見出しを生成せず、番号・ID を文書全体で割り当てる
 - 非採用理由: (a) は省略した英語文書に不自然な表示を残す。(b) は同一入力の再現性や offline 利用を損ねる。語彙 model は日英だけの分類に対して保守と配布が大きい
 - risk: 少量の日本語例を含む英語、多言語、漢字だけの中国語を完全には区別できない。誤判定は `lang` の明示で回避する。推定は date・目次・HTML / PDF language も変えるため、脚注だけの表示変更ではない
 - 検証: 明示 tag 優先、複数 file、日英・混在・code / math / HTML / URL 除外、空本文の title fallback、自動日付、全7 template の正規 renderer HTML と日英 PDF、繰返し参照の label・link・目次除外を検査する
@@ -577,6 +577,20 @@
 - 非採用理由: (a) は既定挙動を変え利用者の意図なく browser 起動方針を緩める。(b) は非 root の手順で変換できる要件に対して別の実行 policy を増やす。root 拒否、shared library 不足、namespace / AppArmor 制限は doctor の原因分類と元 stderr で区別する
 - 検証: Ubuntu 24.04 amd64、Node 22.23.2、Vivliostyle 11.1.0、Chrome 150.0.7871.115。Arm64 Docker daemon の amd64 emulation で、fresh / reused cache、入力・出力 mount、host user 所有の PDF、doctor 成功、root 拒否、capability なしの namespace 起動失敗を確認した。Ubuntu host の AppArmor profile そのものの実機検証とは区別する
 - 再検討条件: 非 root と sandbox を利用できない環境を公式対応へ加える場合、または upstream が container で必要な capability を変える場合
+
+## DD-52: ページ脚注は DPUB-ARIA と既定 renderer のネイティブ配置を使う
+
+- 状態: 採用 (2026-10-29)
+- 問題: 現行 Markdown 脚注は末尾注だけで、印刷文書の参照ページ下部へ配置できない (#25)
+- 選択肢: (a) 末尾注の CSS に float を足すだけ、(b) 参照ごとに脚注本文を複製する、(c) DPUB-ARIA の参照・本文を生成し Vivliostyle の配置を使う、(d) browser script でページを測って並べ直す
+- 採用: (c)。Markdown 脚注は常にページ下部へ配置し、配置を切り替える文書設定や CLI option は設けない。`role="doc-noteref"` の link と `aside[role="doc-footnote"]` を生成する。依存を更新せず、同梱 Vivliostyle.js 2.44.1 のネイティブ DPUB 配置と分割を利用する。custom template でも同じ意味構造を使い、bundled template は専用 class で書体・行間だけを整える
+- 番号・参照: 文書全体の初出順に番号を付け、file 内の識別子を独立に扱う。本文・全参照に allocator で衝突しない ID を割り当て、参照先・全戻り link を更新する。各本文は最初に参照したページへ一度だけ配置する。後の参照は既存本文への link とし、同ページ・別ページとも本文を再印刷しない。自動見出しを作らず、参照と本文の名前・戻り label を言語対応させる
+- 長い脚注: renderer の `footnote-policy: auto` で本文を後続ページへ分割する。複数段落、code、link と元の source position を保持し、renderer が扱う不可分 block の改ページ規則を使う
+- 非採用理由: (a) は file 末尾の位置で float され、参照ページと結び付かない。(b) は同じ本文の重複と長い脚注の増幅を起こす。(d) は renderer の改ページと競合し、フォント・用紙・template ごとの独自レイアウト実装を必要とする
+- 互換性: 従来の file 末尾の注一覧からページ下部の脚注へ変更する。生成 ID と文書全体番号は新規契約であり、利用者の脚注本文は変更しない。effective config に脚注設定は追加しない
+- 検証: 既定のページ脚注、配置 option が存在しないこと、複数 file の同名識別子・ID 衝突・繰返し参照・言語 label・目次除外・本文保持を HTML で検査する。全7 template の PDF で脚注と最初の参照が同じページにあり、脚注がページ下部にあることを座標で検査する。長い複数段落・code・link を含む脚注の分割と内容保持、Confidential / 柱を確認する
+- 根拠: Vivliostyle の [Footnotes Guide](https://docs.vivliostyle.org/en/cookbook/footnotes/) と、固定版の UA stylesheet / 実 PDF を確認した
+- 再検討条件: 繰返し参照先のページにも本文を印刷する要件、章ごとの番号リセット、別 renderer を追加する場合
 
 ## DD-53: 日本語 paragraph のソース改行を AST 上で結合する
 

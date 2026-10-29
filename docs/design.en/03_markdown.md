@@ -149,7 +149,9 @@ GitHub.com also renders features such as footnotes, alerts, mentions, issue refe
 - GFM syntax itself is never omitted on the grounds that raw HTML could substitute for it
 - Unsupported GitHub.com-specific features are never described as "GFM not supported"
 
-Footnote syntax `Text[^note]` and `[^note]: Additional detail` produces endnotes. When the resolved document language has primary language `ja`, the heading is `脚注` and the accessible back-link label is `参照 1 に戻る` (`参照 1（2 回目） に戻る` for a repeated reference). English and all other languages use `Footnotes` / `Back to reference 1`. IDs, numbers, links, and authored note text are preserved, and generated headings are excluded from the table of contents. Placement remains endnotes; page-bottom placement is a separate feature.
+Footnote syntax `Text[^note]` and `[^note]: Additional detail` places each note once at the bottom of its first-reference page. References use DPUB-ARIA `doc-noteref` and note bodies use `aside[role="doc-footnote"]`, allowing Vivliostyle to place page footnotes. Later repeated references link to that same body. Notes are numbered in first-reference order across the document, while definition identifiers remain scoped to each source file. Reusing an identifier in another file produces a distinct note, with collision-free IDs and forward/back links throughout the document. Authored note text, multiple paragraphs, code, and links are retained. Long bodies may split across following pages.
+
+When the resolved document language has primary language `ja`, references and bodies have the accessible label `脚注 1`, and back links use `参照 1 に戻る` (`参照 1（2 回目） に戻る` for a repeated reference). English and all other languages use `Footnote 1` / `Back to reference 1`. Footnotes do not generate TOC headings.
 
 ## 3.6 How conformance is checked
 

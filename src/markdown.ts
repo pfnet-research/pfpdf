@@ -32,6 +32,7 @@ import type { BibliographyFile, SourceFile } from './input.js';
 import { insertWordBreakOpportunities } from './text-breaks.js';
 import { joinJapaneseSoftBreaks } from './soft-breaks.js';
 import { renderMermaidToHast } from './mermaid.js';
+import { preparePageFootnotes } from './page-footnotes.js';
 
 export interface TocEntry {
   depth: number;
@@ -154,6 +155,7 @@ export async function buildDocumentBody(
   const sectionsRaw = await convertSourcesToHast(parses, opts.lang ?? 'en');
   const allocator = createIdAllocator(reservedIds, sectionsRaw.length);
   reserveExplicitIds(sectionsRaw, allocator);
+  preparePageFootnotes(sectionsRaw, allocator, opts.lang ?? 'en');
   if (bibliography !== null) {
     renderBibliography(sectionsRaw, clusters, bibliography, allocator, markerCount === 1);
   }

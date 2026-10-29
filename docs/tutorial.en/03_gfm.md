@@ -120,3 +120,17 @@ Citations appear as numbers such as `[1]` and link to the corresponding bibliogr
 If `\printbibliography` is omitted, the list is appended at the end of the document. A `\cite` inside inline code, code blocks, raw HTML, or math is not interpreted as a citation, so literal usage examples can be written in inline code like `` `\cite{key}` ``. To escape a `\cite` with a backslash instead, write `\\cite{key}`.
 
 The initial version supports BibTeX / BibLaTeX `.bib` files with a numeric style. Nonexistent keys, duplicate keys, invalid BibTeX, and unreadable files cause a failure with exit code `2`, without generating a partial PDF. TeX's `\ref` is not a bibliography citation; it is reserved for future figure / table / equation / section references.
+
+## 3.10 Footnotes
+
+Write each reference and its definition in the same source file.
+
+```md
+Body text[^memo]. The same note can be referenced again[^memo].
+
+[^memo]: Additional information.
+```
+
+Each note appears at the bottom of its first-reference page. No additional configuration is required.
+
+Page footnotes are numbered in first-reference order across the document. The same definition identifier may be reused in another file, where it denotes a separate note. Repeating a reference on a later page links to the note's first appearance without printing another copy. Long footnotes continue onto following pages; multiple paragraphs, code, and links are supported. Japanese documents also receive Japanese accessible reference and back-link labels.

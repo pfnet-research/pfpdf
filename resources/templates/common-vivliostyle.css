@@ -5,6 +5,13 @@
 
 section.pfpdf-source-file { break-inside: auto; }
 
+.pfpdf-page-footnote {
+  break-inside: auto;
+  footnote-policy: auto;
+}
+
+.pfpdf-page-footnote pre { orphans: 2; widows: 2; }
+
 [data-pfpdf-page-break] + h1 { margin-top: 0; }
 
 h1,

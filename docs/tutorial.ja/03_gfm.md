@@ -120,3 +120,17 @@ bibliography:
 `\printbibliography` を省略した場合は、一覧を文書末尾へ追加します。inline code、code block、raw HTML、数式内の `\cite` は文献引用として解釈しません。literal な使用例は `` `\cite{key}` `` のように inline code で書けます。引用の `\cite` を backslash でも escape する場合は `\\cite{key}` と書きます。
 
 初期版は BibTeX / BibLaTeX の `.bib` と数値 style を扱います。存在しない key、重複 key、不正な BibTeX、読めない file は PDF を部分生成せず code `2` で失敗します。TeX の `\ref` は文献引用ではなく、将来の図表・数式・節参照用に予約しています。
+
+## 3.10 脚注
+
+脚注は、参照と定義を同じ source file 内に書きます。
+
+```md
+本文です[^memo]。同じ脚注を再参照できます[^memo]。
+
+[^memo]: 補足説明です。
+```
+
+各脚注は、最初に参照したページの下部へ表示します。設定の追加は必要ありません。
+
+ページ脚注の番号は文書全体の初出順です。別 file では同じ脚注識別子を再利用でき、それぞれ別の脚注になります。同じ脚注を後のページで再参照した場合は、最初に表示した脚注へ link し、本文を重複印刷しません。長い脚注は次のページへ続き、複数段落・code・link も使えます。日本語文書では参照・戻り link のアクセシビリティ label も日本語になります。

@@ -149,7 +149,9 @@ footnote、alert、mention、issue reference、emoji shortcode、Mermaid など 
 - raw HTML で代替できることを理由に GFM 構文自体を省略しない
 - 対応していない GitHub.com 固有機能を「GFM 非対応」とは表現しない
 
-脚注記法 `本文[^note]` と `[^note]: 補足説明` は末尾注として出力します。解決済み文書言語の primary language が `ja` なら見出しは「脚注」、戻りリンクのアクセシビリティ label は「参照 1 に戻る」（繰返し参照は「参照 1（2 回目） に戻る」）とします。英語とその他の言語では `Footnotes` / `Back to reference 1` を使います。ID・番号・リンク・利用者の脚注本文は変更せず、自動生成した見出しを目次へ含めません。配置は末尾注のままとし、ページ下部への配置は別の機能です。
+脚注記法 `本文[^note]` と `[^note]: 補足説明` は、各脚注を最初に参照したページの下部へ一度だけ表示します。参照 link を DPUB-ARIA の `doc-noteref`、脚注本文を `aside[role="doc-footnote"]` として Vivliostyle のページ脚注へ渡します。後続の繰返し参照は同じ本文へ link します。番号は文書全体の初出順とし、識別子の scope は source file 内です。同じ識別子を別 file で再利用しても別の脚注になり、ID と参照・戻り link は文書全体で衝突しないよう割り当てます。利用者の脚注本文・複数段落・code・link は保持します。長い本文は後続ページへ分割されます。
+
+解決済み文書言語の primary language が `ja` なら、参照と本文のアクセシビリティ label は「脚注 1」、戻り link は「参照 1 に戻る」（繰返し参照は「参照 1（2 回目） に戻る」）とします。英語とその他の言語では `Footnote 1` / `Back to reference 1` を使います。脚注には目次対象の見出しを生成しません。
 
 ## 3.6 conformance の検査方法
 
