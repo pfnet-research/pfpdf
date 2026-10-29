@@ -109,6 +109,7 @@ async function prepareDocument(
     warn: log.warn,
     bibliography: input.bibliography,
     lang: input.metadata.lang,
+    footnotes: documentConfig.footnotes.value,
   });
   const document = buildDocumentHtml({
     metadata: input.metadata,

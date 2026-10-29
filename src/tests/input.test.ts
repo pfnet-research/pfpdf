@@ -90,7 +90,7 @@ test('unknown front matter keys warn once each and do not affect metadata or con
   assert.equal(result.metadata.title.plainText, 'Example');
   assert.deepEqual(result.metadata.author, ['Alice']);
   assert.equal(result.metadata.pageSize.css, '210mm 297mm');
-  assert.deepEqual(result.config, { template: null, toc: null, logo: null });
+  assert.deepEqual(result.config, { template: null, toc: null, logo: null, footnotes: null });
   assert.equal(result.files[0]!.content, '# Body\n');
   assert.equal(result.files[0]!.lineOffset, 8);
   assert.deepEqual(warnings, ['tags', 'status', 'page_szie', 'strictFrontMatter'].map(

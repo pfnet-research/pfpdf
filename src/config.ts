@@ -6,6 +6,7 @@ import { validateTitle } from './input.js';
 import { parseRepositoryLocator } from './repository.js';
 
 export type Source = 'cli' | 'front-matter' | 'default';
+export type FootnoteMode = 'endnotes' | 'page';
 export type CommandMode = 'convert' | 'doctor' | 'print-effective-config' | 'help' | 'version';
 
 export interface ResolvedValue<T> {
@@ -19,6 +20,7 @@ export interface Config {
   output: ResolvedValue<string | null>;
   title: ResolvedValue<string | null>;
   toc: ResolvedValue<boolean>;
+  footnotes: ResolvedValue<FootnoteMode>;
   template: ResolvedValue<
     { kind: 'bundled'; name: string } |
     { kind: 'custom'; dir: string } |
@@ -54,7 +56,7 @@ interface RawCli {
 const VALUE_OPTIONS = new Set([
   '--input', '--output', '--title', '--template', '--template-preset', '--logo',
   '--font-dir', '--browser-path',
-  '--render-timeout-ms', '--log-level',
+  '--render-timeout-ms', '--log-level', '--footnotes',
 ]);
 const FLAG_OPTIONS = new Set([
   '--toc', '--no-toc', '--host-fonts', '--no-logo', '--keep-work-dir', '--strict-front-matter',
@@ -210,6 +212,13 @@ export function resolveConfig(
   const output = str('--output');
   const title = str('--title');
   const toc = bool('--toc', '--no-toc', true);
+  const footnotesValue = raw['--footnotes'];
+  if (footnotesValue !== undefined && footnotesValue !== 'endnotes' && footnotesValue !== 'page') {
+    throw new InputError('--footnotes: expected endnotes/page');
+  }
+  const footnotes: ResolvedValue<FootnoteMode> = footnotesValue === undefined
+    ? { value: 'endnotes', source: 'default' }
+    : { value: footnotesValue, source: 'cli' };
   const hostFonts: ResolvedValue<boolean> = raw['--host-fonts'] !== undefined
     ? { value: true, source: 'cli' }
     : { value: false, source: 'default' };
@@ -273,6 +282,7 @@ export function resolveConfig(
     output,
     title,
     toc,
+    footnotes,
     template,
     logo,
     hostFonts,
@@ -296,6 +306,7 @@ export function resolveConfig(
 export interface FrontMatterConfig {
   template: string | null;
   toc: boolean | null;
+  footnotes: FootnoteMode | null;
   logo: { kind: 'none' } | { kind: 'local'; path: string; absPath: string } | null;
 }
 
@@ -306,6 +317,9 @@ export function applyFrontMatterConfig(config: Config, frontMatter: FrontMatterC
   const toc = frontMatter.toc !== null && config.toc.source === 'default'
     ? { value: frontMatter.toc, source: 'front-matter' as const }
     : config.toc;
+  const footnotes = frontMatter.footnotes !== null && config.footnotes.source === 'default'
+    ? { value: frontMatter.footnotes, source: 'front-matter' as const }
+    : config.footnotes;
   const logo = frontMatter.logo !== null && config.logo.source === 'default'
     ? {
         value: frontMatter.logo.kind === 'none'
@@ -318,6 +332,7 @@ export function applyFrontMatterConfig(config: Config, frontMatter: FrontMatterC
     ...config,
     template,
     toc,
+    footnotes,
     logo,
     templateDirAbs: template.value.kind === 'custom' ? path.resolve(config.cwd, template.value.dir) : null,
     logoAbs: logo.source === 'front-matter' && frontMatter.logo?.kind === 'local'
@@ -336,6 +351,7 @@ export function effectiveConfigJson(config: Config): string {
       output: entry(config.output),
       title: entry(config.title),
       toc: entry(config.toc),
+      footnotes: entry(config.footnotes),
       template: entry(config.template),
       logo: entry(config.logo),
       hostFonts: entry(config.hostFonts),
@@ -371,6 +387,7 @@ Required:
 Options:
   --title TEXT             override the front matter title
   --toc / --no-toc         enable / disable table of contents (default: on)
+  --footnotes MODE         endnotes / page-bottom notes (endnotes/page; default: endnotes)
   --template SOURCE        preset name, local directory, or git::URL//PATH?ref=REVISION
   --template-preset NAME   explicitly select a bundled template preset
   --logo SOURCE            local file or git::URL//PATH?ref=REVISION; overrides template default

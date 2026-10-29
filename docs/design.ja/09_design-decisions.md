@@ -532,3 +532,17 @@
 - risk: 少量の日本語例を含む英語、多言語、漢字だけの中国語を完全には区別できない。誤判定は `lang` の明示で回避する。推定は date・目次・HTML / PDF language も変えるため、脚注だけの表示変更ではない
 - 検証: 明示 tag 優先、複数 file、日英・混在・code / math / HTML / URL 除外、空本文の title fallback、自動日付、全7 template の正規 renderer HTML と日英 PDF、繰返し参照の label・link・目次除外を検査する
 - 再検討条件: 日英以外の自動分類や、利用者指定の翻訳 label が必要になった場合
+
+## DD-52: ページ脚注は DPUB-ARIA と既定 renderer のネイティブ配置を使う
+
+- 状態: 採用 (2026-10-29)
+- 問題: 現行 Markdown 脚注は末尾注だけで、印刷文書の参照ページ下部へ配置できない (#25)
+- 選択肢: (a) 末尾注の CSS に float を足すだけ、(b) 参照ごとに脚注本文を複製する、(c) DPUB-ARIA の参照・本文を生成し Vivliostyle の配置を使う、(d) browser script でページを測って並べ直す
+- 採用: (c)。文書設定 `footnotes: endnotes|page` と CLI `--footnotes endnotes|page` を追加し、既定は既存の `endnotes`、CLI が最優先。page mode は `role="doc-noteref"` の link と `aside[role="doc-footnote"]` を生成する。依存を更新せず、同梱 Vivliostyle.js 2.44.1 のネイティブ DPUB 配置と分割を利用する。custom template でも同じ意味構造を使い、bundled template は専用 class で書体・行間だけを整える
+- 番号・参照: page mode は文書全体の初出順に番号を付け、file 内の識別子を独立に扱う。本文・全参照に allocator で衝突しない ID を割り当て、参照先・全戻り link を更新する。各本文は最初に参照したページへ一度だけ配置する。後の参照は既存本文への link とし、同ページ・別ページとも本文を再印刷しない。自動見出しを作らず、参照と本文の名前・戻り label を言語対応させる
+- 長い脚注: renderer の `footnote-policy: auto` で本文を後続ページへ分割する。複数段落、code、link と元の source position を保持し、renderer が扱う不可分 block の改ページ規則を使う
+- 非採用理由: (a) は file 末尾の位置で float され、参照ページと結び付かない。(b) は同じ本文の重複と長い脚注の増幅を起こす。(d) は renderer の改ページと競合し、フォント・用紙・template ごとの独自レイアウト実装を必要とする
+- 互換性: endnotes の HTML、ID、番号、見出しと label は従来どおり。page mode の ID と文書全体番号は新規契約であり、利用者の脚注本文は変更しない。既定値と設定元の追加は effective config の schema 5 の optional field とする
+- 検証: 設定の型・CLI 優先、既定末尾注、複数 file の同名識別子・ID 衝突・繰返し参照・言語 label・目次除外・本文保持を HTML で検査する。全7 template の PDF で脚注と最初の参照が同じページにあり、脚注がページ下部にあることを座標で検査する。長い複数段落・code・link を含む脚注の分割と内容保持、Confidential / 柱を確認する
+- 根拠: Vivliostyle の [Footnotes Guide](https://docs.vivliostyle.org/en/cookbook/footnotes/) と、固定版の UA stylesheet / 実 PDF を確認した
+- 再検討条件: 繰返し参照先のページにも本文を印刷する要件、章ごとの番号リセット、別 renderer を追加する場合

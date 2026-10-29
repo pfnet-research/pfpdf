@@ -30,6 +30,8 @@ import {
 import type { BibliographyFile, SourceFile } from './input.js';
 import { insertWordBreakOpportunities } from './text-breaks.js';
 import { renderMermaidToHast } from './mermaid.js';
+import { preparePageFootnotes } from './page-footnotes.js';
+import type { FootnoteMode } from './config.js';
 
 export interface TocEntry {
   depth: number;
@@ -136,7 +138,7 @@ export async function buildDocumentBody(
   files: SourceFile[],
   manifest: ResourceManifest,
   reservedIds: string[],
-  opts: { warn: (msg: string) => void; bibliography?: BibliographyFile[]; lang?: string },
+  opts: { warn: (msg: string) => void; bibliography?: BibliographyFile[]; lang?: string; footnotes?: FootnoteMode },
 ): Promise<DocumentBody> {
   const parses = parseSources(files);
   const clusters = parses.flatMap((parse) => parse.citations);
@@ -149,6 +151,7 @@ export async function buildDocumentBody(
   const sectionsRaw = await convertSourcesToHast(parses, opts.lang ?? 'en');
   const allocator = createIdAllocator(reservedIds, sectionsRaw.length);
   reserveExplicitIds(sectionsRaw, allocator);
+  if (opts.footnotes === 'page') preparePageFootnotes(sectionsRaw, allocator, opts.lang ?? 'en');
   if (bibliography !== null) {
     renderBibliography(sectionsRaw, clusters, bibliography, allocator, markerCount === 1);
   }

@@ -18,6 +18,11 @@
 html { font-family: var(--pfpdf-font-body); }
 body { margin: 0; }
 
+/* Semantic DPUB notes are paginated by Vivliostyle at their first reference. */
+.pfpdf-page-footnote { font-size: 0.85em; line-height: 1.45; text-align: start; }
+.pfpdf-page-footnote p { margin-block: 0.25em; text-align: inherit; }
+.pfpdf-page-footnote-number { font-variant-numeric: tabular-nums; }
+
 /* Keep the byline within the cover/header even with many or unbroken names. */
 .pfpdf-authors {
   min-width: 0;

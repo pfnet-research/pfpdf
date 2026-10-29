@@ -29,7 +29,7 @@ CLI と変換処理は TypeScript で実装し、npm package の compiled JavaSc
 - boolean、enum、数値、path を検証し、不正値を拒否する
 - path ごとに基準 directory を適用し、renderer へ渡す前に絶対 path へ正規化する
 - CLI の値をfront matterより常に優先し、effective config と各値の設定元を `--print-effective-config` と `--doctor` から再利用する
-- `InputResolver` が返した front matter の `template` / `toc` / `logo` は、対応するCLI指定がない場合だけ組み込み既定値を置き換える。したがって優先順は組み込み既定値、front matter、CLI とする
+- `InputResolver` が返した front matter の `template` / `toc` / `logo` / `footnotes` は、対応するCLI指定がない場合だけ組み込み既定値を置き換える。したがって優先順は組み込み既定値、front matter、CLI とする
 - template は1つの論理設定として解決する。`--template SOURCE` は bundled preset 名との完全一致、`git::` locator、local path の順に分類する。明示 preset の `--template-preset NAME` は source 指定と排他的とする
 - 同じ論理設定の正 / 負指定、たとえば `--toc` と `--no-toc`、`--logo` と `--no-logo` を同じ CLI invocation で併用した場合は、引数順に依存させず終了 code `2` とする
 - `--font-dir` 以外の値付き / boolean option を同じ invocation で繰り返した場合は、同じ値でも code `2` とする。unknown option、未定義の positional argument、option value の欠落も code `2` とし、「最後の値が勝つ」引数順依存を作らない
@@ -41,7 +41,7 @@ CLI と変換処理は TypeScript で実装し、npm package の compiled JavaSc
 - CLI のパスを絶対パスへ変換する
 - locale に依存しない規則で Markdown 一覧を決定し、case-insensitive filesystem で衝突する名前も検出する
 - front matter が最初の Markdown の先頭 1 か所だけにあることを検証する
-- title、author、series、date、page size、confidential、document language / direction、および `template` / `toc` / `logo` の型と値を検証する。CLIがfront matterを上書きする場合も、不正な値を無視しない
+- title、author、series、date、page size、confidential、document language / direction、および `template` / `toc` / `logo` / `footnotes` の型と値を検証する。CLIがfront matterを上書きする場合も、不正な値を無視しない
 - metadata の許可済み HTML と plain text 表現を分離し、template placeholder ごとの escape 漏れを防ぐ
 - file input ではその親 directory、directory input では input directory を resource base として保持する
 - 検証に使った Markdown byte 列をそのまま parser へ渡し、検証後に path から読み直して別内容を処理しない
@@ -211,7 +211,7 @@ Options:
 - `dir` は `ltr` / `rtl` / `auto` の ASCII case-sensitive enum とし、省略時は `auto` とする。生成 HTML root の `dir` attribute へ設定し、host locale や `lang` だけから text direction を推測しない。upstream の reading progression は固定値で上書きせず、computed `writing-mode` / direction から自動判定させ、horizontal RTL と vertical writing の PDF direction を compatibility test で確認する
 - page size keyword は ASCII case-insensitive の `A3`、`A4`、`A5`、`JIS-B4`、`JIS-B5`、`ISO-B4`、`ISO-B5`、`Letter`、`Legal` とする。曖昧な `B4` / `B5` は受け付けない。寸法は `<number><unit><ASCII-whitespace+><number><unit>` の幅・高さ順とし、unit は `mm` / `cm` / `in` / `pt`、各辺は正の有限 decimal とする。renderer が扱える寸法へ pfpdf 独自の上限を設けない
 - metadata key は `title`、`author`、`series`、`date`、`page_size`、`confidential`、`lang`、`dir` とする。文書設定と `bibliography` を含む既知 key 以外は、既定では source file と key 名を含む warning を key ごとに stderr へ出し、値を無視する。未知 key の値は metadata、effective config、生成文書へ渡さない。`--strict-front-matter` を指定した場合は未知 key を入力誤り (code `2`) とする。重複 key、不正 YAML、既知 key の不正な型・値はモードにかかわらず入力誤りとする
-- 文書設定の`template`はbundled template名、`toc`はYAML boolean、`logo`はlocal path stringまたは`false`とする。`logo`の相対pathはfront matter sourceの親directory基準で解決し、Git repository sourceはfront matterでは拒否して`--logo`だけから受け付ける
+- 文書設定の`template`はbundled template名、`toc`はYAML boolean、`logo`はlocal path stringまたは`false`、`footnotes`は`endnotes` / `page`（既定`endnotes`）とする。`logo`の相対pathはfront matter sourceの親directory基準で解決し、Git repository sourceはfront matterでは拒否して`--logo`だけから受け付ける
 - `--title` は有効な front matter title の値だけを上書きする。CLI override があっても front matter 全体の syntax、key、型を先に検証し、不正値を隠さない
 - `confidential` の既定値は `false` とし、利用者が明示した場合だけ `Confidential` 表示を行う
 - `SOURCE_DATE_EPOCH` は ASCII decimal の非負整数 Unix seconds とし、13 digit を超える値は数値変換前に拒否する。その後 JavaScript `Number` を経由せず parse し、安全な整数かつ ECMAScript `Date` の表現範囲にあることを確認する。不正値は無視せずエラーにする。`date` が省略されてこの値が有効なら、表示日付には UTC のその日付を使う。未設定時の表示日付は process 起動時に 1 回だけ取得した local date、PDF metadata は同じ起動 instant を使う。front matter の `date` の有無にかかわらず、`SOURCE_DATE_EPOCH` 未設定時は再現可能 build ではないことを warning にする
@@ -222,12 +222,12 @@ Options:
 
 ### 2.9.3 設定解決と診断
 
-- 文書設定の`template` / `toc` / `logo`は、CLIに値があればCLI、なければfront matter、どちらにもなければ組み込み既定値を採用する。template source / explicit presetと、logo source / disabledはそれぞれ排他的な1つの論理設定とする
+- 文書設定の`template` / `toc` / `logo` / `footnotes`は、CLIに値があればCLI、なければfront matter、どちらにもなければ組み込み既定値を採用する。template source / explicit presetと、logo source / disabledはそれぞれ排他的な1つの論理設定とする
 - browser path、追加font directory、host font、timeout、workspace保持、log level、`--strict-front-matter`はCLIだけから設定する。listを別の設定元から暗黙連結しない
 - 未知 front matter key の警告・無視と厳格検証は、通常変換、`--print-effective-config --input PATH`、`--doctor --input PATH` に共通で適用する。警告は通常の log level に従い、stdout の JSON に混ぜない。doctor では入力 check を `warning`、厳格検証で拒否した場合は `fail` とし、既存の診断用終了 code (`fail` があれば `1`、それ以外は `0`) を維持する
 - `SOURCE_DATE_EPOCH`だけは再現可能buildの標準環境変数として扱い、表示日付とPDF metadata timestampに使用する。front matterの`date`は表示日付だけを上書きする
 - child process は通常の CLI tool と同様に呼出元の環境変数を継承する
-- `--print-effective-config` は versioned schema を持つ JSON object を 1 個だけ stdout へ表示し、各値と、その設定元が CLI、front matter、default のどれかを含める。`--input` があれば先頭 Markdown の `template` / `toc` / `logo` まで反映する。token、credential、環境変数の生値は含めず、秘密を含み得る proxy URL と custom CA の内容は表示しない
+- `--print-effective-config` は versioned schema を持つ JSON object を 1 個だけ stdout へ表示し、各値と、その設定元が CLI、front matter、default のどれかを含める。`--input` があれば先頭 Markdown の `template` / `toc` / `logo` / `footnotes` まで反映する。token、credential、環境変数の生値は含めず、秘密を含み得る proxy URL と custom CA の内容は表示しない
 - `--doctor` は effective config に基づき、Node.js、browser、template、logo、font directory、出力権限を検査する
 - `--doctor` と `--print-effective-config` は PDF を生成せず、診断で秘密情報や環境変数全体を表示しない
 - `--doctor` は browser download、利用者の project / output directory 作成、設定変更を行わない。browser 実起動の検査に必要な場合だけ、OS の secure temporary directory に専用 profile / workspace を作り、`finally` で回収する。cleanup 失敗は check の `fail` として残す。出力権限は既存の最寄り親 directory から best effort で判定し、実際の create / rename 成功を保証しない。外部 process の各 check は cleanup を含めて 10 秒、command 全体は 60 秒で打ち切り、timeout を `fail` として報告する

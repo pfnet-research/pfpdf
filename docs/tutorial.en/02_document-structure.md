@@ -37,6 +37,7 @@ This validation policy also applies to `--print-effective-config --input docs` a
 | `series` | string | none | Series name shown in the primary label position of every bundled template |
 | `template` | bundled template name | `default` | Bundled template used for the document |
 | `toc` | boolean | `true` | Whether to generate a table of contents |
+| `footnotes` | `endnotes` / `page` | `endnotes` | Endnotes / page-bottom notes at their first reference |
 | `logo` | path string / `false` | template default | Cover logo. `false` displays no logo |
 | `date` | string | run date | Date shown on the cover |
 | `page_size` | keyword / dimensions | `A4` | Page size |

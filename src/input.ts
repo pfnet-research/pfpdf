@@ -116,7 +116,7 @@ export interface FrontMatterOptions {
 
 const ALLOWED_KEYS = new Set([
   'title', 'author', 'series', 'date', 'page_size', 'confidential', 'lang', 'dir',
-  'bibliography', 'template', 'toc', 'logo',
+  'bibliography', 'template', 'toc', 'logo', 'footnotes',
 ]);
 
 interface SourceLine {
@@ -228,6 +228,10 @@ function resolveFrontMatterConfig(
   if (tocValue !== undefined && typeof tocValue !== 'boolean') {
     throw new InputError('front matter toc: expected a YAML boolean');
   }
+  const footnotesValue = raw.get('footnotes');
+  if (footnotesValue !== undefined && footnotesValue !== 'endnotes' && footnotesValue !== 'page') {
+    throw new InputError('front matter footnotes: expected endnotes/page');
+  }
 
   const logoValue = raw.get('logo');
   let logo: FrontMatterConfig['logo'] = null;
@@ -250,7 +254,7 @@ function resolveFrontMatterConfig(
   } else if (logoValue !== undefined) {
     throw new InputError('front matter logo: expected a path string or false');
   }
-  return { template, toc: tocValue ?? null, logo };
+  return { template, toc: tocValue ?? null, logo, footnotes: footnotesValue ?? null };
 }
 
 /** Read document configuration for configuration diagnostics. */
