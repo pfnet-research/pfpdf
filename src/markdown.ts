@@ -136,7 +136,7 @@ export async function buildDocumentBody(
   files: SourceFile[],
   manifest: ResourceManifest,
   reservedIds: string[],
-  opts: { warn: (msg: string) => void; bibliography?: BibliographyFile[] },
+  opts: { warn: (msg: string) => void; bibliography?: BibliographyFile[]; lang?: string },
 ): Promise<DocumentBody> {
   const parses = parseSources(files);
   const clusters = parses.flatMap((parse) => parse.citations);
@@ -146,7 +146,7 @@ export async function buildDocumentBody(
     throw new InputError('\\printbibliography requires at least one citation');
   }
   const bibliography = prepareBibliography(opts.bibliography ?? [], clusters);
-  const sectionsRaw = await convertSourcesToHast(parses);
+  const sectionsRaw = await convertSourcesToHast(parses, opts.lang ?? 'en');
   const allocator = createIdAllocator(reservedIds, sectionsRaw.length);
   reserveExplicitIds(sectionsRaw, allocator);
   if (bibliography !== null) {
@@ -182,12 +182,18 @@ export function parseSources(files: SourceFile[]): ParsedSource[] {
   });
 }
 
-async function convertSourcesToHast(parses: ParsedSource[]): Promise<HastRoot[]> {
+async function convertSourcesToHast(parses: ParsedSource[], lang: string): Promise<HastRoot[]> {
+  const japanese = lang === 'ja' || lang.startsWith('ja-');
   const roots: HastRoot[] = [];
   for (const parse of parses) {
     roots.push((await unified()
       .use(remarkRehype, {
         allowDangerousHtml: true,
+        ...(japanese ? {
+          footnoteLabel: '脚注',
+          footnoteBackLabel: (referenceIndex: number, rereferenceIndex: number) =>
+            `参照 ${referenceIndex + 1}${rereferenceIndex > 1 ? `（${rereferenceIndex} 回目）` : ''} に戻る`,
+        } : {}),
         handlers: {
           inlineMath: (_state: unknown, node: { value: string; position?: unknown }) =>
             mathPlaceholder(node.value, false, node.position),
