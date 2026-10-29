@@ -19,7 +19,7 @@ test('front matter parses scalars and document configuration', () => {
   const p = tmpFile('---\ntitle: Hello\nauthor: Alice\nseries: Example Reports\ntemplate: pfn\ntoc: false\nlogo: assets/logo.svg\nconfidential: true\n---\n\n# Hi\n');
   const r = resolveInput(p, null, { SOURCE_DATE_EPOCH: '1750000000' }, noop);
   assert.deepEqual(r.metadata.title, { lines: ['Hello'], plainText: 'Hello' });
-  assert.equal(r.metadata.author, 'Alice');
+  assert.deepEqual(r.metadata.author, ['Alice']);
   assert.equal(r.metadata.series, 'Example Reports');
   assert.equal(r.config.template, 'pfn');
   assert.equal(r.config.toc, false);
@@ -88,7 +88,7 @@ test('unknown front matter keys warn once each and do not affect metadata or con
   const warnings: string[] = [];
   const result = resolveInput(p, null, { SOURCE_DATE_EPOCH: '0' }, (msg) => warnings.push(msg));
   assert.equal(result.metadata.title.plainText, 'Example');
-  assert.equal(result.metadata.author, 'Alice');
+  assert.deepEqual(result.metadata.author, ['Alice']);
   assert.equal(result.metadata.pageSize.css, '210mm 297mm');
   assert.deepEqual(result.config, { template: null, toc: null, logo: null });
   assert.equal(result.files[0]!.content, '# Body\n');
@@ -134,7 +134,7 @@ test('duplicate keys and malformed YAML remain errors in both front matter modes
 test('known front matter values stay validated in both modes, including CLI overrides', () => {
   for (const strictFrontMatter of [false, true]) {
     for (const yaml of [
-      'title: false', 'title: "<b>bad</b>"', 'title: T\nauthor: []',
+      'title: false', 'title: "<b>bad</b>"', 'title: T\nauthor: [false]',
       'title: T\npage_size: B4', 'title: T\nconfidential: yes',
       'title: T\nlang: invalid_tag', 'title: T\ndir: LTR',
       'title: T\ntemplate: missing', 'title: T\ntoc: yes',
@@ -256,7 +256,7 @@ test('title normalization decodes entities and preserves display lines once', ()
 });
 
 test('SOURCE_DATE_EPOCH controls the display date', () => {
-  const p = tmpFile('---\ntitle: T\n---\nbody\n');
+  const p = tmpFile('---\ntitle: T\nlang: ja\n---\nbody\n');
   const r = resolveInput(p, null, { SOURCE_DATE_EPOCH: '1750000000' }, noop);
   assert.equal(r.metadata.date, '2025 年 6 月 15 日');
 });
@@ -315,5 +315,30 @@ test('lang canonicalization and dir validation', () => {
       () => resolveInput(tmpFile(`---\ntitle: T\nlang: ${invalid}\n---\n`), null, {}, noop),
       InputError,
     );
+  }
+});
+
+test('author strings and lists normalize to ordered literal names', () => {
+  for (const [yaml, expected] of [
+    ['author: Alice', ['Alice']],
+    ['author: "Smith, Alice"', ['Smith, Alice']],
+    ['author: [Alice, 山田 太郎, "Research & Development"]', ['Alice', '山田 太郎', 'Research & Development']],
+    ['author: |\n  Alice\n  Example Institute\n', ['Alice\nExample Institute']],
+    ['author: "Alice<br>Bob &amp; Carol"', ['Alice<br>Bob &amp; Carol']],
+    ['author: ["  Alice  ", "Bob\\r\\nExample Institute"]', ['Alice', 'Bob\nExample Institute']],
+  ] as const) {
+    const input = tmpFile(`---\ntitle: T\n${yaml}\n---\nbody\n`);
+    assert.deepEqual(resolveInput(input, null, { SOURCE_DATE_EPOCH: '0' }, noop).metadata.author, expected);
+  }
+});
+
+test('empty author strings and lists omit the byline while invalid entries remain input errors', () => {
+  for (const yaml of ['', 'author: ""', 'author: "  "', 'author: []']) {
+    const input = tmpFile(`---\ntitle: T\n${yaml}\n---\nbody\n`);
+    assert.equal(resolveInput(input, null, { SOURCE_DATE_EPOCH: '0' }, noop).metadata.author, null);
+  }
+  for (const value of ['null', 'false', '42', '{}', '[Alice, null]', '[42]', '[{}]', '[[]]', '[""]', '["  "]']) {
+    const input = tmpFile(`---\ntitle: T\nauthor: ${value}\n---\nbody\n`);
+    assert.throws(() => resolveInput(input, null, {}, noop), { name: 'InputError', exitCode: 2 });
   }
 });

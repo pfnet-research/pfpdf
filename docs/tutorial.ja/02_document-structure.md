@@ -41,7 +41,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-m
 | `date` | string | 実行日 | 表紙に表示する日付 |
 | `page_size` | keyword / 寸法 | `A4` | ページサイズ |
 | `confidential` | boolean | `false` | `true` のとき全 page に Confidential 表示を出します |
-| `lang` | BCP 47 string | `ja` | 文書の言語。HTML の `lang`、組版、フォント選択に使います |
+| `lang` | BCP 47 string | 本文から `ja` / `en` を推定 | 文書の言語。HTML の `lang`、組版、フォント選択に使います |
 | `dir` | `ltr` / `rtl` / `auto` | `auto` | 文書の文字方向。HTML root の `dir` に使います |
 
 - `title` は必須です。front matter に書くか、`--title` で指定してください。どちらにもない場合はエラー(終了 code `2`)になります
@@ -52,7 +52,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-m
 - front matter は YAML mapping として読みます。pfpdf が利用するのは上表と第 3 章で説明する `bibliography` だけで、metadata key は表に記載した型である必要があります。複雑な YAML 値を書けても metadata としては利用されません
 - source file の最初の行が `---` なら front matter delimiter とみなされます。最初の file では閉じる `---` または `...` が必要で、2 個目以降の file では front matter の重複としてエラーです。各 file の先頭で水平線を出したい場合は `***` を使ってください
 - `page_size` の keyword は `A3` / `A4` / `A5`、`JIS-B4` / `JIS-B5`、`ISO-B4` / `ISO-B5`、`Letter` / `Legal` です。規格が曖昧な `B4` / `B5` は使えません。`210mm 297mm` のように幅と高さを指定することもできます
-- 英語文書なら `lang: en` のように BCP 47 language tag を指定します。省略時は host の言語に依存せず `ja` です
+- `lang: en` / `lang: ja-JP` のような明示した BCP 47 language tag が最優先です。省略時は全入力 file の本文から日英を推定し、host locale は使いません。かな・漢字・英字を数え、ひらがなが 2 字以上かつ対象文字の 1% 以上、かなを含み日本語文字数が英字数以上、または漢字数が英字数を超える場合は `ja`、それ以外は `en` です。code・数式・raw HTML block・URL は除外し、判定対象文字がなければ title を使います。短文や多言語文書では `lang` を明示してください
 - 右から左へ書く文書は `dir: rtl`、左から右なら `dir: ltr` を指定できます。`auto` は文書内容から browser が判定し、`lang` や host locale だけから方向を推測しません
 - `lang` の primary language が `ja` なら自動日付は `2026 年 8 月 3 日`、それ以外では `2026-08-03` の固定表記になります。front matter に書いた `date` の文字列自体は書き換えられません
 

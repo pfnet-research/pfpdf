@@ -207,7 +207,7 @@ Options:
 - `title` は空でない string とし、HTML tokenizer で text / character reference と、大小文字を区別しない attribute なしの `<br>` / `<br/>` / `<br />` token だけを許可する。その他の comment、tag、attribute は除去せずエラーにする。plain な `x < y` は text として扱う。plain text 表現では許可した改行 tag を U+000A へ変換し、HTML `<title>` では空白へ畳んでから DOM API で設定する
 - `author`、`series`、`date` は string、`confidential` は YAML boolean、`page_size` は allowlist keyword または寸法 2 個だけを受け付け、省略時は `A4` とする。`author` / `series` / `date` には HTML を許可せず DOM の text として挿入する
 - title の視覚的な改行は YAML block scalar や literal newline ではなく、許可した `<br>` を使う
-- `lang` は well-formed な BCP 47 language tag の string とし、Node.js の `Intl.getCanonicalLocales` で canonical form へ正規化する。省略時は `ja` とし、生成 HTML root の `lang` attribute、hyphenation、font 選択へ使う
+- `lang` は well-formed な BCP 47 language tag の string とし、Node.js の `Intl.getCanonicalLocales` で canonical form へ正規化する。省略時は全入力 file の Markdown 本文から `ja` / `en` を推定する。明示した値は推定より優先し、生成 HTML root の `lang` attribute、hyphenation、font 選択、自動日付と生成 label に共通して使う
 - `dir` は `ltr` / `rtl` / `auto` の ASCII case-sensitive enum とし、省略時は `auto` とする。生成 HTML root の `dir` attribute へ設定し、host locale や `lang` だけから text direction を推測しない。upstream の reading progression は固定値で上書きせず、computed `writing-mode` / direction から自動判定させ、horizontal RTL と vertical writing の PDF direction を compatibility test で確認する
 - page size keyword は ASCII case-insensitive の `A3`、`A4`、`A5`、`JIS-B4`、`JIS-B5`、`ISO-B4`、`ISO-B5`、`Letter`、`Legal` とする。曖昧な `B4` / `B5` は受け付けない。寸法は `<number><unit><ASCII-whitespace+><number><unit>` の幅・高さ順とし、unit は `mm` / `cm` / `in` / `pt`、各辺は正の有限 decimal とする。renderer が扱える寸法へ pfpdf 独自の上限を設けない
 - metadata key は `title`、`author`、`series`、`date`、`page_size`、`confidential`、`lang`、`dir` とする。文書設定と `bibliography` を含む既知 key 以外は、既定では source file と key 名を含む warning を key ごとに stderr へ出し、値を無視する。未知 key の値は metadata、effective config、生成文書へ渡さない。`--strict-front-matter` を指定した場合は未知 key を入力誤り (code `2`) とする。重複 key、不正 YAML、既知 key の不正な型・値はモードにかかわらず入力誤りとする
@@ -216,7 +216,7 @@ Options:
 - `confidential` の既定値は `false` とし、利用者が明示した場合だけ `Confidential` 表示を行う
 - `SOURCE_DATE_EPOCH` は ASCII decimal の非負整数 Unix seconds とし、13 digit を超える値は数値変換前に拒否する。その後 JavaScript `Number` を経由せず parse し、安全な整数かつ ECMAScript `Date` の表現範囲にあることを確認する。不正値は無視せずエラーにする。`date` が省略されてこの値が有効なら、表示日付には UTC のその日付を使う。未設定時の表示日付は process 起動時に 1 回だけ取得した local date、PDF metadata は同じ起動 instant を使う。front matter の `date` の有無にかかわらず、`SOURCE_DATE_EPOCH` 未設定時は再現可能 build ではないことを warning にする
 - 生成日付は `lang` の primary language が `ja` なら `2026 年 8 月 3 日`、それ以外なら locale 非依存の `2026-08-03` とする。template は日付へ固定 label を追加せず、利用者が指定した任意 string の `date` は書式変更しない
-- PDF Info / XMP の title は title の plain text 表現、author は HTML として解釈しない元 string を使い、author 未指定時は field を作らない。PDF catalog の `/Lang` は canonical `lang` にする。表示用 `date` や confidential flag を PDF の作成 timestamp / author field へ流用しない
+- PDF Info / XMP の title は title の plain text 表現、author は HTML として解釈しない plain text 表現を使い、author 未指定時は field を作らない。PDF catalog の `/Lang` は canonical `lang` にする。表示用 `date` や confidential flag を PDF の作成 timestamp / author field へ流用しない
 - PDF の CreationDate / ModDate と XMP timestamp は、`SOURCE_DATE_EPOCH` があればその UTC instant、なければ process 起動時刻を使う。任意 string である front matter の `date` は PDF timestamp に流用しない。upstream の正式 option または構造を理解する PDF library で設定し、PDF byte 列を正規表現置換しない
 - canonical CI では `SOURCE_DATE_EPOCH` を固定し、生成 HTML と PDF Info / XMP title・author・language・timestamp / timezone policy を同じ fixture で検査する。timestamp を固定しても browser / OS 間の PDF byte 一致までは保証しない
 

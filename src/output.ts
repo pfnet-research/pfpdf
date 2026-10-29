@@ -117,11 +117,11 @@ async function structuralCheckAndPostprocess(tmpPath: string, opts: CommitOption
   const pages = doc.getPageCount();
   if (pages < 1) throw new RuntimeError('renderer output has no pages');
 
-  // Metadata: title from the plain-text title, author verbatim, /Lang, timestamps.
+  // Metadata: plain-text title, ordered author names, /Lang, timestamps.
   const plainTitle = opts.metadata.title.plainText;
   doc.setTitle(plainTitle);
   if (opts.metadata.author !== null) {
-    doc.setAuthor(opts.metadata.author);
+    doc.setAuthor(opts.metadata.author.map(authorMetadataText).join(', '));
   } else if (doc.context.trailerInfo.Info !== undefined) {
     const info = doc.context.lookup(doc.context.trailerInfo.Info, PDFDict);
     info.delete(PDFName.of('Author'));
@@ -158,7 +158,7 @@ async function structuralCheckAndPostprocess(tmpPath: string, opts: CommitOption
 
 function buildXmpMetadata(options: {
   title: string;
-  author: string | null;
+  author: string[] | null;
   lang: string;
   timestamp: Date;
 }): string {
@@ -167,7 +167,7 @@ function buildXmpMetadata(options: {
   const timestamp = options.timestamp.toISOString();
   const creator = options.author === null
     ? ''
-    : `<dc:creator><rdf:Seq><rdf:li>${xmlEscape(options.author)}</rdf:li></rdf:Seq></dc:creator>`;
+    : `<dc:creator><rdf:Seq>${options.author.map((name) => `<rdf:li>${xmlEscape(authorMetadataText(name))}</rdf:li>`).join('')}</rdf:Seq></dc:creator>`;
   return `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?>
 <x:xmpmeta xmlns:x="adobe:ns:meta/">
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -178,6 +178,11 @@ ${creator}<dc:language><rdf:Bag><rdf:li>${lang}</rdf:li></rdf:Bag></dc:language>
 <xmp:CreatorTool>pfpdf</xmp:CreatorTool><pdf:Producer>pfpdf</pdf:Producer>
 </rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>`;
+}
+
+/** PDF metadata carries names without display-only newlines. */
+function authorMetadataText(name: string): string {
+  return name.replace(/\s+/g, ' ').trim();
 }
 
 function xmlEscape(value: string): string {

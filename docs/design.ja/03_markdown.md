@@ -143,6 +143,8 @@ footnote、alert、mention、issue reference、emoji shortcode、Mermaid など 
 - raw HTML で代替できることを理由に GFM 構文自体を省略しない
 - 対応していない GitHub.com 固有機能を「GFM 非対応」とは表現しない
 
+脚注記法 `本文[^note]` と `[^note]: 補足説明` は末尾注として出力します。解決済み文書言語の primary language が `ja` なら見出しは「脚注」、戻りリンクのアクセシビリティ label は「参照 1 に戻る」（繰返し参照は「参照 1（2 回目） に戻る」）とします。英語とその他の言語では `Footnotes` / `Back to reference 1` を使います。ID・番号・リンク・利用者の脚注本文は変更せず、自動生成した見出しを目次へ含めません。配置は末尾注のままとし、ページ下部への配置は別の機能です。
+
 ## 3.6 conformance の検査方法
 
 GFM Spec の example は、template wrapper、見出し ID、目次、resource URL 書き換えなど pfpdf 固有の後処理を加える前の `GfmAdapter` に対して実行します。これにより pfpdf の付加属性を GFM 違反と誤判定せず、parser 自体の conformance を検査できます。

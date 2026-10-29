@@ -18,6 +18,14 @@
 html { font-family: var(--pfpdf-font-body); }
 body { margin: 0; }
 
+/* Keep the byline within the cover/header even with many or unbroken names. */
+.pfpdf-authors {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: inherit;
+}
+
 a { overflow-wrap: anywhere; }
 p,
 li,

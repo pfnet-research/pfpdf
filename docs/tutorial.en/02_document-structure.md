@@ -41,7 +41,7 @@ This validation policy also applies to `--print-effective-config --input docs` a
 | `date` | string | run date | Date shown on the cover |
 | `page_size` | keyword / dimensions | `A4` | Page size |
 | `confidential` | boolean | `false` | When `true`, shows a Confidential mark on every page |
-| `lang` | BCP 47 string | `ja` | Document language. Used for the HTML `lang` attribute, typesetting, and font selection |
+| `lang` | BCP 47 string | `ja` / `en` inferred from prose | Document language. Used for the HTML `lang` attribute, typesetting, and font selection |
 | `dir` | `ltr` / `rtl` / `auto` | `auto` | Text direction of the document. Used for the `dir` attribute of the HTML root |
 
 - `title` is required. Write it in the front matter or pass it with `--title`. If it appears in neither, that is an error (exit code `2`)
@@ -52,7 +52,7 @@ This validation policy also applies to `--print-effective-config --input docs` a
 - The front matter is parsed as a YAML mapping. pfpdf uses only the keys in the table above and the `bibliography` key described in Chapter 03; each metadata key must have the type listed in the table. You can write complex YAML values, but they are not used as metadata
 - If the first line of a source file is `---`, pfpdf treats it as a front matter delimiter. The first file must contain a closing `---` or `...`; the same opening delimiter in any later file is an error because it would introduce duplicate front matter. To place a horizontal rule at the top of a file, use `***`
 - The `page_size` keywords are `A3` / `A4` / `A5`, `JIS-B4` / `JIS-B5`, `ISO-B4` / `ISO-B5`, and `Letter` / `Legal`. The ambiguous `B4` / `B5` are not allowed. You can also specify an explicit width and height, such as `210mm 297mm`
-- For an English document, specify a BCP 47 language tag such as `lang: en`. When omitted, the default is `ja` regardless of the host language
+- An explicit BCP 47 language tag such as `lang: en` / `lang: ja-JP` always wins. When omitted, Japanese or English is inferred from prose across all input files without using the host locale. Count kana, Han, and Latin characters: select `ja` if at least two hiragana make up at least 1% of those characters, if kana is present and Japanese characters are at least as numerous as Latin characters, or if Han characters outnumber Latin characters; otherwise select `en`. Code, math, raw HTML blocks, and URLs are excluded; use the title if no counted prose characters remain. Specify `lang` for short or multilingual documents
 - For right-to-left documents you can specify `dir: rtl`, and for left-to-right documents, `dir: ltr`. With `auto`, the browser determines the direction from the document content; it does not guess the direction from `lang` or the host locale alone
 - If the primary language of `lang` is `ja`, the automatically generated date is rendered in Japanese style, as in `2026 年 8 月 3 日`; otherwise it uses the fixed `2026-08-03` format. A `date` string written in the front matter is never rewritten
 

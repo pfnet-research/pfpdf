@@ -108,6 +108,7 @@ async function prepareDocument(
   const body = await buildDocumentBody(input.files, manifest, template.reservedIds, {
     warn: log.warn,
     bibliography: input.bibliography,
+    lang: input.metadata.lang,
   });
   const document = buildDocumentHtml({
     metadata: input.metadata,

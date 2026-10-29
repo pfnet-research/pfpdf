@@ -6,6 +6,7 @@ import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import { BUNDLED_TEMPLATE_NAMES } from './bundled-templates.js';
 import type { FrontMatterConfig } from './config.js';
 import { InputError } from './errors.js';
+import { inferDocumentLanguage } from './language.js';
 
 export interface SourceFile {
   /** Absolute path. */
@@ -20,7 +21,8 @@ export interface SourceFile {
 
 export interface Metadata {
   title: NormalizedTitle;
-  author: string | null;
+  /** Ordered author names; newlines are intentional display breaks within a name. */
+  author: string[] | null;
   series: string | null;
   /** Display date string: explicit front matter value or a generated one. */
   date: string | null;
@@ -322,6 +324,22 @@ export function normalizeTitle(title: string): NormalizedTitle {
   return { lines, plainText: lines.join('\n') };
 }
 
+/** Author text is the primary format; lists are an undocumented compatibility fallback. */
+export function normalizeAuthors(value: unknown): string[] | null {
+  if (value === undefined) return null;
+  if (typeof value !== 'string' && !Array.isArray(value)) {
+    throw new InputError('front matter author: expected a string or an array of author-name strings');
+  }
+  const names: unknown[] = typeof value === 'string' ? [value] : value;
+  if (names.length === 0 || (typeof value === 'string' && value.trim() === '')) return null;
+  return names.map((name, index) => {
+    if (typeof name !== 'string' || name.trim() === '') {
+      throw new InputError(`front matter author[${index}]: expected a non-empty author-name string`);
+    }
+    return name.replace(/\r\n?/g, '\n').trim();
+  });
+}
+
 function validateOverriddenTitle(title: string | null): void {
   if (title !== null) {
     // Preserve validation of front matter hidden by a CLI override.
@@ -404,7 +422,7 @@ export function resolveInput(
   }
   const title = normalizeTitle(rawTitle);
 
-  const author = requireString('author');
+  const author = normalizeAuthors(raw.get('author'));
   const series = requireString('series');
   const explicitDate = requireString('date');
 
@@ -417,7 +435,7 @@ export function resolveInput(
   const pageSizeRaw = requireString('page_size');
   const pageSize = pageSizeRaw === null ? parsePageSize('A4') : parsePageSize(pageSizeRaw);
 
-  const lang = canonicalizeLang(requireString('lang') ?? 'ja');
+  const lang = canonicalizeLang(requireString('lang') ?? inferDocumentLanguage(files, title.plainText));
 
   const dirRaw = requireString('dir') ?? 'auto';
   if (dirRaw !== 'ltr' && dirRaw !== 'rtl' && dirRaw !== 'auto') {
