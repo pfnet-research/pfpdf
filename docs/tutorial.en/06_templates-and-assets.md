@@ -37,6 +37,14 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
 
 Front matter can select bundled templates only. CLI `--template SOURCE` uses a bundled preset on an exact preset-name match and otherwise treats the value as a local directory or Git locator. Use `--template-preset` to explicitly require a preset. The complete template precedence is the built-in `default`, front matter, then CLI arguments.
 
+To omit the cover, use front matter `cover: false` or CLI `--no-cover`. `--cover` overrides a hidden cover in front matter. This is independent of `toc` / `--no-toc`. With `compact`, the leading document header is omitted. Cover author, date, series, and logo displays are omitted, while PDF metadata and template-provided Confidential / series running information remain.
+
+```bash
+pfpdf --input report.md --output report.pdf --no-cover --no-toc
+```
+
+For a custom template, put the entire cover in an element marked `data-pfpdf-slot="cover"`. Keep content / toc slots and custom running elements outside it. The toggle does not change the display of a custom template without a cover slot.
+
 ## 6.2 Injecting a logo
 
 Bundled templates include no logo image. Normally select a local file you have the rights to use in the first Markdown file's front matter. A custom template can have a default logo by putting a template-relative path in the `src` of its `logo` slot.

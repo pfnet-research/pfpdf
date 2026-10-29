@@ -18,7 +18,9 @@
   }
 }
 
-@page :first {
+.pfpdf-cover { page: pfpdf-cover; }
+
+@page pfpdf-cover:first {
   margin-top: 20mm;
   @bottom-left { content: none; }
   @bottom-center { content: none; }

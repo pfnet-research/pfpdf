@@ -45,7 +45,9 @@
   }
 }
 
-@page :first {
+.notebook-cover { page: pfpdf-cover; }
+
+@page pfpdf-cover:first {
   margin: 0;
   @top-left { content: none; }
   @top-right { content: none; }
