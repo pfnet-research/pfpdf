@@ -12,6 +12,8 @@ The command checks the Node.js version, browser availability, fonts, output perm
 
 `--doctor` does not download browsers, create project or output directories, or change OS settings. For the actual launch check it uses an isolated temporary profile, which is deleted afterward. Each external check times out after 10 seconds including cleanup, and the whole run after 60 seconds.
 
+If the browser check fails, the `message` for `id: "browser"` in `checks` includes the exit code, signal, or timeout and the child process's stderr. The stderr excerpt is at most 4 KiB in UTF-8; longer output retains the beginning and end with an explicit truncation marker. This excerpt also helps diagnose unknown errors. Recognized root / sandbox, user namespace / AppArmor, shared library, and executable failures include a suggested cause. Diagnostics are encoded as a JSON string, so newlines in stderr do not split stdout into multiple JSON records.
+
 To confirm that settings are taking effect as intended, use `--print-effective-config`. It prints each setting's value, along with whether it came from the CLI, front matter, or a default, as JSON. Include `--input` when checking front matter `template` / `toc` / `logo` settings.
 
 ## 8.2 The Node.js version is too old
@@ -34,6 +36,8 @@ pfpdf never installs packages automatically with root privileges. Add OS package
 ## 8.5 The sandbox cannot start on Linux
 
 Even with all shared libraries in place, some environments cannot start the Chromium sandbox, for example due to the unprivileged user namespace restrictions in Ubuntu 23.10 and later. This is a separate issue from missing libraries, and pfpdf's diagnostics report it as such.
+
+`root execution refused` means that the browser rejected root execution; run as a non-root user. `user namespace or AppArmor restriction` indicates a host restriction that can also affect non-root users. `browser sandbox unavailable` suggests another sandbox launch failure. Check these hints together with the original stderr retained in `message`.
 
 Working around it requires configuration changes with root privileges. On Ubuntu, for example, one known approach is adding an AppArmor profile for the Chromium executable. If the environment cannot be changed, run the conversion in another supported environment where the sandbox works.
 

@@ -234,6 +234,7 @@ Options:
 - `--doctor` and `--print-effective-config` do not require `--input` and `--output`
 - `--doctor` without input / output inspects only the runtime and global settings, and inspects document resources and the write destination only when they are specified. Unspecified items are never displayed as verified successes
 - `--doctor` writes a JSON object with a versioned schema to stdout, giving each check `pass` / `warning` / `fail` / `not-run` and its rationale. The exit code is `1` when a problem is detected, `0` when there are only warnings or no problems
+- A failed browser launch retains the child process's exit code / signal / timeout and the beginning and end of stderr in `message`. The stderr excerpt is at most 4 KiB in UTF-8, with an explicit truncation marker. Known root / sandbox, user namespace / AppArmor, shared library, and executable failures include a suggested cause, while unknown stderr is retained as well. The JSON schema and diagnostic exit codes do not change
 
 An unspecified logo is the `template` state that uses the slot's default `src`; front matter `logo: false` or CLI `--no-logo` is the distinct `none` state that removes it too.
 

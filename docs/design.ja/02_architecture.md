@@ -234,6 +234,7 @@ Options:
 - `--doctor` と `--print-effective-config` の実行時は `--input` と `--output` を必須にしない
 - input / output なしの `--doctor` は runtime と global setting だけを検査し、指定された場合だけ document resource と書込先まで検査する。未指定項目を成功確認済みと表示しない
 - `--doctor` は versioned schema の JSON object を stdout へ出し、検査ごとに `pass` / `warning` / `fail` / `not-run` と根拠を持たせる。問題を検出した場合に終了 code `1`、warning のみまたは問題なしの場合は `0` を返す
+- browser 実起動の失敗は、子 process の終了 code / signal / timeout と stderr の先頭・末尾を `message` に残す。stderr の抜粋は UTF-8 で最大 4 KiB とし、省略を明示する。既知の root / sandbox、user namespace / AppArmor、shared library、実行ファイルの問題には原因の目安を添えるが、未知の stderr も捨てない。JSON schema と診断用終了 code は変更しない
 
 logo未指定はtemplate slotの既定`src`を使用する`template`状態、front matterの`logo: false`またはCLIの`--no-logo`はそれも削除する`none`状態としてeffective configで区別します。
 
