@@ -554,3 +554,14 @@ Each decision follows this format:
 - Rejected: (a) cannot distinguish multiple references to the same URL or recover input from rewritten URLs. (b) breaks legitimate scripted image setup. Refetching images to obtain HTTP status changes authentication, CORS, and side effects, so it is not used
 - Validation: Empty URLs, original lines, missing local files, HTML without src, corrupt local / data images, HTTP404, dropped connections, src populated by registered promises, image-free documents, and preservation of existing output, using exact renderer HTML and rendering
 - Revisit when: A user-provided source-location API for script-generated images becomes necessary
+
+## DD-53: Join Japanese paragraph source wrapping in the AST
+
+- Status: Accepted (2026-10-29)
+- Problem: Editing-oriented source wrapping inserts visible spaces in Japanese paragraphs, changing layout relative to continuous prose (#23)
+- Options: (a) replace newlines throughout the source, (b) use CSS white-space alone, (c) remove only soft breaks in Japanese Markdown paragraphs after checking neighboring characters and source provenance
+- Decision: (c). Reuse resolved document `lang`; join only source LF / CRLF between Han, kana, Japanese punctuation, or full-width punctuation. Evaluate text continuously through emphasis/strong/link elements; code/math/images/note references are boundaries and paragraphs containing raw HTML are protected. Preserve authored trailing spaces and newline character references; Markdown continuation indentation does not become text. Preserve headings and source positions
+- Rejected: (a) breaks code, raw HTML, hard breaks, and original line numbers. (b) cannot distinguish authored spaces from source wrapping and leaves unintended extraction whitespace
+- Compatibility: English/other languages, Japanese/Latin boundaries, authored spaces, hard breaks, and paragraph boundaries retain previous behavior. The GFM parser is unchanged; record the intended deviation in the Markdown specification and fixtures
+- Validation: Pinned-parser GfmAdapter fixtures, inline elements, character references, CRLF, nesting, raw HTML, code/math, IDs/URLs/positions, exact renderer HTML widths and final PDFs across all seven templates
+- Revisit when: Joining Japanese/Latin boundaries or explicit control of source wrapping inside raw HTML is needed
