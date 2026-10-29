@@ -118,7 +118,9 @@
 }
 
 /* Keep this after the side rules because the first page is also :right. */
-@page :first {
+html > body > header { page: pfpdf-cover; }
+
+@page pfpdf-cover:first {
 	margin: 0;
 	background: transparent;
 	@bottom-center { content: none; }

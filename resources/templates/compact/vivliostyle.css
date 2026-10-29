@@ -50,7 +50,9 @@
   }
 }
 
-@page :first {
+body.pfpdf-has-cover { page: pfpdf-compact; }
+
+@page pfpdf-compact:first {
   margin-top: 15mm;
   @top-left { border: 0; content: none; }
   @top-right { border: 0; content: none; }
