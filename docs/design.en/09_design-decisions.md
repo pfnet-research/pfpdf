@@ -521,18 +521,6 @@ Each decision follows this format:
 - Validation: Unit and integration tests cover the reported `tags` / `status` example, exclusion of unknown values from configuration and documents, typo warnings, strict mode, invalid known values, duplicate keys, invalid YAML, stdout / stderr across commands, and CLI precedence. A PDF smoke test checks successful conversion of the reported example and preservation of existing output on strict-mode failure. Build the Japanese and English design and tutorial PDFs
 - Reconsider when: Usage of unknown keys calls for additional supported metadata, or warnings need an aggregated display
 
-## DD-46: preserve multiple authors as ordered names and render bylines and PDF metadata by context
-
-- Status: Accepted (2026-10-29)
-- Problem: `author` accepts only a string and cannot represent multiple authors as a YAML array. Display line breaks must also be distinguished from the single-string PDF Info Author and ordered XMP creators (#20)
-- Options: (a) join the array into a single string early, (b) force a line break after every author, (c) retain ordered names, join the displayed byline with commas and spaces, and use a string for PDF Info and distinct XMP creators
-- Adopted: (c). An existing scalar is one author and is never automatically split on commas or other characters. The title-page instructions in Wiley’s [WJOHNS Author Guidelines](https://onlinelibrary.wiley.com/doi/pdfdirect/10.1002/wjo2.70083) list author names together separated by commas; this informs the compact comma-space byline convention. Spelling and name order remain as supplied. Japanese names use the same separator without language-dependent rewriting of author information
-- Normalization: trim each name and convert CRLF / CR to LF. Omission, a whitespace-only scalar, or an empty array means no author. Every array element must be a non-blank string; invalid elements are never silently discarded. HTML and character references remain literal text, with only explicit newlines converted into display br elements
-- Output: the byline joins author spans with `, ` and wraps naturally. Long unbroken names can wrap within the page width. PDF Info Author collapses newlines and repeated whitespace within names to single spaces and joins names with `, `. XMP dc:creator records each identically normalized name in an ordered rdf:Seq
-- Rejection reasons: (a) loses the distinction between commas within names and author separators and cannot retain distinct XMP creators. (b) consumes unnecessary vertical space for many authors. Names are not shortened, replaced by et al., or sorted, because that changes the supplied order and information. Affiliation / contact objects and relaxed validation of other known keys are outside this change
-- Validation: inspect scalars / arrays, empty values, invalid elements, commas within names, Japanese names, literal HTML, explicit newlines, bylines and wrapping in all seven templates, and order and escaping in PDF Info / XMP
-- Reconsideration: when affiliations, corresponding authors, or ORCID become first-class metadata, or submission-specific byline formats are required
-
 ## DD-47: Infer omitted document language as Japanese or English and share it with footnote labels
 
 - Status: Accepted (2026-10-29)

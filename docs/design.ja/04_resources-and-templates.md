@@ -109,7 +109,7 @@ resources/templates/
 |---|---:|---|
 | `content` | 必須、1 個 | source file ごとの section を含む本文 |
 | `title` | 任意、0 または 1 個 | title。許可済みの `<br>` だけを element として保持 |
-| `author` | 任意、0 または 1 個 | 著者名を `, ` で区切った span。明示改行は br |
+| `author` | 任意、0 または 1 個 | author の text |
 | `series` | 任意、0 または 1 個 | series の text |
 | `date` | 任意、0 または 1 個 | date の text |
 | `confidential` | 任意、0 または 1 個 | `confidential: true` の場合だけ表示 |
@@ -122,7 +122,7 @@ resources/templates/
 - 目次には文書言語に応じた見出しと継続ラベルを builder が挿入する。継続ラベルは `.pfpdf-toc-continuation-marker` の named string として提供し、template は paged media の margin box で装飾する。目次直後の空 marker が named string を解除するため、本文ページには継続ラベルを残さない。この styling hook は新しい DOM slot を追加せず、`toc` slot の contract を変更しない
 - `logo` slot は `img` element に指定する。slot 自身の `src` は template の既定ロゴであり、template directory 相対の通常 resource として解決する。明示 logo は logical `src` で上書きし、class など他の attribute は保持する。template に `alt` がなければ decorative image として `alt=""` を設定する
 - 明示 logo が指定されたのに `logo` slot がない場合は、利用者の指定を黙って捨てず終了 code `2` とする。既定 `src` も明示 logo もない場合、または `--no-logo` の場合は slot element 自体を削除する
-- `author` が未指定・空値、または `series` が未指定なら対応する slot element 自体を削除する。title は必須、date は明示値または生成値を常に持つため、それらの slot が存在すれば必ず内容を設定する
+- `author` または `series` が未指定なら対応する slot element 自体を削除する。title は必須、date は明示値または生成値を常に持つため、それらの slot が存在すれば必ず内容を設定する
 - bundled template はすべて `series` slot を持ち、固定の出版名、文書種別、ブランド名、目次名、metadata 接頭辞、callout 名、図表番号を追加しない。series を柱にも表示する場合は同じ slot を重複させず named string を使う
 - `confidential: false` のときは `confidential` slot element 自体を削除する。true の場合だけ template に残し、表示 text は builder が設定する。bundled template は表紙または先頭 header と、目次・本文を含む以後の全 page に template 固有の表現で表示する
 - `--no-toc` の場合は `toc` slot を削除し、content へも挿入しない

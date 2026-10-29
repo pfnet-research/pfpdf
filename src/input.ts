@@ -324,7 +324,7 @@ export function normalizeTitle(title: string): NormalizedTitle {
   return { lines, plainText: lines.join('\n') };
 }
 
-/** Normalize only author metadata; strings remain literal text, never HTML. */
+/** Author text is the primary format; lists are an undocumented compatibility fallback. */
 export function normalizeAuthors(value: unknown): string[] | null {
   if (value === undefined) return null;
   if (typeof value !== 'string' && !Array.isArray(value)) {

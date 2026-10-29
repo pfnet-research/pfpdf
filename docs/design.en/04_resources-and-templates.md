@@ -109,7 +109,7 @@ resources/templates/
 |---|---:|---|
 | `content` | Required, 1 | Body containing one section per source file |
 | `title` | Optional, 0 or 1 | Title. Only the allowed `<br>` is preserved as an element |
-| `author` | Optional, 0 or 1 | Author-name spans separated by `, `; explicit newlines become br |
+| `author` | Optional, 0 or 1 | Author text |
 | `series` | Optional, 0 or 1 | Series text |
 | `date` | Optional, 0 or 1 | Date text |
 | `confidential` | Optional, 0 or 1 | Displayed only when `confidential: true` |
@@ -122,7 +122,7 @@ resources/templates/
 - The builder inserts a heading and a continuation label for the table of contents according to the document language. The continuation label is provided as the named string `.pfpdf-toc-continuation-marker`, which templates style in paged media margin boxes. An empty marker immediately after the table of contents clears the named string, so the continuation label does not carry over onto body pages. This styling hook adds no new DOM slot and does not change the `toc` slot contract
 - The `logo` slot is specified on an `img` element. Its own `src` is the template default logo and is resolved as an ordinary resource relative to the template directory. An explicit logo replaces it with a logical `src`, while other attributes such as classes are preserved. If the template provides no `alt`, the builder sets `alt=""` to mark the image as decorative
 - If an explicit logo is specified but there is no `logo` slot, the user's specification is not silently dropped; the result is exit code `2`. If neither a default `src` nor an explicit logo exists, or if `--no-logo` is given, the slot element itself is removed
-- If `author` is unspecified or empty, or `series` is unspecified, the corresponding slot element itself is removed. The title is required and the date always has an explicit or generated value, so if those slots exist their content is always set
+- If `author` or `series` is unspecified, the corresponding slot element itself is removed. The title is required and the date always has an explicit or generated value, so if those slots exist their content is always set
 - All bundled templates have a `series` slot and add no fixed publication name, document type, brand name, table of contents name, metadata prefix, callout name, or figure/table numbering. To also display the series in running headers, use a named string rather than duplicating the same slot
 - When `confidential: false`, the `confidential` slot element itself is removed. Only when it is true does the slot remain in the template, with the display text set by the builder. Bundled templates display it on the cover or leading header and on every subsequent page, including the table of contents and body, in template-specific styling
 - With `--no-toc`, the `toc` slot is removed and nothing is inserted into the content either

@@ -33,7 +33,7 @@ This validation policy also applies to `--print-effective-config --input docs` a
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `title` | string | none (required) | Document title. On the cover, lines can be broken with `<br>` |
-| `author` | string / string array | none | Author names; arrays display in input order separated by commas |
+| `author` | string | none | Author name |
 | `series` | string | none | Series name shown in the primary label position of every bundled template |
 | `template` | bundled template name | `default` | Bundled template used for the document |
 | `toc` | boolean | `true` | Whether to generate a table of contents |
@@ -55,10 +55,6 @@ This validation policy also applies to `--print-effective-config --input docs` a
 - An explicit BCP 47 language tag such as `lang: en` / `lang: ja-JP` always wins. When omitted, Japanese or English is inferred from prose across all input files without using the host locale. Count kana, Han, and Latin characters: select `ja` if at least two hiragana make up at least 1% of those characters, if kana is present and Japanese characters are at least as numerous as Latin characters, or if Han characters outnumber Latin characters; otherwise select `en`. Code, math, raw HTML blocks, and URLs are excluded; use the title if no counted prose characters remain. Specify `lang` for short or multilingual documents
 - For right-to-left documents you can specify `dir: rtl`, and for left-to-right documents, `dir: ltr`. With `auto`, the browser determines the direction from the document content; it does not guess the direction from `lang` or the host locale alone
 - If the primary language of `lang` is `ja`, the automatically generated date is rendered in Japanese style, as in `2026 年 8 月 3 日`; otherwise it uses the fixed `2026-08-03` format. A `date` string written in the front matter is never rewritten
-
-Specify multiple authors as `author: [Taro Yamada, Hanako Sato, Alice Smith]`. Names appear in input order separated by `, ` and wrap to the cover width. A single string remains supported. Each array element is one author even if the name contains a comma; name strings are never automatically split.
-
-For intentional line breaks within a name, use a YAML `|` block scalar or `\n` in a double-quoted string. Breaks affect display only and become spaces in PDF metadata. HTML tags and character references such as `&amp;` appear as literal text. An empty string, a whitespace-only string, or an empty array omits the author display. Empty array elements, null, numbers, and objects are input errors. Other keys such as `series` retain their existing type restrictions.
 
 ## 2.2 Combining multiple files
 
