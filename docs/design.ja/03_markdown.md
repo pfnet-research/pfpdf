@@ -44,7 +44,7 @@ MathJax が source 数式の TeX error を報告した場合は、赤い error �
 
 ### 3.3.2 改ページ
 
-block container の外側で、indent なしの行全体が ASCII underscore 3 個だけである `___` は、GFM では thematic break ですが pfpdf では改ページとして予約します。前後の空白、4 個以上の underscore、blockquote / list item 内の `___` は予約記法に含めず GFM として処理します。通常の thematic break には `---` または `***` を利用できます。この差分は GFM conformance suite 上の明示的な expected deviation として記録します。
+block container の外側で、indent なしの行全体が ASCII underscore 3 個以上の連続だけである行（`___`、`____` など） は、GFM では thematic break ですが pfpdf では改ページとして予約します。前後または途中の空白、blockquote / list item 内の `___` は予約記法に含めず GFM として処理します。通常の thematic break には `---` または `***` を利用できます。この差分は GFM conformance suite 上の明示的な expected deviation として記録します。
 
 directive は「次の描画対象 block を新しい page の先頭から始める」という意味に正規化し、次の block に予約済み `data-pfpdf-page-break` attribute を付けて paged CSS の `break-before: page` で実装します。文書先頭 / 末尾の directive と連続する directive は空白 page を作らず、1 個の break へ畳みます。空白 page 自体を挿入する機能は `v0.1.0` では提供しません。
 
@@ -151,7 +151,7 @@ GFM Spec の example は、template wrapper、見出し ID、目次、resource U
 | 項目 | GFM の挙動 | pfpdf の挙動 | 理由 |
 |---|---|---|---|
 | Disallowed Raw HTML tag filter | `<script>` などを filter する | filter せず保持する | trusted document 向けに表現の自由度を優先 |
-| 単独行の `___` | thematic break | 改ページ | pfpdf directive として予約。`---` / `***` で代替可能 |
+| 単独行の連続する `_` 3 個以上 | thematic break | 改ページ | pfpdf directive として予約。`---` / `***` で代替可能 |
 | CJK 隣接の `**...**` | strong にならない場合がある | `<strong>` へ変換する | 日本語文書での自然な記法を優先 |
 | `$...$` / `$$...$$` | plain text | 数式として typeset する | pfpdf extension |
 | `mermaid` fenced code block | code block | 静的 SVG の図へ変換する | pfpdf extension |

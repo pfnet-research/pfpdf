@@ -473,3 +473,13 @@
 - risk: Puppeteer Core と KaTeX の override は上流の依存範囲を超えるため、監査結果だけで互換性を保証できない。Astro major 更新にも出力差の可能性がある。trust model は変更せず、raw HTML の sanitization や sandbox を保証しない
 - 検証: 両 project の `npm ci`、`npm audit`、`npm ls --all`、root の test / lint、PDF smoke test、4 文書 PDF、全 template のサイト asset 生成とリンク検査付きサイト build。対応 OS の PDF smoke test は既存の CI matrix でも確認する
 - 再検討条件: 上流が修正版を依存に取り込んだ場合は override の撤去を検討する。新しい advisory が公開された場合は固定版を再監査する
+
+## DD-42: 改ページを連続する underscore 3 個以上に統一
+
+- status: Accepted(2026-10-29)
+- 問題: `___` だけが改ページで、`____` は水平線になるため、長さによって意図が変わる
+- 採用: block container の外側で、空白も indent もない行全体が連続する ASCII underscore 3 個以上なら改ページとする
+- 非採用: ちょうど 3 個に限定する案は長さによる不整合が残る。空白や blockquote / list 内にも拡張する案は今回の長さの統一を超えて GFM の扱いを変えるため採用しない
+- 影響: 以前水平線だった `____` なども改ページになる。水平線には `---` または `***` を使う
+- 検証: 3 個・4 個・5 個・長い連続、LF / CRLF、空白・入れ子・code の除外、先頭・末尾・連続の折り畳みを full-pipeline test で確認する
+- 再検討: 空白や container 内でも改ページを指定する要件が生じた場合

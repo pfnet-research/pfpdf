@@ -473,3 +473,13 @@ Each decision follows this format:
 - Risk: The Puppeteer Core and KaTeX overrides exceed upstream dependency ranges, so audit results alone cannot guarantee compatibility. The Astro major update can also change output. The trust model is unchanged; no raw HTML sanitization or sandbox guarantee is added
 - Verification: `npm ci`, `npm audit`, and `npm ls --all` in both projects; root tests / lint; PDF smoke tests; all four documentation PDFs; site asset generation for every template; and the site build with link checks. The existing CI matrix also checks PDF smoke tests on supported operating systems
 - Reconsider when: Upstream dependencies adopt patched versions, allowing overrides to be removed. Reaudit pinned versions when new advisories are published
+
+## DD-42: Unify page breaks on three or more consecutive underscores
+
+- status: Accepted(2026-10-29)
+- Problem: Only `___` creates a page break while `____` creates a horizontal rule, changing the meaning with length
+- Adopted: Outside block containers, reserve a whole line of three or more consecutive ASCII underscores, without whitespace or indentation, for a page break
+- Rejected: Requiring exactly three retains the inconsistency by length. Extending the syntax to whitespace or blockquotes / lists would change GFM behavior beyond this length adjustment
+- Impact: Former horizontal rules such as `____` now become page breaks. Use `---` or `***` for horizontal rules
+- Verification: Full-pipeline tests cover three, four, five, and long runs; LF / CRLF; whitespace, nesting, and code exclusions; and collapsing leading, trailing, and consecutive breaks
+- Reconsider when: Page breaks with whitespace or inside containers are required

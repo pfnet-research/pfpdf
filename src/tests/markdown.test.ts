@@ -282,19 +282,30 @@ test('TeX errors fail the build with code 2', async () => {
   await assert.rejects(render('bad $\\frac{$ math\n'), InputError);
 });
 
-test('single-line ___ becomes a page break; --- stays a thematic break', async () => {
-  const html = await render('a\n\n___\n\nb\n\n---\n\nc\n');
-  assert.match(html, /data-pfpdf-page-break/);
-  assert.match(html, /<hr>/);
+test('three or more standalone underscores become page breaks', async () => {
+  for (const marker of ['___', '____', '_____', '_'.repeat(80)]) {
+    for (const newline of ['\n', '\r\n']) {
+      const html = await render(['a', '', marker, '', 'b', ''].join(newline));
+      assert.equal((html.match(/data-pfpdf-page-break/g) ?? []).length, 1, html);
+      assert.doesNotMatch(html, /<hr>/);
+    }
+  }
 });
 
-test('page-break directive works with CRLF input', async () => {
-  const html = await render('a\r\n\r\n___\r\n\r\nb\r\n');
-  assert.match(html, /data-pfpdf-page-break/);
+test('other thematic breaks and nested or spaced underscores keep GFM behavior', async () => {
+  for (const marker of ['---', '***', ' ___', '____ ', '_ _ _', '> ____', '- ____']) {
+    const html = await render(`a\n\n${marker}\n\nb\n`);
+    assert.doesNotMatch(html, /data-pfpdf-page-break/);
+    assert.match(html, /<hr>/);
+  }
+  for (const marker of ['_', '__', '＿'.repeat(3), '```\n____\n```']) {
+    const html = await render(`a\n\n${marker}\n\nb\n`);
+    assert.doesNotMatch(html, /data-pfpdf-page-break/);
+  }
 });
 
-test('leading/trailing/consecutive page breaks collapse', async () => {
-  const html = await render('___\n\na\n\n___\n\n___\n\nb\n\n___\n');
+test('leading/trailing/consecutive page breaks collapse regardless of underscore count', async () => {
+  const html = await render('____\n\na\n\n___\n\n_____\n\nb\n\n______\n');
   const breaks = (html.match(/data-pfpdf-page-break/g) ?? []).length;
   assert.equal(breaks, 1, html);
 });

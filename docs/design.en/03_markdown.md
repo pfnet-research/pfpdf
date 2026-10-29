@@ -44,7 +44,7 @@ If MathJax reports a TeX error in a source expression, pfpdf does not accept a P
 
 ### 3.3.2 Page breaks
 
-Outside block containers, a line consisting of exactly three ASCII underscores `___` with no indentation is a thematic break in GFM, but pfpdf reserves it as a page break. Surrounding whitespace, four or more underscores, and `___` inside blockquotes or list items are not part of the reserved notation and are processed as GFM. `---` and `***` remain available for ordinary thematic breaks. This difference is recorded as an explicit expected deviation in the GFM conformance suite.
+Outside block containers, a line consisting of three or more consecutive ASCII underscores (such as `___` or `____`) with no indentation is a thematic break in GFM, but pfpdf reserves it as a page break. Surrounding or intervening whitespace, and `___` inside blockquotes or list items are not part of the reserved notation and are processed as GFM. `---` and `***` remain available for ordinary thematic breaks. This difference is recorded as an explicit expected deviation in the GFM conformance suite.
 
 The directive is normalized to mean "start the next rendered block at the top of a new page", implemented by attaching the reserved `data-pfpdf-page-break` attribute to the next block and using the paged CSS `break-before: page`. Directives at the start or end of the document, as well as consecutive directives, do not create blank pages and are collapsed into a single break. A feature for inserting blank pages themselves is not provided in `v0.1.0`.
 
@@ -151,7 +151,7 @@ GFM Spec examples are run against the `GfmAdapter` before pfpdf-specific post-pr
 | Item | GFM behavior | pfpdf behavior | Reason |
 |---|---|---|---|
 | Disallowed Raw HTML tag filter | Filters `<script>` and others | Preserved without filtering | Prioritizes expressive freedom for trusted documents |
-| Standalone `___` line | Thematic break | Page break | Reserved as a pfpdf directive. `---` / `***` remain as alternatives |
+| Standalone line of three or more consecutive `_` characters | Thematic break | Page break | Reserved as a pfpdf directive. `---` / `***` remain as alternatives |
 | `**...**` adjacent to CJK | May not become strong | Converted to `<strong>` | Prioritizes natural notation in Japanese documents |
 | `$...$` / `$$...$$` | Plain text | Typeset as math | pfpdf extension |
 | `mermaid` fenced code block | Code block | Converted to a static SVG diagram | pfpdf extension |

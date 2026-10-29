@@ -115,7 +115,7 @@ function positionKey(node: { position?: Element['position'] }): string | null {
   return typeof start === 'number' && typeof end === 'number' ? `${start}:${end}` : null;
 }
 
-/** Detect top-level thematic breaks written exactly as `___`. */
+/** Detect top-level thematic breaks written as three or more consecutive underscores. */
 function markPageBreaks(file: SourceFile, tree: MdastRoot): void {
   const lines = file.content.split(/\r\n|\n/);
   const children = tree.children;
@@ -123,7 +123,7 @@ function markPageBreaks(file: SourceFile, tree: MdastRoot): void {
     const node = children[i]!;
     if (node.type !== 'thematicBreak' || !node.position) continue;
     const line = lines[node.position.start.line - 1];
-    if (line === '___') {
+    if (line !== undefined && /^_{3,}$/.test(line)) {
       (node as unknown as { data: unknown }).data = {
         hName: 'div',
         hProperties: { className: ['pfpdf-page-break-marker'] },

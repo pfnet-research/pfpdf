@@ -73,7 +73,7 @@ Wrap inline code in `` `backticks` ``. See Chapter 05 for code blocks.
 
 ---
 
-An unindented, standalone `___` line is reserved for page breaks in pfpdf (see Chapter 02), so it cannot be used as a horizontal rule. It is not treated as page-break syntax when it appears inside a blockquote or list, when it has surrounding whitespace, or when it contains four or more underscores.
+An unindented, standalone line of three or more consecutive underscores (`___`, `____`, etc.) is reserved for page breaks in pfpdf (see Chapter 02), so it cannot be used as a horizontal rule. It is not treated as page-break syntax when it appears inside a blockquote or list, when it has surrounding or intervening whitespace.
 
 ## 3.8 GitHub features not part of GFM
 
