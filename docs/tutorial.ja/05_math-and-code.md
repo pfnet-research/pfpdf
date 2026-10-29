@@ -86,7 +86,20 @@ flowchart LR
 
 Mermaid は Markdown 変換時に SVG へ描画されます。生成した SVG は build workspace 内の独立した画像として保持され、Vivliostyle がその vector image をページ組版します。Mermaid の構文エラーがある場合、未描画の source code を PDF に残して成功とはせず、source file / line を表示して終了 code `2` で失敗します。同梱 runtime 自体の読み込み失敗は終了 code `1` です。
 
-`A -->|label| B`のようなflowchartのedge labelは、server-side描画で文字と背景の位置が一致しないため現在は未対応です。edgeの説明が必要な場合はnodeのlabelとして表現してください。
+図の配置は既定で ELK です。dagre など別の配置にしたい図は、Mermaid の front matter で指定します。指定した図だけがその配置になります。
+
+````md
+```mermaid
+---
+config:
+  layout: dagre
+---
+flowchart LR
+  A[Markdown] -->|変換| B[PDF]
+```
+````
+
+`A -->|label| B`のような flowchart の edge label や、`<br/>` で改行した日本語の label も、同梱 font で寸法を測って配置します。
 
 ## 5.6 code block 内は変換されない
 

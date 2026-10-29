@@ -13,12 +13,15 @@
         "@citation-js/plugin-bibtex": "0.8.2",
         "@citation-js/plugin-csl": "0.8.2",
         "@csstools/css-tokenizer": "3.0.4",
+        "@mermaid-js/layout-elk": "0.2.3",
         "@puppeteer/browsers": "3.0.4",
         "@vivliostyle/cli": "11.1.0",
+        "fontkit": "2.0.4",
         "hast-util-from-html": "2.0.3",
         "hast-util-to-html": "9.0.5",
         "isomorphic-mermaid": "0.1.1",
         "js-yaml": "4.3.2",
+        "jsdom": "27.4.0",
         "lowlight": "3.3.0",
         "mathjax-full": "3.2.1",
         "mermaid": "11.16.1",
@@ -29,6 +32,7 @@
         "remark-math": "6.0.0",
         "remark-parse": "11.0.0",
         "remark-rehype": "11.1.2",
+        "svgdom": "0.1.28",
         "unified": "11.0.5",
         "unist-util-visit": "5.1.0"
       },
@@ -985,6 +989,19 @@
       "resolved": "https://registry.npmjs.org/@isaacs/string-locale-compare/-/string-locale-compare-1.1.0.tgz",
       "integrity": "sha512-SQ7Kzhh9+D+ZW9MA0zkYv3VXhIDNx+LzM6EJ+/65I3QY+enU6Itte7E5XX7EWrqLW2FN4n06GWzBnPoC3th2aQ==",
       "license": "ISC"
+    },
+    "node_modules/@mermaid-js/layout-elk": {
+      "version": "0.2.3",
+      "resolved": "https://registry.npmjs.org/@mermaid-js/layout-elk/-/layout-elk-0.2.3.tgz",
+      "integrity": "sha512-m46RVGfvKK1PSMdAFGDz2nksI4jusEkFxvf0lb48bYWmqLQxZpjtpruiw29MbOy9rlWJtuMf9EzG9fAF8CVZbg==",
+      "license": "MIT",
+      "dependencies": {
+        "d3": "^7.9.0",
+        "elkjs": "^0.9.3"
+      },
+      "peerDependencies": {
+        "mermaid": "^11.0.2"
+      }
     },
     "node_modules/@mermaid-js/parser": {
       "version": "1.2.0",
@@ -5630,6 +5647,12 @@
       "resolved": "https://registry.npmjs.org/eastasianwidth/-/eastasianwidth-0.2.0.tgz",
       "integrity": "sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==",
       "license": "MIT"
+    },
+    "node_modules/elkjs": {
+      "version": "0.9.3",
+      "resolved": "https://registry.npmjs.org/elkjs/-/elkjs-0.9.3.tgz",
+      "integrity": "sha512-f/ZeWvW/BCXbhGEf1Ujp29EASo/lk1FDnETgNKwJrsVvGZhUWCZyg3xLJjAsxfOmt8KjswHmI5EwCQcPMpOYhQ==",
+      "license": "EPL-2.0"
     },
     "node_modules/emoji-regex": {
       "version": "8.0.0",

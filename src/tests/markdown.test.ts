@@ -236,6 +236,87 @@ test('Mermaid fences become build-time SVG and are not syntax-highlighted', asyn
   assert.match(svg, new RegExp(`marker-end="url\\(#${markerId}\\)"`));
 });
 
+test('Mermaid lays out Japanese and multi-line labels with bundled font metrics', async () => {
+  const content = [
+    '```mermaid', 'flowchart LR',
+    '  A["あいうえおかきくけこ"] --> B["一行目<br/>二行目<br/>三行目"]',
+    '  B --> C[("仕事メモ<br/>ローカル")]', '```',
+  ].join('\n');
+  const body = await buildDocumentBody([src(content)], new ResourceManifest(), [], { warn: noop });
+  const svg = body.generatedFiles[0]![1];
+  const boxes = [...svg.matchAll(/<rect class="basic label-container"[^>]* width="([\d.]+)" height="([\d.]+)"/g)]
+    .map((match) => ({ width: Number(match[1]), height: Number(match[2]) }));
+  assert.equal(boxes.length, 2);
+  // Ten full-width characters at Mermaid's 16px font need at least 160px.
+  assert.ok(boxes[0]!.width >= 160, `single-line width ${boxes[0]!.width}`);
+  // Three rows spaced 1.1em apart must not collapse to one line height.
+  assert.ok(boxes[1]!.height >= 3 * 16, `multi-line height ${boxes[1]!.height}`);
+  // The cylinder centers its label from the measured box, as in a browser.
+  assert.match(svg, /outer-path[^>]*><\/path><g class="label" style="" transform="translate\(0, /);
+});
+
+test('Mermaid defaults to ELK and a diagram config selects another layout', async () => {
+  const graph = [
+    'flowchart LR', '  subgraph S["入力"]', '    A["一行目<br/>二行目"]', '  end',
+    '  A -->|ラベル| B', '  A --> C', '  C --> B',
+  ];
+  const svgFor = async (configLines: string[]): Promise<string> => {
+    const content = ['```mermaid', ...configLines, ...graph, '```'].join('\n');
+    const body = await buildDocumentBody([src(content)], new ResourceManifest(), [], { warn: noop });
+    return body.generatedFiles[0]![1];
+  };
+  const byDefault = await svgFor([]);
+  const elk = await svgFor(['---', 'config:', '  layout: elk', '---']);
+  const dagre = await svgFor(['---', 'config:', '  layout: dagre', '---']);
+  assert.equal(byDefault, elk);
+  assert.notEqual(byDefault, dagre);
+  // The multi-line label inside the subgraph keeps its rows under ELK.
+  assert.match(byDefault, />一行目</);
+  assert.match(byDefault, />二行目</);
+});
+
+test('Mermaid ELK preserves subgraph IDs that overlap Object prototype properties', async () => {
+  for (const id of ['constructor', 'toString', 'hasOwnProperty', '__proto__']) {
+    const content = [
+      '```mermaid', 'flowchart LR',
+      `  subgraph ${id}["初期化"]`,
+      '    A["入力"] --> B["処理"]',
+      '  end',
+      `  ${id} --> C["出力"]`,
+      `  style ${id} fill:#abcdef`,
+      '```',
+    ].join('\n');
+    const build = () => buildDocumentBody([src(content)], new ResourceManifest(), [], { warn: noop });
+    const first = await build();
+    assert.deepEqual((await build()).generatedFiles, first.generatedFiles);
+    const svg = first.generatedFiles[0]![1];
+    for (const label of ['初期化', '入力', '処理', '出力']) assert.ok(svg.includes(label), `${id}: ${label}`);
+    assert.match(svg, /fill:#abcdef/);
+    assert.equal((svg.match(/class="[^"]*flowchart-link/g) ?? []).length, 2, id);
+    assert.doesNotMatch(svg, /NaN|undefined/);
+  }
+});
+
+test('Mermaid ELK keeps nested groups and similarly named nodes distinct', async () => {
+  const content = [
+    '```mermaid', 'flowchart LR',
+    '  subgraph constructor["外側"]',
+    '    subgraph toString["内側"]',
+    '      A["入力"] --> B["処理"]',
+    '    end',
+    '  end',
+    '  pfpdf-elk-node-1["既存ノード"] --> toString',
+    '  constructor --> pfpdf-elk-node-1',
+    '```',
+  ].join('\n');
+  const body = await buildDocumentBody([src(content)], new ResourceManifest(), [], { warn: noop });
+  const svg = body.generatedFiles[0]![1];
+  for (const label of ['外側', '内側', '入力', '処理', '既存ノード']) assert.ok(svg.includes(label), label);
+  assert.equal((svg.match(/class="cluster"/g) ?? []).length, 2);
+  assert.equal((svg.match(/class="[^"]*flowchart-link/g) ?? []).length, 3);
+  assert.doesNotMatch(svg, /NaN|undefined/);
+});
+
 test('non-Mermaid code blocks are unaffected', async () => {
   const html = await render('```text\nflowchart LR\n  A --> B\n```\n');
   assert.match(html, /<pre><code class="language-text hljs">/);

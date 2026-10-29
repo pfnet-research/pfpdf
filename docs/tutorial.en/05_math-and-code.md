@@ -86,7 +86,20 @@ flowchart LR
 
 pfpdf renders Mermaid diagrams to SVG during Markdown conversion. It stores each SVG as a standalone image in the build workspace, and Vivliostyle lays the vector image out on the page. If a diagram contains a syntax error, pfpdf reports the source file and line and exits with code `2` instead of placing unrendered source in the PDF. A failure to load the bundled Mermaid runtime produces exit code `1`.
 
-Flowchart edge labels such as `A -->|label| B` are currently unsupported, because server-side rendering misaligns the text and its background. If you need to describe an edge, express the description as a node label instead.
+Diagrams are laid out with ELK by default. To use another layout such as dagre for a diagram, specify it in the Mermaid front matter. Only that diagram uses the specified layout.
+
+````md
+```mermaid
+---
+config:
+  layout: dagre
+---
+flowchart LR
+  A[Markdown] -->|convert| B[PDF]
+```
+````
+
+Flowchart edge labels such as `A -->|label| B` and Japanese labels broken with `<br/>` are also laid out with sizes measured using the bundled font.
 
 ## 5.6 No conversion inside code blocks
 

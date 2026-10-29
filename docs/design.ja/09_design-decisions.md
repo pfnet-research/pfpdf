@@ -315,7 +315,7 @@
 
 ## DD-28: Mermaid は server-side DOM で build-time SVG にする
 
-- status: Accepted(2026-08)
+- status: Accepted(2026-08)。text 測定、edge label、既定 layout は DD-43 で更新
 - 問題: Mermaid fence を PDF の図として扱いながら、network 非依存、renderer と test で同じ静的 HTML、構文 error 時の fail-fast を満たす必要がある。Vivliostyle は frontend framework に SSR を要求し、source document で非同期生成した DOM は pagination 入力へ安定して反映されない
 - 選択肢: (a) 利用者に画像の事前生成を求める、(b) CDN または同梱 browser script で描画する、(c) 別の headless browser process で build-time SVG を生成する、(d) 固定した Mermaid を server-side DOM adapter 上で実行しinline SVGを生成する、(e) (d)で生成したSVGをbuild workspaceの外部assetにして`img`から参照する、(f) SVG markerを独自実装で通常pathへ展開する
 - 採用: (e)。renderer 開始前に SVG を HAST 上で検査・正規化し、`generated/mermaid-NNNN.svg`へserializeする。renderer と test が同じ生成assetを消費し、既存rendererとは別のbrowser processやCDNを必要としない。外部SVGはVivliostyleのpagination用DOMによるinline SVG marker参照の欠落を避け、vector、SVG内text、決定的IDを維持する
@@ -483,3 +483,18 @@
 - 影響: 以前水平線だった `____` なども改ページになる。水平線には `---` または `***` を使う
 - 検証: 3 個・4 個・5 個・長い連続、LF / CRLF、空白・入れ子・code の除外、先頭・末尾・連続の折り畳みを full-pipeline test で確認する
 - 再検討: 空白や container 内でも改ページを指定する要件が生じた場合
+
+## DD-43: Mermaid の text 測定を同梱 font と browser 互換の値でそろえ、ELK を既定 layout にする
+
+- status: Accepted(2026-10-29)
+- 問題: DD-28 の server-side DOM(svgdom)は Open Sans だけで text を測るため、日本語 label の幅が `.notdef` 相当になり、node から文字がはみ出す。`y="1em"` などの em を `parseFloat` で読むため複数行 label の高さが 1 行分になり、edge label の背景も文字からずれる。stylesheet を適用しないため `.node .label text` の `text-anchor: middle` が測定に入らず、`getBBox()` が `left` / `top` を持つ `Box` を返すため、円柱などの label が左へずれる。また dagre 以外の layout を選べない
+- 選択肢: (a) DD-28 の (a) / (c) と同じく画像の事前生成または別 browser process で描画する、(b) 文字数に応じた固定補正を後処理で加える、(c) svgdom へ同梱 font を登録し、Mermaid が layout のために読む値だけを browser と同じ意味に補正する、(d) svgdom を fork する
+- 採用: (c)。`resources/fonts` に同梱した Noto Sans JP の unicode-range subset(`noto-sans-jp-400.css` の `@font-face` から読む)を code point ごとに引く測定用 font を `Noto Sans JP` と `sans-serif` に登録する。`text` / `tspan` の位置属性の em を px に換算し、`.node .label text` に `text-anchor: middle` を返し、`getBBox()` は `x` / `y` / `width` / `height` だけを返す。ELK は `@mermaid-js/layout-elk` を登録して site config の既定 layout とし、diagram config の指定を優先する。生成 SVG の属性、決定的 ID、外部 SVG の構成は変えない
+- 非採用理由: (a) は DD-28 で退けた理由がそのまま当てはまる。(b) は font size、文字種、図種に依存し、複数行や edge label を壊し得る。(d) は保守対象を増やし、上流の修正を取り込みにくくする
+- ELK 固有の対応: layout-elk は GWT 由来 engine が `window.Error` などを参照するため、svgdom の window へ組込み object を補う。同梱の DOMPurify が読込時の `window` に結び付くため、layout chunk の読込中だけ jsdom の window を渡す。最初の図の subgraph 見出しを config 同期前に測るため、initialize 直後に subgraph のない図を一度描いて同期させ、失敗は runtime error(code `1`)とする
+- ID の互換性: layout-elk の内部辞書は通常の object を使うため、`constructor` などの ID が継承プロパティと衝突し、subgraph の描画に失敗する。ELK に渡す layout data のコピーで該当する node ID と親子・edge の参照を一貫して置き換える。置換先は既存 ID と衝突しない決定的な値とし、label、style、Mermaid の入力は維持する。入力の正規表現による書換えは label なども変えるおそれがあり、`Object.prototype` の変更は他の処理へ影響するため採用しない
+- 同梱依存の更新: layout-elk 0.2.3 が同梱する DOMPurify 3.4.12 には、pfpdf の DOMPurify override が適用されない。lockfile だけでなく配布 bundle の版も確認する。依存を外部化した layout-elk 1.0.0 は Mermaid 本体に ELK を統合した版との組合せを前提とするため、単独では更新せず、Mermaid の更新と合わせて互換性と各 OS の PDF 出力を検証する
+- risk: 測定 font は Noto Sans JP の 400 weight だけで、bold など weight 差は測定に入らない。SVG は外部 document のため、描画 font は host の fallback になり、測定との差が残り得る。ELK を既定にすると既存文書の図の配置が変わる。layout-elk は Mermaid の描画処理を同梱するため、Mermaid 更新時は両者の版の組合せを確認する
+- 検証: 日本語 1 行の幅、3 行 label の高さ、円柱 label の中央配置、ELK 既定と `layout: dagre` 指定の優先、subgraph 内の複数行 label を unit test で検査する。subgraph の入れ子、edge label、init directive を含む実文書を全 bundled template で PDF 化して目視確認する
+- ID の回帰テスト: `constructor`、`toString`、`hasOwnProperty`、`__proto__` の subgraph、入れ子、置換先と同名の既存 node、edge、style、繰返し描画の一致を Markdown から SVG までの経路で検査する。PDF smoke test でも入れ子の subgraph と label の出力を確認する
+- 再検討条件: svgdom が em 長さや stylesheet を解釈するようになった場合、layout-elk が Mermaid 本体の描画処理を共有する構成になった場合、または描画 font を SVG 内へ埋め込む方針を採る場合

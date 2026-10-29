@@ -2,6 +2,11 @@ import { fromHtml } from 'hast-util-from-html';
 import type { Element, ElementContent, Root as HastRoot } from 'hast';
 import type MermaidRuntime from 'isomorphic-mermaid';
 import { RuntimeError } from './errors.js';
+import { MERMAID_MEASURE_FAMILY, installMermaidTextMetrics } from './mermaid-fonts.js';
+
+// Kept here rather than imported from mermaid-elk.ts so that the ELK and jsdom
+// modules load lazily with the Mermaid runtime.
+const DEFAULT_MERMAID_LAYOUT = 'elk';
 
 interface CssRuleLike {
   cssText: string;
@@ -26,7 +31,12 @@ let renderQueue: Promise<unknown> = Promise.resolve();
 
 async function loadRuntime(): Promise<typeof MermaidRuntime> {
   runtimePromise ??= import('isomorphic-mermaid')
-    .then((module) => module.default)
+    .then(async (module) => {
+      // Load after isomorphic-mermaid has installed the svgdom window.
+      const { registerElkLayouts } = await import('./mermaid-elk.js');
+      registerElkLayouts(module.default);
+      return module.default;
+    })
     .catch((error: unknown) => {
       runtimePromise = null;
       throw new RuntimeError(`bundled Mermaid runtime failed to load: ${(error as Error).message}`);
@@ -98,15 +108,24 @@ function normalizeGeneratedIds(svg: Element, rootId: string): void {
 async function render(source: string, id: string): Promise<Element> {
   installStyleSheetPolyfill();
   const mermaid = await loadRuntime();
+  installMermaidTextMetrics();
   mermaid.initialize({
     startOnLoad: false,
     securityLevel: 'strict',
     htmlLabels: false,
-    fontFamily: 'Noto Sans JP, Noto Sans, sans-serif',
+    fontFamily: `${MERMAID_MEASURE_FAMILY}, Noto Sans, sans-serif`,
     flowchart: { useMaxWidth: true },
     suppressErrorRendering: true,
     theme: 'default',
+    // Site default; a diagram's own `config.layout` or init directive wins.
+    layout: DEFAULT_MERMAID_LAYOUT,
   });
+  try {
+    const { primeElkRenderer } = await import('./mermaid-elk.js');
+    await primeElkRenderer(mermaid);
+  } catch (error) {
+    throw new RuntimeError(`bundled Mermaid ELK layout failed to initialize: ${(error as Error).message}`);
+  }
   const { svg } = await mermaid.render(id, source);
   const root = fromHtml(svg, { fragment: true }) as HastRoot;
   const element = root.children.find(

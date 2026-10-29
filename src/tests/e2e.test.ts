@@ -193,7 +193,16 @@ test('renders Mermaid fences to the PDF and rejects invalid diagrams', { skip: !
   const output = path.join(dir, 'valid.pdf');
   fs.writeFileSync(
     input,
-    '---\ntitle: Mermaid visibility\n---\n\n```mermaid\nflowchart LR\n  InputNode[Markdown input] --> OutputNode[Rendered diagram]\n```\n',
+    [
+      '---', 'title: Mermaid visibility', '---', '', '```mermaid', 'flowchart LR',
+      '  subgraph constructor[Initialization]',
+      '    subgraph toString[Conversion]',
+      '      InputNode[Markdown input] --> OutputNode[Rendered diagram]',
+      '    end',
+      '  end',
+      '  constructor --> pfpdf-elk-node-1[Result]',
+      '```', '',
+    ].join('\n'),
   );
   const render = spawnSync(
     process.execPath,
@@ -206,6 +215,9 @@ test('renders Mermaid fences to the PDF and rejects invalid diagrams', { skip: !
   if (extracted.error === undefined && extracted.status === 0) {
     assert.match(extracted.stdout, /Markdown input/);
     assert.match(extracted.stdout, /Rendered diagram/);
+    assert.match(extracted.stdout, /Initialization/);
+    assert.match(extracted.stdout, /Conversion/);
+    assert.match(extracted.stdout, /Result/);
     assert.doesNotMatch(extracted.stdout, /flowchart LR/);
   }
 

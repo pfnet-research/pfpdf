@@ -99,7 +99,9 @@ info string が小文字の `mermaid` である fenced code block は pfpdf exte
 
 Mermaid は `startOnLoad: false`、`securityLevel: strict`、HTML label 無効、error rendering 抑止を固定します。図ごとに決定的な ID を割り当て、SVG を HAST として parse し、通常の resource URL 書換えを完了してから外部 SVG として serialize します。inline SVG にしないのは、Vivliostyle の pagination 用 DOM では SVG marker の fragment 参照が失われ、矢印だけが消えるためです。外部 SVG は同じ renderer と browser で marker を保持し、raster image へ変換しないため vector と SVG 内 text を維持します。
 
-server-side DOMではflowchartのedge label textと背景rectに異なるbaselineが使われ、背景だけが文字の上へ分離します。これは日本語に限らず英語labelでも発生します。fontや文字数に依存する固定座標補正、複数行を壊し得る`tspan`補正、外部SVGでの可搬性が低いHTML labelへの切替は行いません。edge labelは未対応とし、`-->|label|`などのlabel付きedgeを使用しないでください。
+layout の既定は ELK(`@mermaid-js/layout-elk`)です。図の front matter の `config.layout` や init directive で layout を指定した図は、Mermaid の site config と diagram config の優先順位どおりその指定に従います(例：`layout: dagre`)。ELK も pure JavaScript で、追加の browser process を使いません。
+
+server-side DOM の text 測定は、実 browser と同じ寸法になるよう次の点をそろえます。測定に使う font は同梱の Noto Sans JP で、unicode-range ごとの subset を code point ごとに引き、`Noto Sans JP` と既定の `sans-serif` の両方に割り当てます。`text` / `tspan` の位置属性の em は px に換算し、Mermaid 自身の stylesheet にある `.node .label text` の `text-anchor: middle` を反映し、`getBBox()` は SVGRect と同じ `x` / `y` / `width` / `height` だけを返します。これらは Mermaid が layout のために読む値だけを変え、生成 SVG の属性は変えません。em の誤読で生じていた flowchart の edge label の背景ずれも解消するため、`-->|label|` などの label 付き edge を使用できます。
 
 Mermaid source の構文・描画 error は source file / line 付き code `2`、同梱 runtime の load / initialization failure は code `1` とします。いずれも未描画 code や error diagram を PDF へ残しません。
 
