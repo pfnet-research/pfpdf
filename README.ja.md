@@ -4,7 +4,15 @@ Markdown 文書から日本語組版に対応した PDF を生成する command 
 
 English README: [README.md](README.md)
 
-公式サイト(テンプレートギャラリーとチュートリアル)はこのリポジトリから GitHub Pages で公開しています。`docs` ブランチは Pages workflow が force push する生成物(orphan 単一 commit)なので、編集したり作業の起点にしたりしないでください。
+[ウェブサイト](https://pfpdf.preferred.tech/ja/)(テンプレートギャラリーとチュートリアル)はこのリポジトリから GitHub Pages で公開しています。`docs` ブランチは Pages workflow が force push する生成物(orphan 単一 commit)なので、編集したり作業の起点にしたりしないでください。
+
+<p>
+  <a href="https://pfpdf.preferred.tech/ja/gallery/pfn/"><img src="docs/readme/pfn-cover.ja.webp" width="30%" alt="pfn テンプレートで生成した青い表紙"></a>
+  <a href="https://pfpdf.preferred.tech/ja/gallery/pfn/"><img src="docs/readme/pfn-math.ja.webp" width="30%" alt="pfn テンプレートで組版した数式と Mermaid の図"></a>
+  <a href="https://pfpdf.preferred.tech/ja/gallery/notebook/"><img src="docs/readme/notebook-code.ja.webp" width="30%" alt="notebook テンプレートで組版した表と TypeScript のコードハイライト"></a>
+</p>
+
+Markdown から、こんな PDF を生成できます。[テンプレートギャラリーを見る →](https://pfpdf.preferred.tech/ja/gallery/)
 
 ## クイックスタート
 

@@ -8,10 +8,18 @@ highlighting, and raw HTML. Rendering uses the
 
 Japanese README: [README.ja.md](README.ja.md)
 
-The official website (template gallery and tutorial) is published with GitHub
-Pages from this repository. The `docs` branch is a generated deployment
-artifact (a single orphan commit force-pushed by the Pages workflow); do not
-edit it or base work on it.
+The [website](https://pfpdf.preferred.tech/) (template gallery and
+tutorial) is published with GitHub Pages from this repository. The `docs`
+branch is a generated deployment artifact (a single orphan commit force-pushed
+by the Pages workflow); do not edit it or base work on it.
+
+<p>
+  <a href="https://pfpdf.preferred.tech/gallery/pfn/"><img src="docs/readme/pfn-cover.en.webp" width="30%" alt="A blue cover rendered with the pfn template"></a>
+  <a href="https://pfpdf.preferred.tech/gallery/pfn/"><img src="docs/readme/pfn-math.en.webp" width="30%" alt="Equations and a Mermaid diagram rendered with the pfn template"></a>
+  <a href="https://pfpdf.preferred.tech/gallery/notebook/"><img src="docs/readme/notebook-code.en.webp" width="30%" alt="A table and highlighted TypeScript code rendered with the notebook template"></a>
+</p>
+
+Turn Markdown into PDFs like these. [Browse the template gallery →](https://pfpdf.preferred.tech/gallery/)
 
 ## Quick start
 
