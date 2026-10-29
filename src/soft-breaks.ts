@@ -3,7 +3,7 @@ import type { Root, Node, Parent, Text } from 'mdast';
 import { visit } from 'unist-util-visit';
 import type { SourceFile } from './input.js';
 
-const JAPANESE = /[\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\u3001-\u303f\uff01-\uff60\uffe0-\uffe6]/u;
+const JAPANESE = /[\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\u3001-\u303f\uff01-\uff0f\uff1a-\uff20\uff3b-\uff40\uff5b-\uff60\uffe0-\uffe6]/u;
 const INLINE = new Set(['emphasis', 'strong', 'delete', 'link', 'linkReference']);
 
 interface Character {

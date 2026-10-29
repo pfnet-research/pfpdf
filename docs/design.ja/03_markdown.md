@@ -126,7 +126,7 @@ Mermaid source の構文・描画 error は source file / line 付き code `2`�
 
 ### 3.3.8 日本語段落内のソース改行
 
-解決済みの文書言語が `ja` またはその派生 tag の場合、Markdown paragraph 内の soft line break の直前・直後が漢字・かな・和文約物・全角文字なら、ソースの改行だけを除いて表示します。strong / emphasis / link などの inline 要素をまたぐ場合も同じ規則です。リスト・blockquote・脚注中の paragraph にも適用し、LF / CRLF に対応します。
+解決済みの文書言語が `ja` またはその派生 tag の場合、Markdown paragraph 内の soft line break の直前・直後が漢字・かな・和文約物・全角約物なら、ソースの改行だけを除いて表示します。strong / emphasis / link などの inline 要素をまたぐ場合も同じ規則です。リスト・blockquote・脚注中の paragraph にも適用し、LF / CRLF に対応します。
 
 英字同士と和欧の境界、明示空白、行末に空白を記述した soft break、hard break、paragraph 境界は保持します。code・数式・画像・脚注参照を境界とし、raw HTML を含む paragraph と raw HTML block は変更しません。文字参照で明示した改行（`&#10;` / `&NewLine;` など）も保持します。見出し・ID・URL・source position は変更しません。日本語以外の言語では GFM の soft break を維持します。
 

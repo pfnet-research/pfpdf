@@ -126,7 +126,7 @@ The initial version ships a single version-pinned numeric CSL style. The CSL pro
 
 ### 3.3.8 Source line wrapping in Japanese paragraphs
 
-When the resolved document language is `ja` or a variant tag, remove only source soft line breaks whose immediate neighbors in a Markdown paragraph are Han, kana, Japanese punctuation, or full-width characters. The same rule crosses inline strong/emphasis/link elements and applies to paragraphs in lists, blockquotes, and notes, with LF and CRLF support.
+When the resolved document language is `ja` or a variant tag, remove only source soft line breaks whose immediate neighbors in a Markdown paragraph are Han, kana, Japanese punctuation, or full-width punctuation. The same rule crosses inline strong/emphasis/link elements and applies to paragraphs in lists, blockquotes, and notes, with LF and CRLF support.
 
 Preserve Latin word boundaries, Japanese/Latin boundaries, explicit spaces, soft breaks with authored trailing spaces, hard breaks, and paragraph boundaries. Code, math, images, and footnote references are boundaries; paragraphs containing raw HTML and raw HTML blocks are unchanged. Preserve authored newline character references such as `&#10;` / `&NewLine;` too. Headings, IDs, URLs, and source positions are unchanged. Non-Japanese document languages retain GFM soft breaks.
 
