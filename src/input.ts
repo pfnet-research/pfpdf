@@ -267,7 +267,7 @@ export function readFrontMatterConfig(
   return resolveFrontMatterConfig(input.raw, input.keySources.get('logo') ?? input.files[0]!.path);
 }
 
-/** Strip every file independently; only the first file configures the document. */
+/** Strip every file independently; the earliest value for each key is retained. */
 function readSourceFiles(
   inputAbs: string,
   warn: (msg: string) => void,
@@ -275,7 +275,7 @@ function readSourceFiles(
 ): { files: SourceFile[]; raw: Map<string, unknown>; keySources: Map<string, string> } {
   const raw = new Map<string, unknown>();
   const keySources = new Map<string, string>();
-  const files = resolveInputFilePaths(inputAbs).map((filePath, index) => {
+  const files = resolveInputFilePaths(inputAbs).map((filePath) => {
     const parsed = parseFrontMatter(filePath, readInputFile(filePath), warn, options);
     if (parsed.fm !== null) {
       try {
@@ -284,11 +284,10 @@ function readSourceFiles(
         if (error instanceof InputError) throw new InputError(`${filePath}: ${error.message}`);
         throw error;
       }
-      if (index === 0) {
-        for (const [key, value] of parsed.fm.raw) {
-          raw.set(key, value);
-          keySources.set(key, filePath);
-        }
+      for (const [key, value] of parsed.fm.raw) {
+        if (raw.has(key)) continue;
+        raw.set(key, value);
+        keySources.set(key, filePath);
       }
     }
     return {
@@ -301,7 +300,7 @@ function readSourceFiles(
   return { files, raw, keySources };
 }
 
-/** Validate ignored metadata too, without accessing its local assets. */
+/** Validate every block, including unselected values, without opening assets. */
 function validateFrontMatterValues(raw: Map<string, unknown>, filePath: string): void {
   for (const key of ['title', 'series', 'date', 'page_size', 'lang', 'dir']) {
     const value = raw.get(key);

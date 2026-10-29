@@ -87,7 +87,7 @@ Mermaid は pfpdf の個別 extension として対応しています。05 章の
 
 ## 3.9 BibTeX 参考文献
 
-先頭 Markdown の front matter で `.bib` file を指定します。相対 path は front matter を書いた Markdown の親 directory を基準にします。複数 file は list で指定できます。
+Markdown の front matter の `bibliography` で `.bib` file を指定します。相対 path は、そのキーを最初に指定した Markdown の親 directory を基準にします。複数の `.bib` file は list で指定でき、その list 全体を一つの値として選びます。
 
 ```yaml
 ---

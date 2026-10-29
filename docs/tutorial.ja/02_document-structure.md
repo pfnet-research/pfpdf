@@ -2,7 +2,7 @@
 
 ## 2.1 front matter
 
-文書の metadata は、最初の Markdown ファイルの先頭に YAML front matter として書きます。
+文書の metadata は、Markdown ファイルの先頭に YAML front matter として書きます。複数ファイルでは、キーごとに最初に書かれた値が優先されます。
 
 ```md
 ---
@@ -62,8 +62,9 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-m
 
 ディレクトリを入力にすると、直下の `*.md` がファイル名順に結合されます。
 
-- 各ファイルに front matter を書けます。文書全体の metadata・設定は並び順で最初のファイルだけから取得し、CLI が上書きします。後続ファイルの metadata は補完・統合せず、本文から取り除きます。先頭ファイルに front matter がなければ、後続ファイルに title があっても文書タイトルには使いません
-- 不正 YAML、既知 key の型・値の誤り、未知 key の warning / `--strict-front-matter` は全ファイルで検査します。後続ファイルの logo / bibliography は path の構文だけを検証し、参照先の存在確認や読込はしません。選択された先頭ファイルの相対 path はそのファイルの親 directory 基準です
+- 各ファイルに front matter を書けます。文書全体の metadata・設定は並び順でキーごとに最初の値を採用し、後続ファイルは未設定のキーを補います。先頭ファイルに front matter がなくても、後続ファイルで `title` を指定できます。既存の値を一時的に置き換えたい場合は、対応する CLI option を使って上書きします
+- `false` も指定済みの値として扱います。`bibliography` のリストは一つの値として選び、後続ファイルのリストを連結しません
+- 不正 YAML、既知 key の型・値の誤り、未知 key の warning / `--strict-front-matter` は採否にかかわらず全ファイルで検査します。選ばれない logo / bibliography は参照先の存在確認や読込をしません。選択された相対 path は、そのキーを最初に指定したファイルの親 directory 基準です
 - 拡張子は小文字の `.md` だけが対象です
 - ファイルは UTF-8 で保存してください(先頭の BOM と CRLF 改行は受け付けます)
 - 各ファイルは独立した Markdown として解釈されます。code fence、list、raw HTML block、reference link definition を次のファイルへ続けることはできません。章をまたぐ構文は 1 ファイル内で閉じてください

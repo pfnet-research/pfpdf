@@ -40,7 +40,7 @@ CLI と変換処理は TypeScript で実装し、npm package の compiled JavaSc
 
 - CLI のパスを絶対パスへ変換する
 - locale に依存しない規則で Markdown 一覧を決定し、case-insensitive filesystem で衝突する名前も検出する
-- 各 Markdown の先頭の front matter を解析・除去し、文書全体の metadata は先頭 file だけから選ぶ
+- 各 Markdown の先頭の front matter を解析・除去し、文書全体の metadata は key ごとに最初に現れた値を選ぶ。後続 file は未設定の key を補う
 - title、author、series、date、page size、confidential、document language / direction、および `template` / `toc` / `cover` / `logo` の型と値を検証する。CLIがfront matterを上書きする場合も、不正な値を無視しない
 - metadata の許可済み HTML と plain text 表現を分離し、template placeholder ごとの escape 漏れを防ぐ
 - file input ではその親 directory、directory input では input directory を resource base として保持する
@@ -49,11 +49,11 @@ CLI と変換処理は TypeScript で実装し、npm package の compiled JavaSc
 
 エラーを含む Markdown だけを読み飛ばして残りを出力する挙動は採用しません。部分的な成果物を成功扱いすると、欠落に気付かないまま配布される危険があるためです。
 
-front matter は既存 YAML library の JSON schema で 1 document の mapping として読みます。pfpdf が利用する metadata key と型だけを検査し、入力を防御するための独自 YAML parser や size / nesting 制限は持ちません。先頭の BOM を除いた最初の行が `---` なら front matter delimiter として予約します。各 source file 内の単独行 `---` または `...` で閉じることを必須とし、閉じ delimiter がない場合や mapping が不正な場合は thematic break として読み替えず入力エラーにします。後続 file の front matter も本文から除去しますが、その metadata は文書設定や asset 解決には使いません。未知 key の warning / strict 検証と既知 key の型・値・path 構文の検証は全 file に適用し、無視する logo / bibliography の file は読みません。
+front matter は既存 YAML library の JSON schema で 1 document の mapping として読みます。pfpdf が利用する metadata key と型だけを検査し、入力を防御するための独自 YAML parser や size / nesting 制限は持ちません。先頭の BOM を除いた最初の行が `---` なら front matter delimiter として予約します。各 source file 内の単独行 `---` または `...` で閉じることを必須とし、閉じ delimiter がない場合や mapping が不正な場合は thematic break として読み替えず入力エラーにします。各 file の front matter は本文から除去し、入力順で key ごとに最初の値を採用します。後続 file は未設定 key を補い、CLI が選択済みの値を上書きします。選択値ごとに source file を保持し、未知 key の warning / strict 検証と既知 key の型・値・path 構文の検証は採否にかかわらず全 file に適用します。選択しない logo / bibliography の file は存在確認・読込をしません。
 
 ### 2.3.1 `BibliographyFormatter`
 
-`bibliography` front matter は string または非空 string list とし、先頭 Markdown の親 directory を基準に `.bib` path を解決します。`.bib` は browser が描画時に取得する resource ではなく build input です。`InputResolver` が Markdown と同様に UTF-8 byte 列を一度だけ読み、その content を `BibliographyFormatter` へ渡します。
+`bibliography` front matter は string または非空 string list とし、その key を最初に指定した Markdown の親 directory を基準に `.bib` path を解決します。list は一つの値として選び、後続 file の list と連結しません。重複 path は選択されない block も含めて検証します。`.bib` は browser が描画時に取得する resource ではなく build input です。`InputResolver` が選択した file の UTF-8 byte 列を一度だけ読み、その content を `BibliographyFormatter` へ渡します。
 
 `BibliographyFormatter` は Citation.js で BibTeX / BibLaTeX を CSL-JSON へ変換し、citeproc-js の一つの session で文書全体の citation cluster と参考文献一覧を処理します。source file ごとに processor を分けると番号と並びが変わるため禁止します。library 固有 object と生成 HTML は adapter 内に閉じ、Markdown 層へは citation key、entry 順、HAST fragment だけを返します。不正 database、重複 key、存在しない引用 key は renderer 起動前の code `2` とします。
 
@@ -188,7 +188,7 @@ Options:
 - `--input` がディレクトリなら、直下の小文字拡張子 `*.md` を持つ regular file と regular file への symlink だけを対象にし、file 名の UTF-8 byte 列の昇順で処理する。POSIX では directory entry を byte 列として読み、不正 UTF-8 の file 名を replacement character にせず入力エラーにする。再帰探索と locale 依存 sort は使わず、可搬性のため `00_`、`01_` の番号 prefix を推奨する。対象が 0 件の場合は入力エラーにする
 - `--input` がファイルなら、その 1 ファイルだけを処理する。小文字 `.md` 以外の拡張子は入力エラーにする
 - input は UTF-8 とし、先頭の UTF-8 BOM と CRLF を受け付ける。不正な byte 列は replacement character にせずエラーにする
-- directory input の各 Markdown の先頭に front matter を置ける。文書全体の metadata は並び順で最初の file だけから選び、その file に front matter がなければ後続 file の値で補わない。各 file の front matter は検証して本文から除去し、元の行番号との差を `SourceFile.lineOffset` に保持する。どの source file でも冒頭の thematic break には `***` を使う
+- directory input の各 Markdown の先頭に front matter を置ける。文書全体の metadata は並び順で key ごとに最初に現れた値を選び、後続 file は未設定 key を補う。先頭 file に front matter がなくても後続 file の title を使える。各 file の front matter は採否にかかわらず検証して本文から除去し、元の行番号との差を `SourceFile.lineOffset` に保持する。どの source file でも冒頭の thematic break には `***` を使う
 - file 名の異なる入力は現在の filesystem が列挙した別 entry として扱う。別 OS 向けの normalization / case-folding 衝突を先回りして拒否しない
 - output 拡張子は ASCII case-insensitive に `.pdf` だけを受け付け、利用者が指定した file 名を保持する
 - 既存 output path は regular file または symlink だけを置換対象とし、directory、FIFO、socket、device は入力エラーとして拒否する。symlink の target へ書き込まず、最終 commit で directory entry としての symlink を置換する
@@ -228,7 +228,7 @@ Options:
 - 未知 front matter key の警告・無視と厳格検証は、通常変換、`--print-effective-config --input PATH`、`--doctor --input PATH` に共通で適用する。警告は通常の log level に従い、stdout の JSON に混ぜない。doctor では入力 check を `warning`、厳格検証で拒否した場合は `fail` とし、既存の診断用終了 code (`fail` があれば `1`、それ以外は `0`) を維持する
 - `SOURCE_DATE_EPOCH`だけは再現可能buildの標準環境変数として扱い、表示日付とPDF metadata timestampに使用する。front matterの`date`は表示日付だけを上書きする
 - child process は通常の CLI tool と同様に呼出元の環境変数を継承する
-- `--print-effective-config` は versioned schema を持つ JSON object を 1 個だけ stdout へ表示し、各値と、その設定元が CLI、front matter、default のどれかを含める。`--input` があれば先頭 Markdown の `template` / `toc` / `cover` / `logo` まで反映する。token、credential、環境変数の生値は含めず、秘密を含み得る proxy URL と custom CA の内容は表示しない
+- `--print-effective-config` は versioned schema を持つ JSON object を 1 個だけ stdout へ表示し、各値と、その設定元が CLI、front matter、default のどれかを含める。`--input` があれば全 Markdown から key ごとの先勝ちで選んだ `template` / `toc` / `cover` / `logo` を反映する。token、credential、環境変数の生値は含めず、秘密を含み得る proxy URL と custom CA の内容は表示しない
 - `--doctor` は effective config に基づき、Node.js、browser、template、logo、font directory、出力権限を検査する
 - `--doctor` と `--print-effective-config` は PDF を生成せず、診断で秘密情報や環境変数全体を表示しない
 - `--doctor` は browser download、利用者の project / output directory 作成、設定変更を行わない。browser 実起動の検査に必要な場合だけ、OS の secure temporary directory に専用 profile / workspace を作り、`finally` で回収する。cleanup 失敗は check の `fail` として残す。出力権限は既存の最寄り親 directory から best effort で判定し、実際の create / rename 成功を保証しない。外部 process の各 check は cleanup を含めて 10 秒、command 全体は 60 秒で打ち切り、timeout を `fail` として報告する

@@ -76,11 +76,11 @@ resources/templates/
     vivliostyle.css
 ```
 
-- 先頭 Markdown の front matter `template`、または bundled 名と完全一致する `--template SOURCE` で bundled template を選択する。`--template-preset NAME` は bundled preset であることを明示する。CLIはfront matterより優先する
+- Markdown の front matter `template`、または bundled 名と完全一致する `--template SOURCE` で bundled template を選択する。複数 file では最初に指定された `template` を使う。`--template-preset NAME` は bundled preset であることを明示する。CLIはfront matterより優先する
 - custom / repository template は `logo` slot の `src` に template 相対 path を持つ既定ロゴを宣言できる。bundled template は既定ロゴを持たない
 - front matterの`logo`はlocal pathまたは`false`を受け付ける。CLIの`--logo SOURCE`はlocal pathまたはGit locatorでfront matterとtemplate既定ロゴを上書きし、`--no-logo`は両方を無効化する
 - logo が明示指定されず slot に `src` もなければ logo placeholder 自体を出力しない。壊れた image placeholder を残さない
-- front matter logoの相対pathは先頭Markdownの親directory、CLI logoの相対pathはカレントディレクトリを基準に解決する
+- front matter logoの相対pathは`logo`を最初に指定したMarkdownの親directory、CLI logoの相対pathはカレントディレクトリを基準に解決する
 - logo と template は trusted input とし、存在して読み取れることだけを事前検査する。内容を sandbox 化しない
 
 ## 4.5 custom template

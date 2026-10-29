@@ -2,7 +2,7 @@
 
 ## 2.1 Front matter
 
-Write document metadata as YAML front matter at the top of the first Markdown file.
+Write document metadata as YAML front matter at the top of a Markdown file. With multiple files, the first supplied value for each key takes precedence.
 
 ```md
 ---
@@ -62,8 +62,9 @@ This validation policy also applies to `--print-effective-config --input docs` a
 
 When the input is a directory, pfpdf combines the `*.md` files directly inside it in filename order.
 
-- Every file may have front matter. Only the first file in sort order supplies document-wide metadata and settings, which the CLI overrides. Later metadata is removed from the body without filling in or merging values. If the first file has no front matter, even a title in a later file is not used as the document title
-- Invalid YAML, invalid known-key types / values, and unknown-key warnings / `--strict-front-matter` are checked in every file. Later logo / bibliography paths receive syntax validation only; their targets are neither checked for existence nor opened. Selected relative paths use the first file's parent directory
+- Every file may have front matter. Document-wide metadata and settings retain the first supplied value for each key in sort order; later files fill unset keys. A later file can supply `title` even if the first file has no front matter. To replace an existing value for one invocation, use its corresponding CLI option
+- `false` also counts as a supplied value. A `bibliography` list is selected as one value and is never concatenated with later files' lists
+- Invalid YAML, invalid types or values of known keys, and unknown-key warnings / `--strict-front-matter` apply to all files regardless of selection. Unselected logo / bibliography targets are neither checked for existence nor opened. A selected relative path is based on the parent directory of the file that first supplies that key
 - Only the lowercase `.md` extension is accepted
 - Save files as UTF-8 (a leading BOM and CRLF line endings are accepted)
 - Each file is parsed as independent Markdown. Code fences, lists, raw HTML blocks, and reference link definitions cannot continue into the next file. Close any syntax that would otherwise span chapters within a single file

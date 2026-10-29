@@ -533,16 +533,17 @@ Each decision follows this format:
 - Validation: Explicit tag precedence, multiple files, Japanese/English/mixed text, code / math / HTML / URL exclusion, empty-prose title fallback, automatic dates, exact renderer HTML and Japanese/English PDFs across all seven templates, repeated-reference labels, links, and exclusion from contents
 - Revisit when: Automatic classification beyond Japanese/English or user-provided translated labels become necessary
 
-## DD-48: Strip front matter from every file and configure the document from the first file only
+## DD-48: Inherit front matter using the first supplied value per key
 
 - Status: Accepted (2026-10-29)
 - Problem: Combining independently maintained notes fails because later front matter is rejected as duplicate metadata (#21)
-- Options: (a) reject later blocks, (b) apply each file's metadata locally to its layout, (c) merge metadata across all files, (d) parse and strip every block while using only the first file for document settings
-- Decision: (d). CLI arguments override valid first-file values. Later values never fill gaps, even if the first file lacks a value or front matter entirely. Selected relative paths, including logo / bibliography, remain based on the first file's parent directory. This supersedes the previous rejection of later front matter
-- Validation policy: Check YAML mappings, unknown-key warnings / strict mode, and known-key types, values, and path syntax in every file. Do not check existence or read ignored logo / bibliography targets. Conversion, effective configuration, and doctor share the same validation path. Invalid later blocks fail the entire document
-- Rejected: (a) requires editing notes before combining them. (b) makes the scope of page size, template, and language within one document ambiguous. (c) complicates conflicts and path bases, and lets unexpected later settings change the whole document
+- Options: (a) reject later blocks, (b) strip every block but use only the first file, (c) let later values override each key, (d) retain the first supplied value for each key and let later files fill unset keys
+- Decision: (d). The first supplied value for each key in input order applies to the whole document, and CLI arguments override that selection. A later file can supply the title or settings even if the first file lacks a value or front matter entirely. `false` counts as a supplied value. A `bibliography` list is selected as one value and is never concatenated with later lists. This supersedes DD-31 / DD-39's restriction of front matter to the first file and the previous rejection of later front matter
+- Provenance: Retain the source file for each key. Relative logo / bibliography paths are based on the parent directory of the Markdown file that first supplies that key. Unselected logo / bibliography files are neither checked for existence nor opened
+- Validation policy: Check YAML mappings, unknown-key warnings / strict mode, known-key types, values and path syntax, and duplicate bibliography paths in every file regardless of selection. Conversion, effective configuration, and doctor share the same selection and validation path. An invalid later block fails the whole document
+- Rejected: (a) requires editing notes before combining them. (b) discards useful unset values from later files. (c) changes existing document settings merely by adding a note. Per-file local application is also rejected because it leaves the scope of a single document's page size, template, and language ambiguous
 - Locations: Each `SourceFile.content` preserves its file's bytes after stripping front matter, with the removed line count retained in `lineOffset`. Preserve file order, anchors, cross-file links, and body line endings. Language inference uses the stripped prose across all files
-- Validation: Multiple and mixed front matter inputs, first-file-only settings, CLI precedence, later value validation / unknown keys / strict mode, ignored assets not opened, BOM / CRLF, original line numbers, cross-file links, exact renderer HTML, and final PDF output
+- Validation: Multiple and mixed front matter inputs, first-value-per-key selection and title / settings supplied by later files, CLI precedence, false and whole-list selection, metadata validation / unknown keys / strict mode regardless of selection, selected asset resolution and unselected assets not opened, BOM / CRLF, original line numbers, cross-file links, exact renderer HTML, and final PDF output
 - Revisit when: Per-file layout settings or bibliography merging become independently requested features
 
 ## DD-49: Toggle the cover with an independent document setting and an optional slot
