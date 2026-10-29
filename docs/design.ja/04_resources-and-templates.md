@@ -76,11 +76,11 @@ resources/templates/
     vivliostyle.css
 ```
 
-- 先頭 Markdown の front matter `template`、または bundled 名と完全一致する `--template SOURCE` で bundled template を選択する。`--template-preset NAME` は bundled preset であることを明示する。CLIはfront matterより優先する
+- Markdown の front matter `template`、または bundled 名と完全一致する `--template SOURCE` で bundled template を選択する。複数 file では最初に指定された `template` を使う。`--template-preset NAME` は bundled preset であることを明示する。CLIはfront matterより優先する
 - custom / repository template は `logo` slot の `src` に template 相対 path を持つ既定ロゴを宣言できる。bundled template は既定ロゴを持たない
 - front matterの`logo`はlocal pathまたは`false`を受け付ける。CLIの`--logo SOURCE`はlocal pathまたはGit locatorでfront matterとtemplate既定ロゴを上書きし、`--no-logo`は両方を無効化する
 - logo が明示指定されず slot に `src` もなければ logo placeholder 自体を出力しない。壊れた image placeholder を残さない
-- front matter logoの相対pathは先頭Markdownの親directory、CLI logoの相対pathはカレントディレクトリを基準に解決する
+- front matter logoの相対pathは`logo`を最初に指定したMarkdownの親directory、CLI logoの相対pathはカレントディレクトリを基準に解決する
 - logo と template は trusted input とし、存在して読み取れることだけを事前検査する。内容を sandbox 化しない
 
 ## 4.5 custom template
@@ -142,7 +142,11 @@ resources/templates/
 - MathJax と highlight.js は package 内の module を使う build-time transform とし、生成 HTML から browser script として参照しない
 - `HtmlDocumentBuilder` が生成した `document.html` を `AssetServer` が byte 変更なしで配信し、Vivliostyle CLI にその URL を渡す。integration test も同じ builder 出力と配信 byte 列を検査する
 - metadata は slot ごとの node / text context に合った型検証を通し、単純な文字列置換へ未検証値を渡さない。metadata を CSS や attribute 名へ挿入する slot は提供しない
-- browser 内の readiness coordinator は font、local image、利用者が登録した promise、resource load error を集約し、timeout や JavaScript error を renderer へ伝える
+- browser 内の readiness coordinator は font、local / data / remote image、利用者が登録した promise、resource load error を集約し、timeout や JavaScript error を renderer へ伝える
+
+- 画像の resource 解決では元の Markdown / template HTML の path・行番号と記述した参照先を診断へ含める。除去した front matter の行数を補正し、ローカル不存在には解決後の path も示す。静的な Markdown 画像の空 URL は入力エラー (code `2`) とする
+- raw HTML の `img` は script が `src` を設定できるため入力準備では一律に拒否しない。登録された readiness promise の完了後、`src` / `srcset` と decode を検査し、空・未指定・破損・HTTP / 通信失敗は runtime error (code `1`) とする。元の画像位置と参照先を DOM の診断用 attribute に残し、生成 SVG 画像にも適用する。script で新規生成された画像の位置を特定できない場合は `document.html` と現在の URL を示す
+- browser は画像の HTTP status を公開しないため、load / decode エラーでは元の参照先と解決後 URL を示す。診断用 URL は各256文字、readiness message は1024文字までとし、失敗時の既存出力保持を維持する
 
 ## 4.7 bundled asset の version 管理
 

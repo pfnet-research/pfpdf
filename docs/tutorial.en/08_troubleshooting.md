@@ -110,3 +110,5 @@ After a `SIGKILL` or a power failure, `.pfpdf-...tmp` files may remain in the ou
 - Check the detailed logs and stack traces with `--log-level debug`
 - Keep the workspace with `--keep-work-dir` and inspect the generated `document.html`, the resource manifest, and the renderer diagnostics
 - When filing an issue, include your OS / architecture, Node.js version, pfpdf version, and the `--doctor` output
+
+For image errors, check the original file, line, and destination in the diagnostic. Markdown `![caption]()` fails during preparation with an empty-destination error. Raw HTML `img` elements are checked after registered `window.pfpdf.registerReady(promise)` work finishes, so register the promise if a script supplies `src`. Corrupt images and HTTP / network failures report the authored destination and resolved URL. Browsers do not expose image HTTP status to document scripts; consult the destination server logs when necessary. Existing PDFs are preserved on failure.

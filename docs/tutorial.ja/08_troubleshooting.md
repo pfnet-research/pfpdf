@@ -110,3 +110,5 @@ PDF header や最後の `%%EOF` がない切断出力だけでなく、xref / ca
 - `--log-level debug` で詳細 log と stack trace を確認する
 - `--keep-work-dir` で workspace を残し、生成された `document.html`、resource manifest、renderer diagnostics を確認する
 - issue を報告する際は、OS / architecture、Node.js version、pfpdf version、`--doctor` の出力を添えてください
+
+画像のエラーでは、元のファイル名・行番号・参照先を確認してください。Markdown の `![caption]()` は入力準備で空の参照先として失敗します。raw HTML の `img` は登録した `window.pfpdf.registerReady(promise)` の完了後に検査するため、script で `src` を設定する場合はその promise へ登録してください。画像の破損・HTTP / 通信失敗では元の参照先と解決後 URL が診断に含まれます。browser から画像の HTTP status 自体は取得できないため、必要に応じて参照先のサーバーログも確認してください。失敗時は既存 PDF を保持します。

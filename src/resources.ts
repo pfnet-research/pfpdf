@@ -95,6 +95,10 @@ export interface ElementResourceRewriteContext {
   manifest: ResourceManifest;
   sourceName: string;
   sourceSeparator?: string;
+  /** Original-source line correction after stripped front matter. */
+  lineOffset?: number;
+  /** Carry source locations into image load/decode diagnostics. */
+  annotateImages?: boolean;
   generatedCssPrefix: string;
   generatedCssName?: () => string;
   include?: (element: Element) => boolean;
@@ -112,6 +116,7 @@ export function rewriteElementResources(
   let generatedCssCount = 0;
   visit(root, 'element', (element: Element) => {
     if (context.include && !context.include(element)) return;
+    if (context.annotateImages && element.tagName === 'img') annotateImageSource(element, context);
     try {
       rewriteFetchAttributes(element, context, () => {
         generatedCssCount++;
@@ -126,6 +131,20 @@ export function rewriteElementResources(
   return generatedCss;
 }
 
+function elementSource(element: Element, context: Pick<ElementResourceRewriteContext, 'sourceName' | 'lineOffset'>): string {
+  const line = element.position?.start.line;
+  return context.sourceName + (line === undefined ? '' : `:${line + (context.lineOffset ?? 0)}`);
+}
+
+/** Image diagnostics survive URL rewriting and paged-media DOM cloning. */
+export function annotateImageSource(element: Element, context: Pick<ElementResourceRewriteContext, 'sourceName' | 'lineOffset'>): void {
+  const props = element.properties ??= {};
+  props['data-pfpdf-image-source'] = elementSource(element, context);
+  const destination = typeof props.src === 'string' ? props.src
+    : typeof props.srcSet === 'string' ? props.srcSet : '(src not specified)';
+  props['data-pfpdf-image-destination'] = destination.length > 256 ? `${destination.slice(0, 255)}…` : destination;
+}
+
 function rewriteFetchAttributes(
   element: Element,
   context: ElementResourceRewriteContext,
@@ -134,7 +153,7 @@ function rewriteFetchAttributes(
 ): void {
   const attributes = FETCH_ATTRIBUTES[element.tagName];
   if (!attributes) return;
-  const sourcePrefix = context.sourceName + (context.sourceSeparator ?? ': ');
+  const sourcePrefix = elementSource(element, context) + (context.sourceSeparator ?? ': ');
   for (const attribute of attributes) {
     const value = element.properties?.[attribute];
     if (typeof value !== 'string' || !isFetchAttribute(element, attribute)) continue;
@@ -150,17 +169,27 @@ function rewriteFetchAttributes(
       generatedCss.push([logical, css]);
       element.properties![attribute] = logical;
     } else {
-      element.properties![attribute] = context.manifest.add(resolved.absPath) + resolved.suffix;
+      try {
+        element.properties![attribute] = context.manifest.add(resolved.absPath) + resolved.suffix;
+      } catch (error) {
+        if (error instanceof InputError) throw new InputError(`${source} ${JSON.stringify(value)}: ${error.message}`);
+        throw error;
+      }
     }
   }
   const srcSet = element.properties?.srcSet;
   if (typeof srcSet === 'string') {
-    element.properties!.srcSet = rewriteSrcset(
-      srcSet,
-      context.baseDir,
-      context.manifest,
-      `${sourcePrefix}srcset URL`,
-    );
+    try {
+      element.properties!.srcSet = rewriteSrcset(
+        srcSet,
+        context.baseDir,
+        context.manifest,
+        `${sourcePrefix}srcset URL`,
+      );
+    } catch (error) {
+      if (error instanceof InputError) throw new InputError(`${sourcePrefix}srcset ${JSON.stringify(srcSet)}: ${error.message}`);
+      throw error;
+    }
   }
 }
 

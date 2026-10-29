@@ -533,6 +533,19 @@ Each decision follows this format:
 - Validation: Explicit tag precedence, multiple files, Japanese/English/mixed text, code / math / HTML / URL exclusion, empty-prose title fallback, automatic dates, exact renderer HTML and Japanese/English PDFs across all seven templates, repeated-reference labels, links, and exclusion from contents
 - Revisit when: Automatic classification beyond Japanese/English or user-provided translated labels become necessary
 
+## DD-48: Inherit front matter using the first supplied value per key
+
+- Status: Accepted (2026-10-29)
+- Problem: Combining independently maintained notes fails because later front matter is rejected as duplicate metadata (#21)
+- Options: (a) reject later blocks, (b) strip every block but use only the first file, (c) let later values override each key, (d) retain the first supplied value for each key and let later files fill unset keys
+- Decision: (d). The first supplied value for each key in input order applies to the whole document, and CLI arguments override that selection. A later file can supply the title or settings even if the first file lacks a value or front matter entirely. `false` counts as a supplied value. A `bibliography` list is selected as one value and is never concatenated with later lists. This supersedes DD-31 / DD-39's restriction of front matter to the first file and the previous rejection of later front matter
+- Provenance: Retain the source file for each key. Relative logo / bibliography paths are based on the parent directory of the Markdown file that first supplies that key. Unselected logo / bibliography files are neither checked for existence nor opened
+- Validation policy: Check YAML mappings, unknown-key warnings / strict mode, known-key types, values and path syntax, and duplicate bibliography paths in every file regardless of selection. Conversion, effective configuration, and doctor share the same selection and validation path. An invalid later block fails the whole document
+- Rejected: (a) requires editing notes before combining them. (b) discards useful unset values from later files. (c) changes existing document settings merely by adding a note. Per-file local application is also rejected because it leaves the scope of a single document's page size, template, and language ambiguous
+- Locations: Each `SourceFile.content` preserves its file's bytes after stripping front matter, with the removed line count retained in `lineOffset`. Preserve file order, anchors, cross-file links, and body line endings. Language inference uses the stripped prose across all files
+- Validation: Multiple and mixed front matter inputs, first-value-per-key selection and title / settings supplied by later files, CLI precedence, false and whole-list selection, metadata validation / unknown keys / strict mode regardless of selection, selected asset resolution and unselected assets not opened, BOM / CRLF, original line numbers, cross-file links, exact renderer HTML, and final PDF output
+- Revisit when: Per-file layout settings or bibliography merging become independently requested features
+
 ## DD-49: Toggle the cover with an independent document setting and an optional slot
 
 - Status: Accepted (2026-10-29)
@@ -544,6 +557,16 @@ Each decision follows this format:
 - Rejected: (a) also changes body design. (b) loses named strings / running elements and cover-specific first-page CSS, causing missing Confidential labels or wrong margins. Automatically inserting a replacement body metadata header would redisplay intentionally omitted information and add template-specific variants
 - Validation: CLI / front matter precedence and invalid types, optional custom slots, all four cover / toc combinations across all seven templates, exact renderer HTML, final PDF page counts / first-page content / Confidential labels / title and author metadata
 - Revisit when: Settings to display title / author separately within the body, or template-specific multiple covers, are needed
+
+## DD-50: Preserve original image locations and diagnose dynamic destinations after readiness
+
+- Status: Accepted (2026-10-29)
+- Problem: Missing images report only resolved paths, while empty or corrupt images report a generic decode error without the referring location (#29)
+- Options: (a) report only URLs, (b) reject every img without src as an input error, (c) preserve locations and authored destinations, reject static Markdown empty URLs early, and check dynamic HTML destinations after registered promises
+- Decision: (c). Include source paths, front-matter-corrected lines, and destinations in resource InputErrors; store the same context in image DOM attributes. Generated Mermaid SVG images carry the original code-fence location. Readiness decodes all local / data / remote images and includes the failing location and destination in RuntimeErrors. Newly script-created images without positions use document.html and their current URL
+- Rejected: (a) cannot distinguish multiple references to the same URL or recover input from rewritten URLs. (b) breaks legitimate scripted image setup. Refetching images to obtain HTTP status changes authentication, CORS, and side effects, so it is not used
+- Validation: Empty URLs, original lines, missing local files, HTML without src, corrupt local / data images, HTTP404, dropped connections, src populated by registered promises, image-free documents, and preservation of existing output, using exact renderer HTML and rendering
+- Revisit when: A user-provided source-location API for script-generated images becomes necessary
 
 ## DD-51: Docker execution requires non-root users and a working Chromium sandbox
 

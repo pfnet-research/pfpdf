@@ -345,8 +345,9 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   const generatedCss = rewriteElementResources(root, {
     baseDir: template.dir,
     manifest: opts.manifest,
-    sourceName: 'template',
+    sourceName: template.htmlPath,
     sourceSeparator: ' ',
+    annotateImages: true,
     generatedCssPrefix: 'template',
     include: (element) => templateElements.has(element),
     skipFetch: (element, attribute, value) =>
@@ -455,9 +456,22 @@ function readinessInitScript(): string {
       state.failure = reason instanceof Error ? reason : new Error(String(reason));
     }
   };
+  const imageFailure = (image, reason) => {
+    const clip = (value) => value.length > 256 ? value.slice(0, 255) + '…' : value;
+    const source = image.getAttribute('data-pfpdf-image-source') || 'document.html';
+    const authored = image.getAttribute('data-pfpdf-image-destination');
+    const destination = authored === null ? image.getAttribute('src') : authored;
+    const resolved = image.currentSrc || image.src || image.getAttribute('srcset') || '';
+    return new Error(source + ': ' + reason + '; destination ' + JSON.stringify(destination === null ? null : clip(destination))
+      + (resolved ? '; resolved ' + JSON.stringify(clip(resolved)) : ''));
+  };
   const onError = (event) => {
     const target = event.target;
     if (target && target !== window) {
+      if (target.tagName === 'IMG') {
+        if (!target.hasAttribute('data-pfpdf-readiness-gate')) record(imageFailure(target, 'image load failed (HTTP or network error)'));
+        return;
+      }
       const value = target.currentSrc || target.src || target.href;
       if (!value) return;
       try { if (!new URL(value, state.root).href.startsWith(state.root.href)) return; }
@@ -491,13 +505,23 @@ function readinessInitScript(): string {
         await Promise.all(state.pending);
         if (document.fonts && document.fonts.ready) await document.fonts.ready;
         await Promise.all(Array.from(document.images)
-          .filter((image) => {
-            if (image.hasAttribute('data-pfpdf-readiness-gate')) return false;
-            if (image.currentSrc.startsWith('data:') || image.src.startsWith('data:')) return true;
-            try { return new URL(image.currentSrc || image.src, state.root).href.startsWith(state.root.href); }
-            catch { return false; }
-          })
-          .map((image) => image.decode()));
+          .filter((image) => !image.hasAttribute('data-pfpdf-readiness-gate'))
+          .map(async (image) => {
+            const authored = image.getAttribute('data-pfpdf-image-destination');
+            const current = image.currentSrc || image.src;
+            const picture = image.parentElement;
+            const pictureSource = picture && picture.tagName === 'PICTURE'
+              && Array.from(picture.children).some((source) => source.tagName === 'SOURCE'
+                && (source.getAttribute('srcset') || '').trim() !== '');
+            // The paged renderer may expand src="" to the document base URL.
+            const expandedEmpty = authored !== null && authored.trim() === '' && current === state.root.href;
+            if (expandedEmpty && !image.getAttribute('srcset') && !pictureSource) throw imageFailure(image, 'image destination is empty');
+            if (!image.getAttribute('src') && !image.getAttribute('srcset') && !image.currentSrc && !pictureSource) {
+              throw imageFailure(image, image.hasAttribute('src') ? 'image destination is empty' : 'image src is not specified');
+            }
+            try { await image.decode(); }
+            catch (error) { throw imageFailure(image, 'image cannot be decoded or loaded: ' + String(error.message || error)); }
+          }));
         if (state.failure !== null) throw state.failure;
         state.status = 'success';
       } catch (error) {
@@ -527,7 +551,7 @@ function readinessFinishScript(): string {
   const notify = (ok, error) => {
     const url = new URL('generated/readiness', root);
     url.searchParams.set('ok', ok ? '1' : '0');
-    if (error) url.searchParams.set('message', String(error.message || error).slice(0, 512));
+    if (error) url.searchParams.set('message', String(error.message || error).slice(0, 1024));
     return fetch(url, { cache: 'no-store' });
   };
   finish.then(

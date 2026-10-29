@@ -533,6 +533,19 @@
 - 検証: 明示 tag 優先、複数 file、日英・混在・code / math / HTML / URL 除外、空本文の title fallback、自動日付、全7 template の正規 renderer HTML と日英 PDF、繰返し参照の label・link・目次除外を検査する
 - 再検討条件: 日英以外の自動分類や、利用者指定の翻訳 label が必要になった場合
 
+## DD-48: 複数 file の front matter は key ごとの先勝ちで継承する
+
+- 状態: 採用 (2026-10-29)
+- 問題: 個別に metadata を持つメモを結合すると、後続 file の front matter が重複として拒否される (#21)
+- 選択肢: (a) 後続 block を拒否する、(b) 全 block を除去し先頭 file だけを使う、(c) key ごとに後勝ちで上書きする、(d) key ごとに最初の値を採用し、後続 file は未設定 key を補う
+- 採用: (d)。入力順で key ごとに最初に現れた値を文書全体へ適用し、CLI がその選択値を上書きする。先頭 file に値や front matter 自体がなくても後続 file の title や設定を使える。`false` も指定済みと扱い、`bibliography` list は一つの値として選び、後続 list と連結しない。DD-31 / DD-39 の front matter を先頭 file に限定する部分と、従来の後続 front matter 拒否を置き換える
+- 選択元: key ごとに source file を保持し、相対 logo / bibliography path はその key を最初に指定した Markdown の親 directory を基準にする。選択されない logo / bibliography の file は存在確認・読込をしない
+- 検証方針: 全 file で YAML mapping、未知 key の warning / strict mode、既知 key の型・値・path 構文と bibliography の重複 path を採否にかかわらず検査する。変換・effective config・doctor が同じ選択・検証経路を使い、不正な後続 block も文書全体の失敗とする
+- 非採用理由: (a) はメモを編集してから結合する必要がある。(b) は後続 file の有用な未設定値まで捨てる。(c) はメモを追加するだけで既存の文書設定が変わる。file 単位の局所適用も、単一文書の page size・template・language の適用範囲を曖昧にするため採用しない
+- 位置情報: 各 `SourceFile.content` はその file の front matter を除去した byte 表現とし、`lineOffset` に除去行数を保持する。file 順・anchor・file 間 link と本文の line ending は保持する。言語推定には metadata 除去後の全 file の本文を渡す
+- 検証: 複数 front matter と混在入力、key ごとの先勝ち・後続 file からの title / 設定補完、CLI 優先、false と list 全体の選択、採否にかかわらない metadata 検証・未知 key・strict mode、選択 asset の解決と不採用 asset の非読込、BOM / CRLF、元行番号、file 間 link、正規 renderer HTML と最終 PDF を確認する
+- 再検討条件: file 単位の組版設定や bibliography 統合が独立した機能として必要になる場合
+
 ## DD-49: 表紙を独立した document 設定と optional slot で切り替える
 
 - 状態: 採用 (2026-10-29)
@@ -544,6 +557,16 @@
 - 非採用理由: (a) は本文デザインまで変わる。(b) は named string / running element の情報や first-page 用 CSS を失い、Confidential 非表示や余白不良を招く。本文へ代替 metadata header を自動生成する案は、利用者が省略したい情報を再表示し、template ごとの見た目を増やすため採用しない
 - 検証: CLI / front matter 優先・不正型、optional custom slot、全7 template の cover / toc 全4組合せで正規 renderer HTML と最終 PDF の page 数・先頭内容・Confidential・PDF title / author を確認する
 - 再検討条件: 表紙とは別に title / author を本文内へ表示する設定や、template 固有の複数表紙が必要になる場合
+
+## DD-50: 画像の元位置を保持し、動的な参照先は readiness 後に診断する
+
+- 状態: 採用 (2026-10-29)
+- 問題: 存在しない画像では解決後 path だけ、空や破損画像では汎用 decode error だけが出て参照元が分からない (#29)
+- 選択肢: (a) URL だけを診断する、(b) src のない img をすべて入力エラーにする、(c) 元位置と記述した参照先を保持し、静的 Markdown の空 URL は早期拒否、動的 HTML の参照先は登録 promise 後に検査する
+- 採用: (c)。resource 解決時の InputError に元 path・front matter 補正後の行・参照先を加え、画像の DOM attribute に同じ情報を保存する。生成 Mermaid SVG 画像にも元 code fence の位置を付ける。readiness は local / data / remote の全画像を decode し、失敗箇所と参照先を RuntimeError に含める。script で新規生成した画像は位置がなければ document.html と現在の URL を使う
+- 非採用理由: (a) は同じ URL を参照する複数箇所や書換え後 URL から入力を特定できない。(b) は正当な script による画像設定を壊す。HTTP status の取得のために画像を再 fetch する案は認証・CORS・副作用を変えるため採用しない
+- 検証: 空 URL、元行番号、local 不存在、HTML の src 未指定、破損 local / data、HTTP404、通信切断、登録 promise による src 設定、画像なし、既存出力保持を正規 HTML と renderer で検査する
+- 再検討条件: script 生成画像に利用者が明示 source location を付ける API が必要になった場合
 
 ## DD-51: Docker は非 root と有効な Chromium sandbox を前提にする
 
