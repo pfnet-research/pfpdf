@@ -1,123 +1,137 @@
 # pfpdf
 
-A command-line tool that turns Markdown documents into print-quality PDFs with
-first-class support for Japanese typesetting. It supports GitHub Flavored
-Markdown (GFM), cover pages, tables of contents, page breaks, math, code
-highlighting, and raw HTML. Rendering uses the
-[Vivliostyle CLI](https://github.com/vivliostyle/vivliostyle-cli) and Chromium.
+pfpdf is a command-line tool that converts Markdown documents into PDFs with
+support for Japanese typesetting. Use it to create technical reports and manuals
+with cover pages, tables of contents, equations, and highlighted code.
 
-Japanese README: [README.ja.md](README.ja.md)
+[日本語](README.ja.md) · [Website](https://pfpdf.preferred.tech/) · [Tutorial](docs/tutorial.en/01_getting-started.md)
 
-The official website (template gallery and tutorial) is published with GitHub
-Pages from this repository. The `docs` branch is a generated deployment
-artifact (a single orphan commit force-pushed by the Pages workflow); do not
-edit it or base work on it.
+<p>
+  <a href="https://pfpdf.preferred.tech/gallery/pfn/"><img src="docs/readme/pfn-cover.en.webp" width="30%" alt="A blue cover rendered with the pfn template"></a>
+  <a href="https://pfpdf.preferred.tech/gallery/pfn/"><img src="docs/readme/pfn-math.en.webp" width="30%" alt="Equations and a Mermaid diagram rendered with the pfn template"></a>
+  <a href="https://pfpdf.preferred.tech/gallery/notebook/"><img src="docs/readme/notebook-code.en.webp" width="30%" alt="A table and highlighted TypeScript code rendered with the notebook template"></a>
+</p>
 
-## Quick start
+From left: a cover and a body page from the `pfn` template, followed by a table
+and code from `notebook`. The [template gallery](https://pfpdf.preferred.tech/gallery/)
+shows sample output from all seven bundled templates.
 
-With Node.js and npm installed, no installation step is needed:
+## Create your first PDF
+
+You need Node.js 22.12.0 or later and npm. The `npx` command below downloads and
+runs pfpdf.
+
+Save the following as `document.md`. The settings between `---` delimiters
+(front matter) specify the title, template, and document language.
+
+```markdown
+---
+title: Technical report
+template: pfn
+lang: en
+---
+
+# Overview
+
+This PDF is generated with **pfpdf**.
+```
+
+Run this command in the directory containing `document.md`:
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input document.md --output document.pdf
 ```
 
-When you pass a directory, pfpdf combines the `*.md` files directly inside it
-into a single PDF, ordered by filename:
+The first run needs an internet connection to fetch the npm package and Chromium,
+the browser used for PDF rendering. The browser download can be several hundred
+megabytes; later runs reuse the cached browser. Rendering uses
+[Vivliostyle CLI](https://github.com/vivliostyle/vivliostyle-cli).
+
+Open `document.pdf` to check the result: it contains a cover with the title, a
+table of contents, and the body text.
+
+For CI or saved build instructions, pin the package version by replacing `@latest`
+with a version such as `@0.2.1`.
+
+## Combine chapters
+
+To write chapters in separate files, put them in a directory such as `chapters/`
+and pass that directory to `--input`:
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf
+npx @pfnet-research/pfpdf@latest --input chapters --output report.pdf
 ```
 
-Pin the version in CI and long-lived documentation:
+pfpdf combines `.md` files directly inside the directory in filename order; the
+extension must be lowercase. Use names such as `00_title.md`, `01_intro.md`, and
+`02_results.md` to set the reading order. Put front matter at the top of the first
+file only. See
+[document structure](docs/tutorial.en/02_document-structure.md) for links between
+chapters, page breaks, and image paths.
 
-```bash
-npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output docs.pdf
-```
+## Templates and Markdown
 
-> **First run:** pfpdf automatically downloads Chromium for PDF rendering. The
-> download may be several hundred megabytes. Subsequent runs use the cached
-> browser, and documents that rely only on built-in features such as math and
-> code highlighting can then be converted offline.
+Set `template` in the front matter to choose a design. To try another design for
+one conversion, add an option such as `--template notebook` to the command;
+command-line arguments override front matter.
 
-## Features
+The templates come with their default fonts, including Japanese fonts. For custom
+templates, logos, or local fonts, see
+[templates and assets](docs/tutorial.en/06_templates-and-assets.md).
 
-- **GFM Markdown** — use standard GitHub syntax for tables, task lists,
-  strikethrough, autolinks, nested lists, and more
-- **Japanese-friendly emphasis** — `これは**「重要」**です` renders as `<strong>`
-  even with adjacent full-width punctuation
-- **Math and code highlighting** — `$...$` / `$$...$$` and fenced code blocks
-  work with bundled assets
-- **BibTeX bibliographies** — point to `.bib` files in front matter and use
-  `\cite{key}` for numbered citations, a formatted reference list, and internal
-  PDF links; see the [bibliography tutorial](docs/tutorial.en/03_gfm.md#39-bibtex-bibliographies)
-- **Raw HTML** — inline and block HTML pass through for trusted documents
-- **Templates and logo injection** — a research-oriented `academic`, a
-  long-form `book`, a space-efficient `compact`, a neutral `default`, a warm
-  and casual `notebook`, a corporate `pfn`, and a dense, code-first `technical`
-  template are bundled; select a template, table-of-contents policy, and local
-  logo in front matter, and override them from the CLI when needed. Custom
-  templates may carry a default logo, while CLI template and logo overrides can
-  use local paths or Git repository locators. No logo is bundled
-- **Redistributable bundled fonts** — no dependency on OS fonts by default;
-  host fonts are an explicit opt-in via `--host-fonts` / `--font-dir`
-- **Managed rendering** — uses the bundled Vivliostyle CLI and its standard
-  browser management, with an optional explicit browser path
+Use the following tutorial sections as you add content:
 
-## Supported environments
+| Content | Support and examples |
+| --- | --- |
+| Tables and task lists | [GitHub Flavored Markdown (GFM)](docs/tutorial.en/03_gfm.md), including strikethrough and emphasis next to Japanese full-width punctuation. |
+| Equations, code, and diagrams | [TeX math, syntax highlighting, and Mermaid](docs/tutorial.en/05_math-and-code.md), with bundled rendering assets. |
+| Citations and references | [BibTeX bibliographies](docs/tutorial.en/03_gfm.md#39-bibtex-bibliographies), with numbered citations linked to reference entries. |
 
-| OS / architecture | Support level |
-|---|---|
-| macOS aarch64 (Apple Silicon) | Primary |
-| Linux x86_64 | Primary |
-| Windows x86_64 | Additional |
-| Linux aarch64 | Additional |
+## Environments and troubleshooting
 
-CI verifies PDF generation with a real browser in all four environments. The
-minimum Node.js version and the pinned Vivliostyle CLI, browser, and font
-versions are recorded in `package.json` and `package-lock.json`.
+CI tests PDF generation with a real browser in four environments:
 
-On Linux, Chromium requires additional system libraries. See the
-[tutorial troubleshooting chapter](docs/tutorial.en/08_troubleshooting.md) and
-run:
+- macOS aarch64 (Apple Silicon)
+- Linux x86_64
+- Windows x86_64
+- Linux aarch64
+
+Linux also needs system libraries for Chromium. If conversion fails, run the
+environment check:
 
 ```bash
 npx @pfnet-research/pfpdf@latest --doctor
 ```
 
-## Trust model (important)
+The check reports problems with Node.js, the browser, and fonts, along with
+suggested fixes. See [troubleshooting](docs/tutorial.en/08_troubleshooting.md) for
+Linux setup and other conversion errors.
 
-pfpdf converts **trusted documents of your own**.
+## Input documents
 
-- Raw HTML and `<script>` elements run as-is in the browser during conversion;
-  pfpdf does not sanitize or sandbox them
-- Documents can reference any local file readable by the pfpdf process and may
-  access remote resources
-- Do not convert Markdown from untrusted sources
-- You are responsible for the availability and reproducibility of remote
-  resources
+Use pfpdf only with trusted documents. It renders input HTML and executes scripts
+as-is, with access to local files readable by pfpdf and to external URLs.
 
-See [SECURITY.md](SECURITY.md) and the
-[design security chapter](docs/design.en/08_security.md).
+Remote images and other external resources must be available during conversion.
+The [security policy](SECURITY.md) describes the trust model and how to report
+vulnerabilities.
 
-## Documentation
-
-The Japanese documents are canonical; English translations mirror the same
-structure.
+## Documentation and development
 
 | Document | Japanese | English |
-|---|---|---|
-| Tutorial | [docs/tutorial.ja/](docs/tutorial.ja/) | [docs/tutorial.en/](docs/tutorial.en/) |
-| Design | [docs/design.ja/](docs/design.ja/) | [docs/design.en/](docs/design.en/) |
+| --- | --- | --- |
+| Tutorial: usage and document examples | [Japanese](docs/tutorial.ja/) | [English](docs/tutorial.en/) |
+| Design: specification and design decisions | [Japanese](docs/design.ja/) | [English](docs/design.en/) |
 
-PDF versions are attached to each GitHub Release. To build them locally, run
-`make docs`.
+The Japanese documents are the source for the specification and usage; the English
+documents are translations. Each GitHub Release includes all four PDFs. To build
+them locally or contribute changes, follow the setup instructions in
+[Contributing](CONTRIBUTING.md), then run `make docs`.
+
+See the [CLI reference](docs/tutorial.en/07_cli-and-renderers.md) for all options.
 
 ## License
 
-New pfpdf code is distributed under the [MIT License](LICENSE). Licenses for
-bundled and dependent third-party software—including Vivliostyle CLI under
-AGPL-3.0, MathJax, highlight.js, and the bundled fonts—are listed in
-[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and
-[SECURITY.md](SECURITY.md) for vulnerability reporting.
+pfpdf's code is released under the [MIT License](LICENSE). Dependencies and bundled
+assets have their own licenses, including AGPL-3.0 for Vivliostyle CLI. See
+[third-party licenses](THIRD_PARTY_LICENSES.md) for the list.

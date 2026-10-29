@@ -1,85 +1,104 @@
 # pfpdf
 
-Markdown 文書から日本語組版に対応した PDF を生成する command line tool です。GitHub Flavored Markdown(GFM)を基準とし、表紙・目次・改ページ・数式・コードハイライト・raw HTML を扱えます。描画には [Vivliostyle CLI](https://github.com/vivliostyle/vivliostyle-cli) と Chromium を使います。
+pfpdfは、Markdown文書から日本語組版に対応したPDFを生成するコマンドラインツールです。表紙や目次を付けた技術レポート、マニュアルなどを作れます。表・数式・コードハイライトにも対応しています。
 
-English README: [README.md](README.md)
+[English](README.md) · [ウェブサイト](https://pfpdf.preferred.tech/ja/) · [チュートリアル](docs/tutorial.ja/01_getting-started.md)
 
-公式サイト(テンプレートギャラリーとチュートリアル)はこのリポジトリから GitHub Pages で公開しています。`docs` ブランチは Pages workflow が force push する生成物(orphan 単一 commit)なので、編集したり作業の起点にしたりしないでください。
+<p>
+  <a href="https://pfpdf.preferred.tech/ja/gallery/pfn/"><img src="docs/readme/pfn-cover.ja.webp" width="30%" alt="pfnテンプレートで生成した青い表紙"></a>
+  <a href="https://pfpdf.preferred.tech/ja/gallery/pfn/"><img src="docs/readme/pfn-math.ja.webp" width="30%" alt="pfnテンプレートで組版した数式とMermaidの図"></a>
+  <a href="https://pfpdf.preferred.tech/ja/gallery/notebook/"><img src="docs/readme/notebook-code.ja.webp" width="30%" alt="notebookテンプレートで組版した表とTypeScriptのコードハイライト"></a>
+</p>
 
-## クイックスタート
+左から、`pfn`の表紙と本文、`notebook`の表とコードの例です。[テンプレートギャラリー](https://pfpdf.preferred.tech/ja/gallery/)では、同梱する7種類すべての出力を確認できます。
 
-Node.js と npm があれば、install なしで実行できます。
+## 最初のPDF
+
+Node.js 22.12.0以上とnpmを用意します。下の`npx`コマンドでpfpdfを取得して実行できます。
+
+次の内容を`document.md`に保存します。先頭の`---`で囲んだ設定欄（フロントマター）で、タイトルとテンプレートを指定しています。
+
+```markdown
+---
+title: 技術レポート
+template: pfn
+---
+
+# 概要
+
+これは**pfpdf**で作るPDFです。
+```
+
+`document.md`を保存したディレクトリーで、次のコマンドを実行します。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input document.md --output document.pdf
 ```
 
-ディレクトリを渡すと、直下の `*.md` がファイル名順に結合されて 1 つの PDF になります。
+初回はnpmパッケージと描画用ブラウザーのChromiumを取得するため、インターネット接続が必要です。Chromiumのダウンロードには数百MBの通信が発生することがあります。2回目以降は保存済みのブラウザーを再利用します。PDFの描画には[Vivliostyle CLI](https://github.com/vivliostyle/vivliostyle-cli)を使います。
+
+生成された`document.pdf`を開くと、タイトルの入った表紙、目次、本文を確認できます。
+
+CIや継続して使うビルド手順では、`@latest`を`@0.2.1`のような指定に置き換え、バージョンを固定してください。
+
+## 複数ファイルの結合
+
+章ごとにファイルを分ける場合は、`chapters/`などのディレクトリーにまとめ、`--input`に指定します。
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf
+npx @pfnet-research/pfpdf@latest --input chapters --output report.pdf
 ```
 
-CI や長期保存する手順書では version を固定してください。
+直下の`.md`ファイル（拡張子は小文字）をファイル名順に結合します。`00_title.md`、`01_intro.md`、`02_results.md`のように番号を付けると、読む順序を指定できます。フロントマターは、最初のファイルの先頭にだけ書きます。章の間のリンク、改ページ、画像のパスは[文書の構成](docs/tutorial.ja/02_document-structure.md)を参照してください。
 
-```bash
-npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output docs.pdf
-```
+## テンプレートと記法
 
-> **初回実行時の注意**: PDF 描画用の Chromium が自動で download されるため、初回は数百 MB の通信が発生することがあります。2 回目以降は cache が使われ、組み込み機能(数式・コードハイライト)だけを使う文書はネットワークなしで変換できます。
+見た目はフロントマターの`template`で選びます。一度だけ別のデザインを試す場合は、コマンドに`--template notebook`などを追加してください。コマンドライン引数がフロントマターより優先されます。
 
-## 主な機能
+各テンプレートの既定フォントも、日本語フォントを含めて同梱しています。独自のテンプレートやロゴ、手元のフォントの指定方法は[テンプレートとアセット](docs/tutorial.ja/06_templates-and-assets.md)にまとめています。
 
-- **GFM 基準の Markdown** — 表、task list、strikethrough、autolink、ネストしたリストなど、GitHub で使える標準記法をそのまま利用できます
-- **日本語の強調に対応** — `これは**「重要」**です` のように全角約物が隣接する `**` も正しく `<strong>` になります
-- **数式とコードハイライト** — `$...$` / `$$...$$` の数式と fenced code block の highlight が同梱アセットで動作します
-- **BibTeX 参考文献** — front matter で `.bib` を指定し、`\cite{key}` から番号付き引用、参考文献一覧、PDF 内部リンクを生成します。記法は[チュートリアル](docs/tutorial.ja/03_gfm.md#39-bibtex-参考文献)を参照してください
-- **raw HTML** — 信頼済み文書向けに inline / block の HTML を保持し、レイアウトの自由度を確保します
-- **template とロゴの注入** — 研究報告向け `academic`、長文向け `book`、短い資料向け `compact`、中立な `default`、カジュアルな小冊子向け `notebook`、企業文書向け `pfn`、高密度な技術文書向け `technical` の 7 つの template を同梱。front matter でtemplate・目次・local logoを選択でき、CLIから上書きできます。custom templateは既定ロゴを持て、CLIのtemplateとlogoはlocal pathまたはGit repository locatorを利用できます。bundled logoは含めません
-- **再配布可能な同梱フォント** — 既定では OS のフォントに依存しません。host font は `--host-fonts` / `--font-dir` による明示的な opt-in です
-- **管理された renderer** — 同梱 Vivliostyle CLI と標準の browser 管理を使い、必要なら browser path を明示できます
+文書に内容を追加するときは、次の記法を使えます。
 
-## 対応環境
+| 書きたい内容 | 対応する記法と使用例 |
+| --- | --- |
+| 表・タスクリスト | [GitHub Flavored Markdown（GFM）](docs/tutorial.ja/03_gfm.md)に対応しています。取り消し線や、日本語の句読点・括弧に隣接する強調も扱えます。 |
+| 数式・コード・図 | [TeXの数式、コードハイライト、Mermaid](docs/tutorial.ja/05_math-and-code.md)を使えます。描画に必要なアセットは同梱しています。 |
+| 引用・参考文献 | [BibTeXファイル](docs/tutorial.ja/03_gfm.md#39-bibtex-参考文献)から参考文献一覧を生成し、本文の引用番号から各文献へリンクします。 |
 
-| OS / architecture | サポート水準 |
-|---|---|
-| macOS aarch64 (Apple Silicon) | 主要サポート |
-| Linux x86_64 | 主要サポート |
-| Windows x86_64 | 追加サポート |
-| Linux aarch64 | 追加サポート |
+## 動作環境とトラブルシューティング
 
-いずれも CI で実 browser による PDF 生成まで検証しています。対応する Node.js の最低 version、固定している Vivliostyle CLI / browser / フォントの version は `package.json` と `package-lock.json` を正とします。
+CIでは、次の4環境で実際のブラウザーを使ったPDF生成を検証しています。
 
-Linux では Chromium の実行に OS の shared library が必要です。必要 package と診断方法は [チュートリアルの troubleshooting 章](docs/tutorial.ja/08_troubleshooting.md) を参照してください。環境の診断には次が使えます。
+- macOS aarch64（Apple Silicon）
+- Linux x86_64
+- Windows x86_64
+- Linux aarch64
+
+LinuxではChromiumの実行にシステムライブラリーも必要です。変換に失敗したときは、次のコマンドで環境を診断してください。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --doctor
 ```
 
-## trust model(重要)
+Node.js、ブラウザー、フォントなどの問題と対処方法が表示されます。Linuxの環境設定や、その他の変換エラーへの対処は[トラブルシューティング](docs/tutorial.ja/08_troubleshooting.md)を参照してください。
 
-pfpdf は**信頼できる自分の文書**を変換するための tool です。
+## 入力文書の取り扱い
 
-- raw HTML と `<script>` は変換時に browser 上でそのまま実行されます。sanitization や sandbox は行いません
-- 文書は pfpdf process が読めるローカルファイルを参照でき、リモートリソースへアクセスし得ます
-- 出所の分からない Markdown を pfpdf で変換しないでください
-- リモートリソースの取得可否・再現性は利用者の責任です
+入力には信頼できる文書を使ってください。pfpdfは入力のHTMLをそのまま描画し、スクリプトも実行します。文書からは、pfpdfが読み取れるローカルファイルや外部URLにアクセスできます。
 
-詳細は [SECURITY.md](SECURITY.md) と [設計書の security 章](docs/design.ja/08_security.md) を参照してください。
+リモートの画像などを参照する場合は、変換時に取得できる必要があります。入力文書を信頼する前提と脆弱性の報告方法は、[セキュリティーポリシー](SECURITY.md)に記載しています。
 
-## ドキュメント
+## ドキュメントと開発
 
-日本語版が正典で、英語版は同じ構成の翻訳です。
+| 文書 | 日本語 | 英語 |
+| --- | --- | --- |
+| チュートリアル：使い方と文書の例 | [日本語](docs/tutorial.ja/) | [English](docs/tutorial.en/) |
+| 設計書：仕様と設計判断 | [日本語](docs/design.ja/) | [English](docs/design.en/) |
 
-| 文書 | 日本語 | English |
-|---|---|---|
-| チュートリアル(導入から CLI・troubleshooting まで) | [docs/tutorial.ja/](docs/tutorial.ja/) | [docs/tutorial.en/](docs/tutorial.en/) |
-| 設計書(仕様・architecture・設計判断) | [docs/design.ja/](docs/design.ja/) | [docs/design.en/](docs/design.en/) |
+仕様と使い方は日本語版を基準とし、英語版はその翻訳です。各GitHub Releaseには4文書のPDFを添付しています。手元でPDFを生成したり開発に参加したりする場合は、[コントリビューションガイド](CONTRIBUTING.md)に従って環境を用意してください。文書のPDFは`make docs`で生成できます。
 
-PDF 版は各 release の GitHub Release に添付されています。手元で生成する場合は `make docs` を実行してください。
+コマンドライン引数の一覧は[CLIの使い方](docs/tutorial.ja/07_cli-and-renderers.md)を参照してください。
 
-## License
+## ライセンス
 
-pfpdf の新規コードは [MIT License](LICENSE) です。同梱・依存する第三者ソフトウェア(AGPL-3.0 の Vivliostyle CLI、MathJax、highlight.js、フォントなど)のライセンスは [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) を参照してください。
-
-貢献方法は [CONTRIBUTING.md](CONTRIBUTING.md)、脆弱性の報告は [SECURITY.md](SECURITY.md) を参照してください。
+pfpdfのコードは[MIT License](LICENSE)で公開しています。依存するソフトウェアや同梱アセットには個別のライセンスが適用されます。Vivliostyle CLIのAGPL-3.0を含む一覧は、[第三者ライセンス](THIRD_PARTY_LICENSES.md)に記載しています。
