@@ -10,6 +10,8 @@
 - 標準フォントを使う代表文書について、PDF が生成でき、日本語を含む本文を `pdftotext` で抽出できる最小限のスモークテストを用意する
 - font の subset 化や format 変換を行う場合は、元 license が改変と Reserved Font Name を許すか確認し、生成手順を再現可能にする
 
+全 bundled template は `lang` の primary language が `ja` の要素で CSS `text-autospace: normal` を既定適用し、和文と欧文・数字の境界へ表示上の空きを入れます。明示した別言語の要素では解除し、code / pre / kbd / samp / textarea / SVG / MathML と数式は対象外です。明示空白と約物は保持し、source・DOM text・URL・識別子に文字を挿入しません。利用者の CSS で `text-autospace: no-autospace` に上書きできます。非対応 browser では空きを追加せず変換を継続します。Vivliostyle 11.1.0 と既定 Chrome 150 での実 PDF を確認し、フォントは同梱ゴシック・明朝の両方を対象にします。PDF の抽出器によっては視覚的な空きを空白として復元する場合があります。
+
 ## 4.2 host font の opt-in
 
 - `--host-fonts` で OS 標準の font directory を探索し、`--font-dir PATH` の繰り返し指定で探索先を追加できるようにする

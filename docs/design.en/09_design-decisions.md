@@ -532,3 +532,16 @@ Each decision follows this format:
 - Risk: English with a small Japanese example, multilingual text, and Han-only Chinese cannot be classified perfectly. Specify `lang` to override inference. Inference also changes dates, contents labels, and HTML / PDF language, not just footnotes
 - Validation: Explicit tag precedence, multiple files, Japanese/English/mixed text, code / math / HTML / URL exclusion, empty-prose title fallback, automatic dates, exact renderer HTML and Japanese/English PDFs across all seven templates, repeated-reference labels, links, and exclusion from contents
 - Revisit when: Automatic classification beyond Japanese/English or user-provided translated labels become necessary
+
+## DD-54: Default Japanese inter-script spacing through CSS
+
+- Status: Accepted (2026-10-29)
+- Problem: Japanese text directly abuts Latin letters and digits, reducing printed readability (#24)
+- Options: (a) insert literal spaces into source/DOM, (b) add front matter / CLI configuration, (c) default CSS text-autospace based on existing document language
+- Decision: (c). Shared bundled-template CSS applies text-autospace: normal (equivalent to ideograph-alpha / ideograph-numeric) to explicitly Japanese-language elements and resets the policy for other-language subtrees. Exclude code/pre/kbd/samp/textarea/SVG/MathML/math and their descendants. Zero-specificity selectors allow user CSS overrides
+- Rejected: (a) changes URLs, identifiers, and copied text. (b) adds configuration for typography already determined by document language. Punctuation adjustment and replace behavior are outside this scope
+- Implementation compatibility: pinned Chrome 150 accepts normal but rejects the ideograph-alpha ideograph-numeric combination, so use normal, which [CSS Text 4](https://drafts.csswg.org/css-text-4/#text-autospace-property) defines as equivalent
+- Fallback: Unsupported browsers ignore the property and retain previous unspaced rendering. Do not update dependencies or the renderer
+- Validation: Pinned Chrome150 / Vivliostyle11.1.0, all seven templates with bundled sans/serif fonts, Latin/digits, authored spaces, punctuation, links, nested lang, code/math, DOM text and selection preservation, exact document.html computed styles/geometry and PDF positions/extraction
+- Risk: Added visual spacing changes wrapping. PDF extractors may reconstruct visual gaps as whitespace, while the DOM source text remains unchanged
+- Revisit when: Browser defaults or support change, or document configuration becomes necessary beyond CSS overrides

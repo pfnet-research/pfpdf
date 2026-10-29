@@ -10,6 +10,8 @@ pfpdf bundles redistributable Japanese fonts in multiple weights, including Noto
 - Provide a minimal smoke test for representative documents using the bundled fonts: the PDF can be generated, and body text containing Japanese can be extracted with `pdftotext`
 - If font subsetting or format conversion is performed, verify that the original license permits modification and check any Reserved Font Name conditions, and make the generation procedure reproducible
 
+All bundled templates default to CSS `text-autospace: normal` on elements whose primary language is `ja`, adding visual spacing at Japanese/Latin-letter/digit boundaries. An explicit different language resets the policy. Code/pre/kbd/samp/textarea/SVG/MathML and math are excluded. Preserve authored spaces and punctuation; no characters are inserted into source, DOM text, URLs, or identifiers. User CSS can override with `text-autospace: no-autospace`. Unsupported browsers continue conversion without added spacing. Verify actual PDFs with Vivliostyle 11.1.0 and its default Chrome 150, using both bundled sans and serif fonts. PDF extractors may reconstruct visual gaps as whitespace.
+
 ## 4.2 Host font opt-in
 
 - `--host-fonts` scans the standard OS font directories, and repeated `--font-dir PATH` options add scan locations

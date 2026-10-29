@@ -21,6 +21,10 @@ You can use `**` directly in Japanese prose. It converts correctly even when adj
 
 You rarely need to write `<strong>` tags; use `**` whenever GFM can express the emphasis you need.
 
+### Japanese/Latin spacing
+
+Japanese documents automatically add visual CSS spacing between Japanese text and Latin letters/digits. Authored spaces and punctuation are preserved; code and math are excluded. No whitespace is inserted into URLs or copied DOM text. PDF text extractors may reconstruct visual gaps as whitespace. This default does not apply to non-Japanese languages such as `lang: en`. Override it with `text-autospace: no-autospace` in custom CSS; unsupported browsers display the text without added spacing.
+
 ## 3.3 Lists
 
 Nested lists, numbered lists, and task lists are all supported.
