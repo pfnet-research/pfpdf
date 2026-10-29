@@ -558,6 +558,16 @@ Each decision follows this format:
 - Validation: CLI / front matter precedence and invalid types, optional custom slots, all four cover / toc combinations across all seven templates, exact renderer HTML, final PDF page counts / first-page content / Confidential labels / title and author metadata
 - Revisit when: Settings to display title / author separately within the body, or template-specific multiple covers, are needed
 
+## DD-50: Preserve original image locations and diagnose dynamic destinations after readiness
+
+- Status: Accepted (2026-10-29)
+- Problem: Missing images report only resolved paths, while empty or corrupt images report a generic decode error without the referring location (#29)
+- Options: (a) report only URLs, (b) reject every img without src as an input error, (c) preserve locations and authored destinations, reject static Markdown empty URLs early, and check dynamic HTML destinations after registered promises
+- Decision: (c). Include source paths, front-matter-corrected lines, and destinations in resource InputErrors; store the same context in image DOM attributes. Generated Mermaid SVG images carry the original code-fence location. Readiness decodes all local / data / remote images and includes the failing location and destination in RuntimeErrors. Newly script-created images without positions use document.html and their current URL
+- Rejected: (a) cannot distinguish multiple references to the same URL or recover input from rewritten URLs. (b) breaks legitimate scripted image setup. Refetching images to obtain HTTP status changes authentication, CORS, and side effects, so it is not used
+- Validation: Empty URLs, original lines, missing local files, HTML without src, corrupt local / data images, HTTP404, dropped connections, src populated by registered promises, image-free documents, and preservation of existing output, using exact renderer HTML and rendering
+- Revisit when: A user-provided source-location API for script-generated images becomes necessary
+
 ## DD-53: Join Japanese paragraph source wrapping in the AST
 
 - Status: Accepted (2026-10-29)
