@@ -19,11 +19,7 @@ By default, a five-minute timeout covers the entire process, from the initial br
 Create `hello.md`.
 
 ```md
----
-title: My First pfpdf
----
-
-# Hello
+# My First pfpdf
 
 This is my first PDF made with **pfpdf**.
 ```
@@ -35,6 +31,8 @@ npx @pfnet-research/pfpdf@latest --input hello.md --output hello.pdf
 ```
 
 After the command succeeds, `hello.pdf` contains a cover with the title and a body with the heading and paragraph.
+
+When the title is omitted, the first H1 supplies it and the body heading is retained. See Chapter 02 for explicit titles and the rules when there is no H1.
 
 ## 1.3 Pinning the version
 

@@ -67,12 +67,13 @@ test('front matter toc and logo validate types and repository boundaries', () =>
   );
 });
 
-test('missing title is code 2', () => {
+test('missing explicit title falls back to the input filename', () => {
   const p = tmpFile('---\nauthor: A\n---\n\nbody\n');
-  assert.throws(() => resolveInput(p, null, {}, noop), InputError);
+  assert.deepEqual(resolveInput(p, null, { SOURCE_DATE_EPOCH: '0' }, noop).metadata.title,
+    { lines: ['doc'], plainText: 'doc' });
 });
 
-test('--title satisfies the requirement', () => {
+test('--title takes precedence over a Markdown heading', () => {
   const p = tmpFile('# Hi\n');
   const r = resolveInput(p, 'CLI Title', { SOURCE_DATE_EPOCH: '0' }, noop);
   assert.deepEqual(r.metadata.title, { lines: ['CLI Title'], plainText: 'CLI Title' });

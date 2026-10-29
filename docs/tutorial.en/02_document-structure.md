@@ -33,7 +33,7 @@ This validation policy also applies to `--print-effective-config --input docs` a
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `title` | string | none (required) | Document title. On the cover, lines can be broken with `<br>` |
+| `title` | string | inferred from H1, then input name | Document title. Explicit values can use `<br>` for line breaks |
 | `author` | string | none | Author name |
 | `series` | string | none | Series name shown in the primary label position of every bundled template |
 | `template` | bundled template name | `default` | Bundled template used for the document |
@@ -46,7 +46,9 @@ This validation policy also applies to `--print-effective-config --input docs` a
 | `lang` | BCP 47 string | `ja` / `en` inferred from prose | Document language. Used for the HTML `lang` attribute, typesetting, and font selection |
 | `dir` | `ltr` / `rtl` / `auto` | `auto` | Text direction of the document. Used for the `dir` attribute of the HTML root |
 
-- `title` is required. Write it in the front matter or pass it with `--title`. If it appears in neither, that is an error (exit code `2`)
+- Title precedence is `--title` → first front matter `title` in input order → first non-empty top-level H1 in input order → input name. Both `# Heading` and Setext H1s qualify; headings inside quotes, lists, code, raw HTML blocks, or footnote definitions do not. The body heading is retained
+- Flatten H1 formatting into one line, using link text, code / math source, and image alt text. Without an H1, use the filename without `.md` for a single file or the directory name for directory input. If collapsing whitespace and line breaks leaves an empty input name, use `document`. Do not reinterpret `<br>` or character references in inferred values
+- An explicitly empty `title`, invalid type, or disallowed HTML remains an input error (exit code `2`). Inference and CLI overrides never hide these errors
 - Front matter `template` must be one of `academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical`. The CLI's `--template` / `--template-preset` override front matter
 - Relative `logo` paths are resolved from the directory containing the front matter Markdown. Front matter accepts only local files; use `--logo` for a Git repository source
 - If `series` is omitted, the series display area is removed entirely. The bundled templates never fill it with a fixed publication name, document type, brand name, or boilerplate label
@@ -63,6 +65,7 @@ This validation policy also applies to `--print-effective-config --input docs` a
 When the input is a directory, pfpdf combines the `*.md` files directly inside it in filename order.
 
 - Every file may have front matter. Document-wide metadata and settings retain the first supplied value for each key in sort order; later files fill unset keys. A later file can supply `title` even if the first file has no front matter. To replace an existing value for one invocation, use its corresponding CLI option
+- Search for an H1 only if no file supplies an explicit `title`. A later file's explicit `title` overrides an earlier file's H1. Without an H1 either, use the input directory name rather than the first filename
 - `false` also counts as a supplied value. A `bibliography` list is selected as one value and is never concatenated with later files' lists
 - Invalid YAML, invalid types or values of known keys, and unknown-key warnings / `--strict-front-matter` apply to all files regardless of selection. Unselected logo / bibliography targets are neither checked for existence nor opened. A selected relative path is based on the parent directory of the file that first supplies that key
 - Only the lowercase `.md` extension is accepted

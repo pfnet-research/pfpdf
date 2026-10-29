@@ -16,11 +16,7 @@ browser の初回取得から PDF 完了までには既定で 5 分の timeout �
 `hello.md` を作ります。
 
 ```md
----
-title: はじめての pfpdf
----
-
-# こんにちは
+# はじめての pfpdf
 
 これは **pfpdf** で作った最初の PDF です。
 ```
@@ -32,6 +28,8 @@ npx @pfnet-research/pfpdf@latest --input hello.md --output hello.pdf
 ```
 
 `hello.pdf` が生成されれば成功です。表紙にタイトル、本文に見出しと段落が入っています。
+
+タイトルを省略すると最初の H1 が使われ、本文の見出しも残ります。明示指定や H1 がない場合の規則は 02 章を参照してください。
 
 ## 1.3 version の固定
 

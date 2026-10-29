@@ -1,10 +1,6 @@
 /** Markdown pipeline: GFM + CJK-friendly + math + pfpdf directives -> hast. */
 import path from 'node:path';
 import { unified } from 'unified';
-import remarkParse from 'remark-parse';
-import remarkGfm from 'remark-gfm';
-import remarkCjkFriendly from 'remark-cjk-friendly';
-import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
 import { toHtml } from 'hast-util-to-html';
@@ -33,6 +29,7 @@ import { insertWordBreakOpportunities } from './text-breaks.js';
 import { joinJapaneseSoftBreaks } from './soft-breaks.js';
 import { renderMermaidToHast } from './mermaid.js';
 import { preparePageFootnotes } from './page-footnotes.js';
+import { createMarkdownParser } from './markdown-parser.js';
 
 export interface TocEntry {
   depth: number;
@@ -47,14 +44,6 @@ export interface DocumentBody {
   toc: TocEntry[];
   generatedCss: Array<[string, string]>;
   generatedFiles: Array<[string, string]>;
-}
-
-function parserFor() {
-  return unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkCjkFriendly)
-    .use(remarkMath, { singleDollarTextMath: true });
 }
 
 /** Spec 3.3.3 slug algorithm. */
@@ -170,7 +159,7 @@ export async function buildDocumentBody(
 
 export function parseSources(files: SourceFile[]): ParsedSource[] {
   return files.map((file) => {
-    const processor = parserFor();
+    const processor = createMarkdownParser();
     const mdast = processor.parse(file.content);
     const imageDefinitions = new Map<string, string>();
     visit(mdast, 'definition', (definition) => {

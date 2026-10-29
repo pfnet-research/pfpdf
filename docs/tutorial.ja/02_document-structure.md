@@ -33,7 +33,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-m
 
 | key | 型 | 既定値 | 説明 |
 |---|---|---|---|
-| `title` | string | なし(必須) | 文書タイトル。表紙では `<br>` で改行できます |
+| `title` | string | H1、なければ入力名から補完 | 文書タイトル。明示値では `<br>` で改行できます |
 | `author` | string | なし | 著者名 |
 | `series` | string | なし | 全 bundled template の主要ラベル位置に表示するシリーズ名 |
 | `template` | bundled template 名 | `default` | 文書に使用する bundled template |
@@ -46,7 +46,9 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-m
 | `lang` | BCP 47 string | 本文から `ja` / `en` を推定 | 文書の言語。HTML の `lang`、組版、フォント選択に使います |
 | `dir` | `ltr` / `rtl` / `auto` | `auto` | 文書の文字方向。HTML root の `dir` に使います |
 
-- `title` は必須です。front matter に書くか、`--title` で指定してください。どちらにもない場合はエラー(終了 code `2`)になります
+- タイトルの優先順位は `--title` → 入力順で最初の front matter `title` → 入力順で最初の空でないトップレベル H1 → 入力名です。H1 は `# 見出し` と Setext 形式を対象とし、引用・list・code・raw HTML block・脚注定義の内側は使いません。本文の見出しは残ります
+- H1 の装飾は外し、link の文字列、code / 数式の source、画像の alt を使って 1 行にします。H1 がなければ、単一 file は `.md` を除いた file 名、directory は directory 名を使います。空白・改行を畳んでも空の入力名は `document` になります。補完値の `<br>` や文字参照を再解釈することはありません
+- 明示した空の `title`、不正な型、許可されない HTML は従来どおり入力エラー(終了 code `2`)です。補完や CLI 上書きで隠すことはできません
 - front matter の `template` には `academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical` のいずれかを指定します。CLI の `--template` / `--template-preset` は front matter を上書きします
 - `logo` の相対 path は front matter を書いた Markdown の親 directory 基準です。front matter では local file だけを指定でき、Git repository source は `--logo` で指定します
 - `series` を省略するとシリーズ表示領域自体が削除されます。bundled template は固定の出版名、文書種別、ブランド名、定型ラベルを補いません
@@ -63,6 +65,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-m
 ディレクトリを入力にすると、直下の `*.md` がファイル名順に結合されます。
 
 - 各ファイルに front matter を書けます。文書全体の metadata・設定は並び順でキーごとに最初の値を採用し、後続ファイルは未設定のキーを補います。先頭ファイルに front matter がなくても、後続ファイルで `title` を指定できます。既存の値を一時的に置き換えたい場合は、対応する CLI option を使って上書きします
+- 全ファイルに明示 `title` がないときだけ H1 を探します。後続ファイルの明示 `title` は、先行ファイルの H1 より優先します。H1 もなければ先頭ファイル名ではなく入力 directory 名を使います
 - `false` も指定済みの値として扱います。`bibliography` のリストは一つの値として選び、後続ファイルのリストを連結しません
 - 不正 YAML、既知 key の型・値の誤り、未知 key の warning / `--strict-front-matter` は採否にかかわらず全ファイルで検査します。選ばれない logo / bibliography は参照先の存在確認や読込をしません。選択された相対 path は、そのキーを最初に指定したファイルの親 directory 基準です
 - 拡張子は小文字の `.md` だけが対象です

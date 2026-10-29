@@ -161,7 +161,7 @@ Required:
   --output PATH      .pdf の出力先
 
 Options:
-  --title TEXT             front matter の title を上書きする
+  --title TEXT             front matter と自動補完より優先する title
   --cover / --no-cover     表紙または先頭 header を有効 / 無効化する。既定は有効
   --toc / --no-toc         目次生成を有効 / 無効化する。既定は有効
   --template SOURCE        preset 名、local directory、または git::URL//PATH?ref=REVISION
@@ -204,7 +204,9 @@ Options:
 
 ### 2.9.2 metadata と再現可能な日付
 
-- `title` は必須とし、front matter と `--title` のどちらにもなければ終了 code `2` で失敗する
+- title の優先順位は `--title`、入力順で最初の front matter `title`、全入力 file を入力順に調べて最初に見つかる空でないトップレベルの Markdown H1、入力名とする。後続 file の明示 title も、先行 file の H1 より優先する。H1 は ATX / Setext の両方を対象とし、blockquote・list・code・raw HTML block・脚注定義の内側は対象外とする
+- H1 からは装飾を外し、link の label、code と数式の source text、画像の alt を文字列として採用する。脚注参照と HTML comment は除外し、`br` は空白、script / style / template の内容は除外する。CSS や script は評価しない。文字参照は Markdown として一度解決し、空白・改行は一つの空白へ畳む。本文・見出し・anchor・元行番号は変更しない
+- H1 がなければ、file input は末尾の `.md` を除いた file 名、directory input は directory 名を使う。入力名の空白・改行も一つの空白へ畳み、空なら `document` とする。補完値は `<br>` や文字参照を再解釈しない literal text の 1 行とし、表紙・HTML title・PDF Info / XMP で同じ解決値を使う。以下の制限は明示 title に適用し、補完で不正な明示値を隠さない
 - `title` は空でない string とし、HTML tokenizer で text / character reference と、大小文字を区別しない attribute なしの `<br>` / `<br/>` / `<br />` token だけを許可する。その他の comment、tag、attribute は除去せずエラーにする。plain な `x < y` は text として扱う。plain text 表現では許可した改行 tag を U+000A へ変換し、HTML `<title>` では空白へ畳んでから DOM API で設定する
 - `author`、`series`、`date` は string、`confidential` は YAML boolean、`page_size` は allowlist keyword または寸法 2 個だけを受け付け、省略時は `A4` とする。`author` / `series` / `date` には HTML を許可せず DOM の text として挿入する
 - title の視覚的な改行は YAML block scalar や literal newline ではなく、許可した `<br>` を使う
@@ -213,7 +215,7 @@ Options:
 - page size keyword は ASCII case-insensitive の `A3`、`A4`、`A5`、`JIS-B4`、`JIS-B5`、`ISO-B4`、`ISO-B5`、`Letter`、`Legal` とする。曖昧な `B4` / `B5` は受け付けない。寸法は `<number><unit><ASCII-whitespace+><number><unit>` の幅・高さ順とし、unit は `mm` / `cm` / `in` / `pt`、各辺は正の有限 decimal とする。renderer が扱える寸法へ pfpdf 独自の上限を設けない
 - metadata key は `title`、`author`、`series`、`date`、`page_size`、`confidential`、`lang`、`dir` とする。文書設定と `bibliography` を含む既知 key 以外は、既定では source file と key 名を含む warning を key ごとに stderr へ出し、値を無視する。未知 key の値は metadata、effective config、生成文書へ渡さない。`--strict-front-matter` を指定した場合は未知 key を入力誤り (code `2`) とする。重複 key、不正 YAML、既知 key の不正な型・値はモードにかかわらず入力誤りとする
 - 文書設定の`template`はbundled template名、`toc` / `cover`はYAML boolean、`logo`はlocal path stringまたは`false`とする。`cover`は既定trueで、表紙と目次は独立に切り替える。`logo`の相対pathはfront matter sourceの親directory基準で解決し、Git repository sourceはfront matterでは拒否して`--logo`だけから受け付ける
-- `--title` は有効な front matter title の値だけを上書きする。CLI override があっても front matter 全体の syntax、key、型を先に検証し、不正値を隠さない
+- `--title` は有効な front matter title または補完値を上書きする。CLI override や補完があっても全 file の front matter の syntax、key、型を先に検証し、不正値を隠さない
 - `confidential` の既定値は `false` とし、利用者が明示した場合だけ `Confidential` 表示を行う
 - `SOURCE_DATE_EPOCH` は ASCII decimal の非負整数 Unix seconds とし、13 digit を超える値は数値変換前に拒否する。その後 JavaScript `Number` を経由せず parse し、安全な整数かつ ECMAScript `Date` の表現範囲にあることを確認する。不正値は無視せずエラーにする。`date` が省略されてこの値が有効なら、表示日付には UTC のその日付を使う。未設定時の表示日付は process 起動時に 1 回だけ取得した local date、PDF metadata は同じ起動 instant を使う。front matter の `date` の有無にかかわらず、`SOURCE_DATE_EPOCH` 未設定時は再現可能 build ではないことを warning にする
 - 生成日付は `lang` の primary language が `ja` なら `2026 年 8 月 3 日`、それ以外なら locale 非依存の `2026-08-03` とする。template は日付へ固定 label を追加せず、利用者が指定した任意 string の `date` は書式変更しない

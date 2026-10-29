@@ -615,3 +615,15 @@ Each decision follows this format:
 - Validation: Pinned Chrome150 / Vivliostyle11.1.0, all seven templates with bundled sans/serif fonts, Latin/digits, authored spaces, punctuation, links, nested lang, code/math, DOM text and selection preservation, exact document.html computed styles/geometry and PDF positions/extraction
 - Risk: Added visual spacing changes wrapping. PDF extractors may reconstruct visual gaps as whitespace, while the DOM source text remains unchanged
 - Revisit when: Browser defaults or support change, or document configuration becomes necessary beyond CSS overrides
+
+## DD-55: Infer an omitted title from H1 and the input name
+
+- Status: Accepted (2026-10-30)
+- Problem: Converting existing Markdown with a heading still requires repeating its title explicitly (#18)
+- Options: (a) keep requiring an explicit title, (b) always use the input name, (c) prefer explicit values, then H1, then input name, (d) obtain a heading after browser rendering
+- Decision: (c). Use `--title`, the front matter title selected across all files by DD-48, the first non-empty top-level Markdown H1 in input order, then input name. A later file's explicit title also overrides an earlier H1. Without an H1, use a file's name without its final `.md`, or the directory's own name; use `document` for an empty name
+- Text: Share the same pinned GFM / CJK / math parser as rendering through a lightweight module, and flatten ATX / Setext H1 formatting to text. Keep link labels, code / math source, and image alt text; omit footnote references, comments, and script / style / template contents. Do not evaluate CSS / scripts; collapse whitespace and line breaks to one space. Do not pass inferred text or filenames back through the explicit-title HTML parser, avoiding double interpretation of character references or `<br>`
+- Contract: Preserve body H1s, anchors, and source positions. The cover, HTML title, and PDF Info / XMP share the resolved value. Keep rejecting invalid explicit title types, empty strings, disallowed HTML, and invalid front matter blocks. Add no setting or dependency; effective configuration's title continues to represent the CLI override
+- Rejected: (a) requires editing existing notes before conversion. (b) discards meaningful headings. (d) makes metadata and language inference depend on rendering and mixes dynamic DOM results with input-time rules. Removing the body H1 is also rejected because it changes document structure and link targets
+- Validation: Check explicit precedence, invalid values, multiple files, empty H1s, exclusion of nested headings / code / raw HTML blocks, formatting / math / HTML / character references, Japanese and special-character filenames, directories without H1s, doctor / help. Inspect exact renderer HTML and PDF titles / body headings across all seven templates, metadata without covers, and build all four Japanese/English documents
+- Revisit when: Other heading levels, HTML headings, or user-defined fallback formats are needed

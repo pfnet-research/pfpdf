@@ -353,7 +353,7 @@ test('BibTeX parse failure preserves an existing output', { skip: !enabled }, ()
 test('failed build keeps the existing output and exits non-zero', { skip: !enabled }, () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-e2e-'));
   const input = path.join(dir, 'doc.md');
-  fs.writeFileSync(input, '# no title here\n');
+  fs.writeFileSync(input, '---\ntitle: ""\n---\n# Invalid explicit title\n');
   const output = path.join(dir, 'doc.pdf');
   fs.writeFileSync(output, 'EXISTING');
   const res = spawnSync(process.execPath, [cliPath, ...browserArgs, '--input', input, '--output', output], {
