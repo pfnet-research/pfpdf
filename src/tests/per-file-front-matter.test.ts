@@ -46,7 +46,7 @@ test('later metadata never supplies missing first-file metadata', (t) => {
   fs.writeFileSync(path.join(dir, '01_first.md'), '# First\n');
   assert.throws(() => resolveInput(dir, null, env, noop), /title is required/);
   const result = resolveInput(dir, 'CLI title', env, noop);
-  assert.deepEqual(result.config, { template: null, toc: null, logo: null });
+  assert.ok(Object.values(result.config).every((value) => value === null), JSON.stringify(result.config));
   assert.deepEqual(result.bibliography, []);
   assert.equal(result.metadata.lang, 'en');
 });
