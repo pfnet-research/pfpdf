@@ -161,7 +161,7 @@ Required:
   --output PATH      destination path for the .pdf
 
 Options:
-  --title TEXT             override the front matter title
+  --title TEXT             set the title ahead of front matter and inference
   --cover / --no-cover     enable / disable cover or leading header
   --toc / --no-toc         enable / disable table of contents generation. Default is enabled
   --template SOURCE        preset name, local directory, or git::URL//PATH?ref=REVISION
@@ -204,7 +204,9 @@ Options:
 
 ### 2.9.2 Metadata and reproducible dates
 
-- `title` is required; if it is present in neither the front matter nor `--title`, the build fails with exit code `2`
+- Title precedence is `--title`, the first front matter `title` in input order, the first non-empty top-level Markdown H1 found across all input files in input order, then the input name. An explicit title in a later file also overrides an H1 in an earlier file. Both ATX and Setext H1s qualify; headings inside blockquotes, lists, code, raw HTML blocks, or footnote definitions do not
+- Flatten H1 formatting to text, keeping link labels, code and math source text, and image alt text. Omit footnote references and HTML comments, treat `br` as whitespace, and omit script / style / template contents. Do not evaluate CSS or scripts. Resolve character references once as Markdown and collapse whitespace and line breaks to one space. Preserve the body, headings, anchors, and original line numbers
+- Without an H1, use the filename without its final `.md` for file input, or the directory name for directory input. Collapse whitespace and line breaks in the name as well, using `document` if it is empty. Inferred values are one line of literal text without reinterpreting `<br>` or character references; the cover, HTML title, and PDF Info / XMP use the same resolved value. The restrictions below apply to explicit titles; inference never hides invalid explicit values
 - `title` is a non-empty string; via an HTML tokenizer, only text / character reference tokens and case-insensitive attribute-less `<br>` / `<br/>` / `<br />` tokens are allowed. Other comments, tags, and attributes are errors rather than being stripped. Plain `x < y` is treated as text. In the plain-text representation, the allowed line-break tags are converted to U+000A; in the HTML `<title>` they are collapsed to spaces before being set via DOM APIs
 - `author`, `series`, and `date` are strings, `confidential` is a YAML boolean, and `page_size` accepts only an allowlisted keyword or exactly two dimensions, defaulting to `A4` when omitted. HTML is not allowed in `author` / `series` / `date`; they are inserted as DOM text
 - Visual line breaks in the title use the allowed `<br>`, not YAML block scalars or literal newlines
@@ -213,7 +215,7 @@ Options:
 - Page size keywords are ASCII case-insensitive `A3`, `A4`, `A5`, `JIS-B4`, `JIS-B5`, `ISO-B4`, `ISO-B5`, `Letter`, `Legal`. The ambiguous `B4` / `B5` are not accepted. Dimensions are `<number><unit><ASCII-whitespace+><number><unit>` in width-height order, with units `mm` / `cm` / `in` / `pt`, and each side a positive finite decimal. pfpdf imposes no upper bound of its own beyond what the renderer handles
 - The metadata keys are `title`, `author`, `series`, `date`, `page_size`, `confidential`, `lang`, and `dir`. Keys outside the known set, which also includes document settings and `bibliography`, produce one warning per key on stderr containing the source file and key name, and their values are ignored by default. Unknown values never enter metadata, effective configuration, or the generated document. With `--strict-front-matter`, unknown keys are input errors (code `2`). Duplicate keys, invalid YAML, and invalid types or values of known keys remain input errors in either mode
 - The document setting `template` is a bundled template name, `toc` / `cover` are YAML booleans, and `logo` is a local path string or `false`. `cover` defaults to true; cover and contents visibility are independent. A relative `logo` path is resolved from the parent directory of the front matter source. Git repository sources are rejected in front matter and accepted only through `--logo`
-- `--title` overrides only the value of a valid front matter title. Even with the CLI override, the entire front matter's syntax, keys, and types are validated first; invalid values are not hidden
+- `--title` overrides a valid front matter title or an inferred value. Even with a CLI override or inference, all files' front matter syntax, keys, and types are validated first; invalid values are not hidden
 - `confidential` defaults to `false`; the `Confidential` marking appears only when the user sets it explicitly
 - `SOURCE_DATE_EPOCH` is an ASCII decimal non-negative integer of Unix seconds; values exceeding 13 digits are rejected before numeric conversion. It is then parsed without going through JavaScript `Number`, and confirmed to be a safe integer within the range representable by an ECMAScript `Date`. Invalid values are errors, not ignored. If `date` is omitted and this value is valid, the display date uses that date in UTC. When unset, the display date is the local date obtained exactly once at process startup, and the PDF metadata uses the same startup instant. Regardless of whether the front matter `date` is present, when `SOURCE_DATE_EPOCH` is unset a warning states that the build is not reproducible
 - The generated date uses the Japanese year-month-day format (the equivalent of `2026-08-03` written with the Japanese counters for year, month, and day) if the primary language of `lang` is `ja`, and the locale-independent `2026-08-03` otherwise. Templates add no fixed label to the date, and a user-specified arbitrary-string `date` is never reformatted

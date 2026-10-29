@@ -10,7 +10,7 @@ Required:
   --output PATH      Destination path for the .pdf
 
 Options:
-  --title TEXT             Override the front matter title
+  --title TEXT             Set the title ahead of front matter and inference
   --toc / --no-toc         Enable / disable table of contents generation. Enabled by default
   --template SOURCE        Preset name, local directory, or git::URL//PATH?ref=REVISION
   --template-preset NAME   Explicitly select a bundled template preset
@@ -28,6 +28,8 @@ Options:
   --version                Show the version
   -h, --help               Show help
 ```
+
+Without an explicit title, use the first non-empty top-level Markdown H1 in input order, then the input filename without `.md` or the input directory name. See Chapter 02 for details.
 
 ## 7.2 Configuration precedence
 

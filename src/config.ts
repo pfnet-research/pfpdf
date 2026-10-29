@@ -379,7 +379,7 @@ Required:
   --output PATH      destination .pdf path
 
 Options:
-  --title TEXT             override the front matter title
+  --title TEXT             set the title, overriding front matter and inference
   --toc / --no-toc         enable / disable table of contents (default: on)
   --cover / --no-cover     enable / disable cover or leading header (default: on)
   --template SOURCE        preset name, local directory, or git::URL//PATH?ref=REVISION
@@ -397,4 +397,7 @@ Options:
   --doctor                 diagnose renderer, browser, and assets
   --version                print the version
   -h, --help               print this help
+
+Title fallback: first non-empty top-level Markdown H1 in input order, then
+the input filename without .md or the input directory name.
 `;

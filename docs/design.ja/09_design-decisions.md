@@ -615,3 +615,15 @@
 - 検証: 固定 Chrome 150 / Vivliostyle 11.1.0、全7 template のゴシック・明朝、Latin / 数字、明示空白、約物、link、nested lang、code / math、DOM text と selection の保持、正規 document.html の computed style / geometry と PDF の文字位置・抽出結果
 - risk: 自動空きで改行位置が変わる。PDF 抽出器が視覚的な空きを空白として復元する可能性はあるが、DOM の source text は変更しない
 - 再検討条件: browser 間で既定の空き量や対応範囲が変わる場合、または CSS override より文書設定での切替が必要になった場合
+
+## DD-55: 明示 title がない文書は H1 と入力名から補完する
+
+- 状態: 採用 (2026-10-30)
+- 問題: 見出しのある既存 Markdown でも title を重複指定しないと変換できない (#18)
+- 選択肢: (a) 明示 title を必須のままにする、(b) 常に入力名を使う、(c) 明示値、H1、入力名の順で補完する、(d) browser の描画後に見出しを取得する
+- 採用: (c)。`--title`、全 file の front matter から DD-48 で選んだ title、入力順で最初の空でないトップレベル Markdown H1、入力名の順とする。後続 file の明示 title も先行 H1 より優先する。H1 がなければ file は末尾 `.md` を除いた名前、directory は自身の名前を使い、空の名前は `document` とする
+- 文字列: 描画と同じ固定 GFM / CJK / math parser を軽量 module で共用し、ATX / Setext H1 の装飾を文字列へ変換する。link label、code / math source、画像 alt を採用し、脚注参照・comment と script / style / template の内容を除く。CSS / script は評価せず、空白・改行を一つの空白へ畳む。補完済み文字列や file 名を明示 title 用 HTML parser へ再投入せず、文字参照や `<br>` の二重解釈を避ける
+- 契約: 本文の H1、anchor、source position は保持する。表紙・HTML title・PDF Info / XMP は同じ解決値を使う。明示 title の型・空文字・許可 HTML の検証と全 front matter block の検証は従来どおり失敗させる。新しい設定や依存は追加せず、effective config の title は従来どおり CLI override を表す
+- 非採用理由: (a) は既存メモの変換に追加編集を要求する。(b) は意味のある見出しを捨てる。(d) は metadata・言語推定の解決を描画へ依存させ、動的な DOM と入力時点の規則を混在させる。本文 H1 を削除する案は本文構造や link 先を変えるため採用しない
+- 検証: 明示値優先、不正値、複数 file、空 H1、入れ子・code・raw HTML block の除外、装飾・数式・HTML・文字参照、日本語と特殊文字の file 名、H1 のない directory、doctor / help を確認する。全7 template の正規 renderer HTML と PDF title・本文見出し、表紙省略時の metadata を検査し、日英4冊を build する
+- 再検討条件: 別の見出し level や HTML 見出し、利用者指定の補完形式が必要になった場合

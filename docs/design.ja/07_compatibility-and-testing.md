@@ -46,6 +46,7 @@ Linux では browser archive だけでは shared library が揃いません。
 - front matter の正常系・異常系、各 file の metadata の除去と key ごとの先勝ち・後続 file による未設定値の補完、選択元基準の相対 path・list 全体の選択・不採用 asset の非読込、全 file の検証・元行番号の保持、title 内の許可された改行、seriesの任意表示、正の page size、BCP 47 language tag の明示優先と省略時の日英推定、`dir` の `ltr` / `rtl` / `auto` と既定 `auto`、primary language ごとの固定 date 表示の検証
 - YAML mapping と利用 metadata field の型検査
 - 未知 front matter key の既定の警告・無視、`--strict-front-matter` の拒否、既知 key の不正値・重複 key・不正 YAML の継続拒否。通常変換・設定表示・doctor での一貫性、stderr warning と stdout JSON の分離、CLI 優先順位、厳格モード失敗時の既存 PDF 保持を検査する
+- title 未指定時の H1 / 入力名補完、明示値優先、空・入れ子 H1、文字参照の一度だけの解決、日本語 file 名、本文見出し保持、表紙と PDF metadata の一致、表紙省略時の補完 title
 - UTF-8 BOM / CRLF、不正 UTF-8、locale 非依存 filename sort
 - stdin / stdout を表す `-` input / output の拒否
 - 各 Markdown file を独立 parse し、未閉鎖 fence、HTML block、list、setext heading、reference definition が次の file へ漏れないこと

@@ -10,7 +10,7 @@ Required:
   --output PATH      .pdf の出力先
 
 Options:
-  --title TEXT             front matter の title を上書きする
+  --title TEXT             front matter と自動補完より優先する title
   --toc / --no-toc         目次生成を有効 / 無効化する。既定は有効
   --template SOURCE        preset 名、local directory、または git::URL//PATH?ref=REVISION
   --template-preset NAME   bundled template preset を明示選択
@@ -28,6 +28,8 @@ Options:
   --version                バージョンを表示する
   -h, --help               ヘルプを表示する
 ```
+
+title 未指定時は入力順で最初の空でないトップレベル Markdown H1、次に `.md` を除いた入力 file 名または入力 directory 名を使います。詳しくは 02 章を参照してください。
 
 ## 7.2 設定の優先順位
 

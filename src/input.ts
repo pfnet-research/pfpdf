@@ -7,6 +7,7 @@ import { BUNDLED_TEMPLATE_NAMES } from './bundled-templates.js';
 import type { FrontMatterConfig } from './config.js';
 import { InputError } from './errors.js';
 import { inferDocumentLanguage } from './language.js';
+import { inferDocumentTitle } from './infer-title.js';
 
 export interface SourceFile {
   /** Absolute path. */
@@ -33,7 +34,7 @@ export interface Metadata {
 }
 
 export interface NormalizedTitle {
-  /** Entity-decoded display lines separated by permitted <br> tags. */
+  /** Display text lines; explicit titles decode entities and permitted <br>. */
   lines: string[];
   /** Plain-text form used by PDF metadata. */
   plainText: string;
@@ -180,7 +181,7 @@ function parseFrontMatter(
   return { fm: { raw, lineCount: closed + 1 }, body };
 }
 
-function resolveInputFilePaths(inputAbs: string): string[] {
+function discoverInputFiles(inputAbs: string): { paths: string[]; inputName: string } {
   let st: fs.Stats;
   try {
     st = fs.statSync(inputAbs);
@@ -189,13 +190,16 @@ function resolveInputFilePaths(inputAbs: string): string[] {
   }
 
   if (st.isDirectory()) {
-    return listMarkdownFiles(inputAbs).map((n) => path.join(inputAbs, n));
+    return {
+      paths: listMarkdownFiles(inputAbs).map((n) => path.join(inputAbs, n)),
+      inputName: path.basename(path.resolve(inputAbs)),
+    };
   }
   if (st.isFile()) {
     if (!inputAbs.endsWith('.md')) {
       throw new InputError(`input file must have a lowercase .md extension: ${inputAbs}`);
     }
-    return [inputAbs];
+    return { paths: [inputAbs], inputName: path.basename(inputAbs).slice(0, -3) };
   }
   throw new InputError(`input is neither a regular file nor a directory: ${inputAbs}`);
 }
@@ -272,10 +276,11 @@ function readSourceFiles(
   inputAbs: string,
   warn: (msg: string) => void,
   options: FrontMatterOptions,
-): { files: SourceFile[]; raw: Map<string, unknown>; keySources: Map<string, string> } {
+): { files: SourceFile[]; raw: Map<string, unknown>; keySources: Map<string, string>; inputName: string } {
   const raw = new Map<string, unknown>();
   const keySources = new Map<string, string>();
-  const files = resolveInputFilePaths(inputAbs).map((filePath) => {
+  const { paths, inputName } = discoverInputFiles(inputAbs);
+  const files = paths.map((filePath) => {
     const parsed = parseFrontMatter(filePath, readInputFile(filePath), warn, options);
     if (parsed.fm !== null) {
       try {
@@ -297,7 +302,7 @@ function readSourceFiles(
       lineOffset: parsed.fm?.lineCount ?? 0,
     };
   });
-  return { files, raw, keySources };
+  return { files, raw, keySources, inputName };
 }
 
 /** Validate every block, including unselected values, without opening assets. */
@@ -429,7 +434,7 @@ export function resolveInput(
   options: FrontMatterOptions & { processStart?: Date } = {},
 ): ResolvedInput {
   const processStart = options.processStart ?? new Date();
-  const { files, raw, keySources } = readSourceFiles(inputAbs, warn, options);
+  const { files, raw, keySources, inputName } = readSourceFiles(inputAbs, warn, options);
 
   const bibliography = resolveBibliographyFiles(raw.get('bibliography'), keySources.get('bibliography') ?? files[0]!.path);
   const config = resolveFrontMatterConfig(raw, keySources.get('logo') ?? files[0]!.path);
@@ -446,10 +451,7 @@ export function resolveInput(
   // selected front matter value is validated once below.
   if (cliTitle !== null) validateOverriddenTitle(frontMatterTitle);
   const rawTitle = cliTitle ?? frontMatterTitle;
-  if (rawTitle === null) {
-    throw new InputError('title is required: set it in front matter or with --title');
-  }
-  const title = normalizeTitle(rawTitle);
+  const title = rawTitle === null ? inferDocumentTitle(files, inputName) : normalizeTitle(rawTitle);
 
   const author = normalizeAuthors(raw.get('author'));
   const series = requireString('series');
