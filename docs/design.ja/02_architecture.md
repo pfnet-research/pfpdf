@@ -40,7 +40,7 @@ CLI と変換処理は TypeScript で実装し、npm package の compiled JavaSc
 
 - CLI のパスを絶対パスへ変換する
 - locale に依存しない規則で Markdown 一覧を決定し、case-insensitive filesystem で衝突する名前も検出する
-- front matter が最初の Markdown の先頭 1 か所だけにあることを検証する
+- 各 Markdown の先頭の front matter を解析・除去し、文書全体の metadata は先頭 file だけから選ぶ
 - title、author、series、date、page size、confidential、document language / direction、および `template` / `toc` / `logo` の型と値を検証する。CLIがfront matterを上書きする場合も、不正な値を無視しない
 - metadata の許可済み HTML と plain text 表現を分離し、template placeholder ごとの escape 漏れを防ぐ
 - file input ではその親 directory、directory input では input directory を resource base として保持する
@@ -49,7 +49,7 @@ CLI と変換処理は TypeScript で実装し、npm package の compiled JavaSc
 
 エラーを含む Markdown だけを読み飛ばして残りを出力する挙動は採用しません。部分的な成果物を成功扱いすると、欠落に気付かないまま配布される危険があるためです。
 
-front matter は既存 YAML library の JSON schema で 1 document の mapping として読みます。pfpdf が利用する metadata key と型だけを検査し、入力を防御するための独自 YAML parser や size / nesting 制限は持ちません。先頭の BOM を除いた最初の行が `---` なら front matter delimiter として予約します。最初の source file では同じ file 内の単独行 `---` または `...` で閉じることを必須とし、閉じ delimiter がない場合や mapping が不正な場合は thematic break として読み替えず入力エラーにします。最初以外の source file が `---` で始まる場合は、その後の内容にかかわらず重複 front matter として入力エラーです。
+front matter は既存 YAML library の JSON schema で 1 document の mapping として読みます。pfpdf が利用する metadata key と型だけを検査し、入力を防御するための独自 YAML parser や size / nesting 制限は持ちません。先頭の BOM を除いた最初の行が `---` なら front matter delimiter として予約します。各 source file 内の単独行 `---` または `...` で閉じることを必須とし、閉じ delimiter がない場合や mapping が不正な場合は thematic break として読み替えず入力エラーにします。後続 file の front matter も本文から除去しますが、その metadata は文書設定や asset 解決には使いません。未知 key の warning / strict 検証と既知 key の型・値・path 構文の検証は全 file に適用し、無視する logo / bibliography の file は読みません。
 
 ### 2.3.1 `BibliographyFormatter`
 
@@ -187,7 +187,7 @@ Options:
 - `--input` がディレクトリなら、直下の小文字拡張子 `*.md` を持つ regular file と regular file への symlink だけを対象にし、file 名の UTF-8 byte 列の昇順で処理する。POSIX では directory entry を byte 列として読み、不正 UTF-8 の file 名を replacement character にせず入力エラーにする。再帰探索と locale 依存 sort は使わず、可搬性のため `00_`、`01_` の番号 prefix を推奨する。対象が 0 件の場合は入力エラーにする
 - `--input` がファイルなら、その 1 ファイルだけを処理する。小文字 `.md` 以外の拡張子は入力エラーにする
 - input は UTF-8 とし、先頭の UTF-8 BOM と CRLF を受け付ける。不正な byte 列は replacement character にせずエラーにする
-- directory input の front matter は、並び順で最初の Markdown の先頭に 1 つだけ置ける。他の file が front matter delimiter で始まる場合は重複 metadata として拒否する。どの source file でも冒頭の thematic break には `***` を使う
+- directory input の各 Markdown の先頭に front matter を置ける。文書全体の metadata は並び順で最初の file だけから選び、その file に front matter がなければ後続 file の値で補わない。各 file の front matter は検証して本文から除去し、元の行番号との差を `SourceFile.lineOffset` に保持する。どの source file でも冒頭の thematic break には `***` を使う
 - file 名の異なる入力は現在の filesystem が列挙した別 entry として扱う。別 OS 向けの normalization / case-folding 衝突を先回りして拒否しない
 - output 拡張子は ASCII case-insensitive に `.pdf` だけを受け付け、利用者が指定した file 名を保持する
 - 既存 output path は regular file または symlink だけを置換対象とし、directory、FIFO、socket、device は入力エラーとして拒否する。symlink の target へ書き込まず、最終 commit で directory entry としての symlink を置換する

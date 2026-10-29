@@ -40,7 +40,7 @@ The CLI and conversion logic are implemented in TypeScript and run as compiled J
 
 - Converts CLI paths to absolute paths
 - Determines the list of Markdown files using locale-independent rules, and also detects names that collide on case-insensitive filesystems
-- Verifies that front matter appears in only one place: at the top of the first Markdown file
+- Parses and strips front matter at the start of every Markdown file, selecting document-wide metadata only from the first file
 - Validates the types and values of the title, author, series, date, page size, confidential flag, document language / direction, and `template` / `toc` / `logo`. Invalid front matter remains an error even when the CLI overrides it
 - Keeps the allowed-HTML and plain-text representations of metadata separate, preventing escaping mistakes in individual template placeholders
 - For file input, uses the parent directory as the resource base; for directory input, uses the input directory itself
@@ -49,7 +49,7 @@ The CLI and conversion logic are implemented in TypeScript and run as compiled J
 
 pfpdf deliberately does not skip invalid Markdown files and emit the rest. Reporting a partial artifact as successful could allow an incomplete document to be distributed unnoticed.
 
-Front matter is read as a single-document mapping under an existing YAML library's JSON schema. pfpdf validates only the metadata keys and types it uses; it does not implement a custom YAML parser or impose size and nesting limits as input defenses. If the first line, excluding a leading BOM, is `---`, pfpdf reserves it as a front matter delimiter. The first source file must contain a standalone closing `---` or `...` line; a missing delimiter or invalid mapping is an input error, not a thematic break. If any later source file begins with `---`, pfpdf reports duplicate front matter regardless of what follows.
+Front matter is read as a single-document mapping under an existing YAML library's JSON schema. pfpdf validates only the metadata keys and types it uses; it does not implement a custom YAML parser or impose size and nesting limits as input defenses. If the first line, excluding a leading BOM, is `---`, pfpdf reserves it as a front matter delimiter. Every source file must contain a standalone closing `---` or `...` line; a missing delimiter or invalid mapping is an input error, not a thematic break. Later front matter is also stripped from the body, but its metadata is not used for document settings or asset resolution. Unknown-key warnings / strict validation and known-key type, value, and path-syntax validation apply to every file; ignored logo / bibliography files are not opened.
 
 ### 2.3.1 `BibliographyFormatter`
 
@@ -187,7 +187,7 @@ Options:
 - If `--input` is a directory, only regular files, and symlinks to regular files, directly beneath it with the lowercase extension `*.md` are targeted, processed in ascending order of the UTF-8 byte sequence of the file name. On POSIX, directory entries are read as byte sequences, and file names with invalid UTF-8 are input errors rather than being converted to replacement characters. Recursive traversal and locale-dependent sorting are not used; numeric prefixes such as `00_`, `01_` are recommended for portability. Zero matching targets is an input error
 - If `--input` is a file, only that one file is processed. Any extension other than lowercase `.md` is an input error
 - Input is UTF-8, with a leading UTF-8 BOM and CRLF accepted. Invalid byte sequences are errors rather than replacement characters
-- For directory input, front matter may appear only once, at the top of the first Markdown file in sort order. If any other file starts with a front matter delimiter, it is rejected as duplicate metadata. In any source file, use `***` for a thematic break at the very top
+- For directory input, every Markdown file may start with front matter. Only the first file in sort order supplies document-wide metadata; when it has no front matter, later values do not fill in missing metadata. Each front matter block is validated and stripped, retaining the correction to original source line numbers in `SourceFile.lineOffset`. In any source file, use `***` for a thematic break at the very top
 - Inputs with different file names are treated as distinct entries as enumerated by the current filesystem. Normalization or case-folding collisions that would occur on other OSes are not preemptively rejected
 - The output extension accepts only `.pdf`, ASCII case-insensitively, and the file name the user specified is preserved
 - An existing output path is eligible for replacement only if it is a regular file or a symlink. Directories, FIFOs, sockets, and devices are rejected as input errors. The symlink's target is not written to; the final commit replaces the symlink as a directory entry

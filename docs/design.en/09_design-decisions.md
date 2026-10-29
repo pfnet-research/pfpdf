@@ -532,3 +532,15 @@ Each decision follows this format:
 - Risk: English with a small Japanese example, multilingual text, and Han-only Chinese cannot be classified perfectly. Specify `lang` to override inference. Inference also changes dates, contents labels, and HTML / PDF language, not just footnotes
 - Validation: Explicit tag precedence, multiple files, Japanese/English/mixed text, code / math / HTML / URL exclusion, empty-prose title fallback, automatic dates, exact renderer HTML and Japanese/English PDFs across all seven templates, repeated-reference labels, links, and exclusion from contents
 - Revisit when: Automatic classification beyond Japanese/English or user-provided translated labels become necessary
+
+## DD-48: Strip front matter from every file and configure the document from the first file only
+
+- Status: Accepted (2026-10-29)
+- Problem: Combining independently maintained notes fails because later front matter is rejected as duplicate metadata (#21)
+- Options: (a) reject later blocks, (b) apply each file's metadata locally to its layout, (c) merge metadata across all files, (d) parse and strip every block while using only the first file for document settings
+- Decision: (d). CLI arguments override valid first-file values. Later values never fill gaps, even if the first file lacks a value or front matter entirely. Selected relative paths, including logo / bibliography, remain based on the first file's parent directory. This supersedes the previous rejection of later front matter
+- Validation policy: Check YAML mappings, unknown-key warnings / strict mode, and known-key types, values, and path syntax in every file. Do not check existence or read ignored logo / bibliography targets. Conversion, effective configuration, and doctor share the same validation path. Invalid later blocks fail the entire document
+- Rejected: (a) requires editing notes before combining them. (b) makes the scope of page size, template, and language within one document ambiguous. (c) complicates conflicts and path bases, and lets unexpected later settings change the whole document
+- Locations: Each `SourceFile.content` preserves its file's bytes after stripping front matter, with the removed line count retained in `lineOffset`. Preserve file order, anchors, cross-file links, and body line endings. Language inference uses the stripped prose across all files
+- Validation: Multiple and mixed front matter inputs, first-file-only settings, CLI precedence, later value validation / unknown keys / strict mode, ignored assets not opened, BOM / CRLF, original line numbers, cross-file links, exact renderer HTML, and final PDF output
+- Revisit when: Per-file layout settings or bibliography merging become independently requested features

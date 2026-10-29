@@ -43,7 +43,7 @@ On Linux, the browser archive alone does not provide all the required shared lib
 - After applying the CJK-friendly extension, there are no unintended differences in the existing pinned CommonMark / GFM fixtures
 - Inline and block raw HTML with `style` / `script`, document control elements, and custom attributes are preserved as trusted input
 - A standalone line of `___` becomes a page break, while `---` / `***` remain usable as GFM thematic breaks
-- Front matter happy and error paths, rejection of multiple metadata blocks, permitted line breaks inside titles, optional display of series, positive page sizes, explicit BCP 47 language tags taking precedence and Japanese/English inference when omitted, `dir` values `ltr` / `rtl` / `auto` with default `auto`, and fixed date display per primary language
+- Front matter happy and error paths, per-file metadata stripping and first-file-only settings, later-file validation and original source-line preservation, permitted line breaks inside titles, optional display of series, positive page sizes, explicit BCP 47 language tags taking precedence and Japanese/English inference when omitted, `dir` values `ltr` / `rtl` / `auto` with default `auto`, and fixed date display per primary language
 - Type checking of the YAML mapping and the metadata fields in use
 - Default warnings and ignoring of unknown front matter keys, rejection with `--strict-front-matter`, and continued rejection of invalid known values, duplicate keys, and invalid YAML. Check consistency across conversion, configuration printing, and doctor; separation of stderr warnings from stdout JSON; CLI precedence; and preservation of existing PDFs on strict-mode failure
 - UTF-8 BOM / CRLF, invalid UTF-8, and locale-independent filename sorting

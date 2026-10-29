@@ -532,3 +532,15 @@
 - risk: 少量の日本語例を含む英語、多言語、漢字だけの中国語を完全には区別できない。誤判定は `lang` の明示で回避する。推定は date・目次・HTML / PDF language も変えるため、脚注だけの表示変更ではない
 - 検証: 明示 tag 優先、複数 file、日英・混在・code / math / HTML / URL 除外、空本文の title fallback、自動日付、全7 template の正規 renderer HTML と日英 PDF、繰返し参照の label・link・目次除外を検査する
 - 再検討条件: 日英以外の自動分類や、利用者指定の翻訳 label が必要になった場合
+
+## DD-48: 複数 file の front matter は除去し、先頭 file だけで文書を設定する
+
+- 状態: 採用 (2026-10-29)
+- 問題: 個別に metadata を持つメモを結合すると、後続 file の front matter が重複として拒否される (#21)
+- 選択肢: (a) 後続 block を拒否する、(b) file 単位の metadata を組版へ局所適用する、(c) 全 file の metadata を統合する、(d) 全 block を解析・除去し、先頭 file だけを文書設定に使う
+- 採用: (d)。CLI が先頭 file の有効な値を上書きする。後続 file の値は、先頭 file に値や front matter 自体がなくても補完しない。logo / bibliography を含む選択済みの相対 path は先頭 file の親 directory 基準を維持する。既存の後続 front matter 拒否の方針を置き換える
+- 検証方針: 全 file で YAML mapping、未知 key の warning / strict mode、既知 key の型・値・path 構文を検査する。ただし採用しない logo / bibliography は存在確認・読込をしない。変換・effective config・doctor が同じ検証経路を使う。不正な後続 block も文書全体の失敗とする
+- 非採用理由: (a) はメモを編集してから結合する必要がある。(b) は単一文書の page size・template・language の適用範囲を曖昧にする。(c) は衝突や path の基準を複雑にし、意図せぬ後続設定で文書全体が変わる
+- 位置情報: 各 `SourceFile.content` はその file の front matter を除去した byte 表現とし、`lineOffset` に除去行数を保持する。file 順・anchor・file 間 link と本文の line ending は保持する。言語推定には metadata 除去後の全 file の本文を渡す
+- 検証: 複数 front matter と混在入力、先頭 file のみ採用、CLI 優先、後続 metadata の検証・未知 key・strict mode、無視する asset の非読込、BOM / CRLF、元行番号、file 間 link、正規 renderer HTML と最終 PDF を確認する
+- 再検討条件: file 単位の組版設定や bibliography 統合が独立した機能として必要になる場合
