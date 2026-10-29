@@ -125,6 +125,6 @@ Body text[^memo]. The same note can be referenced again[^memo].
 [^memo]: Additional information.
 ```
 
-By default, notes appear in a list at the end of each file. Set `footnotes: page` in the first file's front matter, or pass `--footnotes page`, to place each note at the bottom of its first-reference page. Use `--footnotes endnotes` to select endnotes. The CLI setting takes precedence over front matter.
+Each note appears at the bottom of its first-reference page. No additional configuration is required.
 
 Page footnotes are numbered in first-reference order across the document. The same definition identifier may be reused in another file, where it denotes a separate note. Repeating a reference on a later page links to the note's first appearance without printing another copy. Long footnotes continue onto following pages; multiple paragraphs, code, and links are supported. Japanese documents also receive Japanese accessible reference and back-link labels.

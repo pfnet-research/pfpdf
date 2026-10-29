@@ -37,7 +37,6 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-m
 | `series` | string | なし | 全 bundled template の主要ラベル位置に表示するシリーズ名 |
 | `template` | bundled template 名 | `default` | 文書に使用する bundled template |
 | `toc` | boolean | `true` | 目次を生成するかどうか |
-| `footnotes` | `endnotes` / `page` | `endnotes` | 末尾注 / 最初の参照ページ下部の脚注 |
 | `logo` | path string / `false` | template 既定値 | 表紙ロゴ。`false` ならロゴを表示しません |
 | `date` | string | 実行日 | 表紙に表示する日付 |
 | `page_size` | keyword / 寸法 | `A4` | ページサイズ |
