@@ -25,6 +25,7 @@ import {
 } from './citations.js';
 import {
   type ResourceManifest,
+  annotateImageSource,
   rewriteElementResources,
 } from './resources.js';
 import type { BibliographyFile, SourceFile } from './input.js';
@@ -155,7 +156,7 @@ export async function buildDocumentBody(
   const toc = assignHeadingIds(parses, sectionsRaw, allocator);
   await renderMermaidCodeBlocks(parses, sectionsRaw);
   const generatedCss = rewriteSourceLinks(parses, sectionsRaw, manifest);
-  const generatedFiles = externalizeMermaidSvgs(sectionsRaw);
+  const generatedFiles = externalizeMermaidSvgs(sectionsRaw, parses);
   await decorateSources(parses, sectionsRaw, opts.warn);
   const sections = assembleSections(sectionsRaw);
   return { sections, toc, generatedCss, generatedFiles };
@@ -165,6 +166,19 @@ export function parseSources(files: SourceFile[]): ParsedSource[] {
   return files.map((file) => {
     const processor = parserFor();
     const mdast = processor.parse(file.content);
+    const imageDefinitions = new Map<string, string>();
+    visit(mdast, 'definition', (definition) => {
+      const id = definition.identifier.toUpperCase();
+      if (!imageDefinitions.has(id)) imageDefinitions.set(id, definition.url);
+    });
+    visit(mdast, (image) => {
+      const destination = image.type === 'image' ? image.url
+        : image.type === 'imageReference' ? imageDefinitions.get(image.identifier.toUpperCase()) : undefined;
+      if (destination?.trim() === '') {
+        const line = (image.position?.start.line ?? 1) + file.lineOffset;
+        throw new InputError(`${file.path}:${line}: image destination is empty (src="")`);
+      }
+    });
     markPageBreaks(file, mdast);
     const transformed = transformCitationSyntax(file, mdast);
     const markdownHeadingPositions = new Set<string>();
@@ -281,7 +295,9 @@ function rewriteSourceLinks(
     generatedCss.push(...rewriteElementResources(hast, {
       baseDir: base,
       manifest,
-      sourceName: file.name,
+      sourceName: file.path,
+      lineOffset: file.lineOffset,
+      annotateImages: true,
       generatedCssPrefix: 'document',
       generatedCssName: () => `generated/document-${++generatedCssCount}.css`,
     }));
@@ -369,10 +385,10 @@ async function renderMermaidCodeBlocks(parses: ParsedSource[], sectionsRaw: Hast
   }
 }
 
-function externalizeMermaidSvgs(sectionsRaw: HastRoot[]): Array<[string, string]> {
+function externalizeMermaidSvgs(sectionsRaw: HastRoot[], parses: ParsedSource[]): Array<[string, string]> {
   const generatedFiles: Array<[string, string]> = [];
   let diagramIndex = 0;
-  for (const section of sectionsRaw) {
+  for (const [index, section] of sectionsRaw.entries()) {
     visit(section, 'element', (element: Element) => {
       const classes = element.properties?.className;
       if (element.tagName !== 'div' || !Array.isArray(classes) || !classes.includes('pfpdf-mermaid')) return;
@@ -384,12 +400,16 @@ function externalizeMermaidSvgs(sectionsRaw: HastRoot[]): Array<[string, string]
       diagramIndex++;
       const logical = `generated/mermaid-${String(diagramIndex).padStart(4, '0')}.svg`;
       generatedFiles.push([logical, toHtml(svg as never)]);
-      element.children = [{
+      const image: Element = {
         type: 'element',
         tagName: 'img',
         properties: { src: logical, alt: mermaidAccessibleLabel(svg) },
         children: [],
-      }];
+        position: element.position,
+      };
+      const file = parses[index]!.file;
+      annotateImageSource(image, { sourceName: file.path, lineOffset: file.lineOffset });
+      element.children = [image];
     });
   }
   return generatedFiles;

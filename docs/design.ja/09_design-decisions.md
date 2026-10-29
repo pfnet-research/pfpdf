@@ -532,3 +532,13 @@
 - risk: 少量の日本語例を含む英語、多言語、漢字だけの中国語を完全には区別できない。誤判定は `lang` の明示で回避する。推定は date・目次・HTML / PDF language も変えるため、脚注だけの表示変更ではない
 - 検証: 明示 tag 優先、複数 file、日英・混在・code / math / HTML / URL 除外、空本文の title fallback、自動日付、全7 template の正規 renderer HTML と日英 PDF、繰返し参照の label・link・目次除外を検査する
 - 再検討条件: 日英以外の自動分類や、利用者指定の翻訳 label が必要になった場合
+
+## DD-50: 画像の元位置を保持し、動的な参照先は readiness 後に診断する
+
+- 状態: 採用 (2026-10-29)
+- 問題: 存在しない画像では解決後 path だけ、空や破損画像では汎用 decode error だけが出て参照元が分からない (#29)
+- 選択肢: (a) URL だけを診断する、(b) src のない img をすべて入力エラーにする、(c) 元位置と記述した参照先を保持し、静的 Markdown の空 URL は早期拒否、動的 HTML の参照先は登録 promise 後に検査する
+- 採用: (c)。resource 解決時の InputError に元 path・front matter 補正後の行・参照先を加え、画像の DOM attribute に同じ情報を保存する。生成 Mermaid SVG 画像にも元 code fence の位置を付ける。readiness は local / data / remote の全画像を decode し、失敗箇所と参照先を RuntimeError に含める。script で新規生成した画像は位置がなければ document.html と現在の URL を使う
+- 非採用理由: (a) は同じ URL を参照する複数箇所や書換え後 URL から入力を特定できない。(b) は正当な script による画像設定を壊す。HTTP status の取得のために画像を再 fetch する案は認証・CORS・副作用を変えるため採用しない
+- 検証: 空 URL、元行番号、local 不存在、HTML の src 未指定、破損 local / data、HTTP404、通信切断、登録 promise による src 設定、画像なし、既存出力保持を正規 HTML と renderer で検査する
+- 再検討条件: script 生成画像に利用者が明示 source location を付ける API が必要になった場合
