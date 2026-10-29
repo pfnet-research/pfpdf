@@ -64,7 +64,7 @@ front matter は既存 YAML library の JSON schema で 1 document の mapping �
 - Markdown とその inline raw HTML は input の resource base、template HTML は template directory、各外部 CSS はその file の親 directory を基準にする。CLI で指定した logo / font は ConfigResolver が解決した絶対 path を起点にし、異なる基準を暗黙に混ぜない
 - Markdown AST の link / image、raw HTML の URL 属性と `srcset`、inline style、`<style>`、template、外部 CSS の `url()` / `@import` を、それぞれ HTML / CSS parser の token 上で処理する。正規表現だけで HTML や CSS を書き換えない
 - local CSS の `@import` を queue で反復的にたどり、canonical path の visited set で循環を止める。同じ file を path 表現の違いで複数回解析しない
-- 各 fetch resource に探索順で決定的な logical ID を割り当て、HTML には `assets/<id>/<encoded-basename>` のような相対 URL だけを出力する。pfpdf が解決した asset の absolute path、一時 directory、random token を `document.html` へ新たに埋め込まない。利用者が navigation link として明示した absolute `file:` URL は portable でないことを承知した入力として保持する
+- 各 fetch resource に探索順で決定的な logical ID を割り当て、fetch 属性には `assets/<id>/<encoded-basename>` のような相対 URL を出力する。pfpdf が解決した asset の absolute path、一時 directory、random token を fetch URL へ新たに埋め込まない。画像の診断用 `data-pfpdf-image-*` 属性には参照元 path・行番号・記述した参照先を保持する。利用者が navigation link として明示した absolute `file:` URL は portable でないことを承知した入力として保持する
 - seed の順序は bundled resource の固定 list、template DOM の source order、Markdown file / AST node の source order、effective font の優先順とする。CSS の参照は queue から取り出した file 内の token 順で追加し、非同期 I/O の完了順や hash map の偶然の列挙順で ID を変えない
 - query と fragment は resource path と分離して保持し、percent decode は URL component ごとに 1 回だけ行う。NUL、不正な percent encoding、URL として不正な値は入力エラーにする
 - Markdown / HTML / CSS の URL は `/` を separator とする。Windows absolute path は `file:///C:/path/to/file`、UNC は妥当な `file://server/share/...` URL で表し、backslash を URL path separator として推測しない。CLI の path は OS native path として別に扱う
@@ -110,14 +110,14 @@ front matter は既存 YAML library の JSON schema で 1 document の mapping �
 ## 2.6 `AssetServer`
 
 - renderer と同じ host process で `AssetServer` を起動し、Vivliostyle CLI には file path ではなく document URL を渡す。browser と同じ host の `127.0.0.1` にある OS 割当 port だけへ bind し、IPv4 loopback 以外の interface へ bind しない
-- HTML byte 列と logical asset path は決定的でも、browser から見える port は build ごとに異なる。利用者 script が `location.href` / `origin`、時刻、乱数から描画内容を作る場合の再現性は保証しない
+- logical asset path は決定的だが、画像の参照元診断を含む HTML byte 列は入力の path 表現に依存し、browser から見える port も build ごとに異なる。利用者 script が `location.href` / `origin`、時刻、乱数から描画内容を作る場合の再現性は保証しない
 - `ResourceResolver` の manifest が公開対象として列挙した exact file と generated file だけを logical ID で配信し、manifest 自体、browser profile、renderer output は配信しない。任意 path の静的 file server や directory listing にもしない
 - request ごとに manifest の target を open し、regular file であることを確認して配信する。build 中の file 変更は trust model 上の非保証とする
 - method は renderer が使う `GET` / `HEAD` だけを扱う。Host / Origin / CORS policy は security boundary にならないため実装しない
 - MIME type、`Content-Length`、single range request、`HEAD` を扱う。multi-range、圧縮、cache validation、upload は扱わず、無効な range は `416` とする
 - response に `Cache-Control: no-store` を付ける
 - path segment は decode 前後で検証し、`..`、separator、NUL、二重 encoding によって logical ID の対応先を変えられないようにする
-- remote HTTP(S) resource は proxy せず browser から直接取得させ、取得結果を監視しない
+- remote HTTP(S) resource は proxy せず browser から直接取得させる。AssetServer 自体は外部取得を監視せず、最終的な `img` の load / decode は後述の readiness coordinator が検査する
 - renderer 終了と捕捉可能な中断で新規 request の受付を止め、2 秒後に残る socket を破棄して listener と port を解放する
 - manifest は renderer-neutral な resource 解決のためのものであり、この server を sandbox や security boundary とはみなさない
 
@@ -129,7 +129,7 @@ pfpdf は信頼済みのローカル文書を処理する tool とし、local re
 - local stylesheet、script、CSS の `url()` / `@import` も各 resource 自身の URL を基準に再帰解決する
 - `..`、absolute path、`file:` URL、symlink target を入力 root だけに制限しない。静的に解決でき、pfpdf process の実行権限で読める file は trusted input の resource として扱う
 - Markdown AST の link と raw HTML の `a[href]` が同一文書へ結合される Markdown file を相対指定した場合は、file anchor または指定 fragment へ書き換える。それ以外の navigation link は trusted input として保持し、存在確認や可搬性の判定は行わない
-- remote image、stylesheet、script は browser に直接取得させる。timeout、DNS、TLS、HTTP error を pfpdf が監視・分類して build 成否へ反映することは保証しない
+- remote image、stylesheet、script は browser に直接取得させる。登録 promise と font の待機後に存在する `img` は remote / data / local を問わず readiness で load / decode を検査し、失敗を参照元・参照先の文脈付きで build error にする。browser が公開しない画像の HTTP status、DNS / TLS などの詳細原因の分類や、remote stylesheet / script の取得結果を網羅的に監視して build 成否へ反映することまでは保証しない
 
 `HtmlDocumentBuilder` は workspace に `document.html` を 1 つ生成し、`AssetServer` がその byte 列を変更せず配信した URL を Vivliostyle CLI へ渡します。HTML を公開出力形式にはせず、asset の data URL 化、font subset、単一 file 化を行いません。HTML の integration test は別の出力 pipeline を作らず、renderer が実際に URL から消費する `document.html` と同じ builder 出力を保存・比較します。host path や port は manifest / 起動引数側で解決し、HTML byte 列を作り直しません。
 
@@ -137,9 +137,9 @@ pfpdf は信頼済みのローカル文書を処理する tool とし、local re
 
 ## 2.8 `ReadinessCoordinator`
 
-document の `<head>` で最初に readiness coordinator を初期化し、font、local image、および利用者が明示登録した非同期処理を 1 つの promise に集約します。MathJax と highlight.js は HTML assembly 前に完了する build-time transform であり、browser 内の readiness 状態には含めません。
+document の `<head>` で最初に readiness coordinator を初期化し、font、local / data / remote の HTML 画像、および利用者が明示登録した非同期処理を 1 つの promise に集約します。MathJax と highlight.js は HTML assembly 前に完了する build-time transform であり、browser 内の readiness 状態には含めません。
 
-- coordinator は DOM parse、`document.fonts.ready`、static local image / logo の `decode()`、登録 promise の完了を待つ。stylesheet / classic scriptなど実際に読み込まれるlocal resourceのload errorはcapture phaseの`error`でbuild errorにする
+- coordinator は DOM parse と登録 promise の完了、`document.fonts.ready` を待ってから、その時点の全 `img`（内部の readiness gate を除く）を `decode()` する。script による `src` 設定と `picture` / `srcset` による有効な参照先も扱い、空・未指定・load / decode 失敗は元の位置と参照先を含む build error にする。stylesheet / classic script など実際に読み込まれる local resource の load error は capture phase の `error` で build error にする
 - manifest はURL解決と配信対象の正確な対応表として使うが、描画に利用されない項目を含む全件の事前`fetch`は行わない。browserが実際にload / decodeする経路を二重実行せず、その完了を待つ
 - 利用者 script は `window.pfpdf.registerReady(promise)` で pagination 前に待つ処理を登録できる。登録は document の parse 完了までに行い、それ以降の登録は error にする
 - coordinator は `window.pfpdf` に frozen API object を公開し、`registerReady` の引数を `Promise.resolve` 相当で同化する。trusted scriptによるnamespaceの改変を防ぐproperty descriptorや改変検出は設けない
@@ -147,7 +147,7 @@ document の `<head>` で最初に readiness coordinator を初期化し、font�
 - renderer は readiness の成功を確認してから pagination を開始し、`--render-timeout-ms` の deadline を renderer が最初の外部 process を起動する直前から browser の確認と取得、readiness、PDF 生成・後処理・構造検査の全体へ適用する
 - child process として呼ぶ pinned Vivliostyle CLI との readiness 接続方法を release 前に固定する。上流に pagination 前の hook がある場合はその正式 API を使う。ない場合は、document load を保留する専用 gate resource と、coordinator から loopback serverへの単一完了通知を使う。通知は成功・失敗と短い診断を伝え、gateは成功時だけ解放する。host側のcoordinatorがrejection、resource error、timeoutを記録し、上流childがcode `0`を返してもbuildを失敗させる。この接続をpinned browserで実証できない限りreleaseしない
 
-remote image / stylesheet / script の欠落や利用者 script が登録しなかった非同期処理まで完全に検出する契約ではありません。再現可能な文書では local resource を使い、pagination に影響する非同期処理を必ず登録します。
+HTML の `img` 以外の remote resource、CSS 背景画像や nested document 内の画像、利用者 script が登録しなかった非同期処理まで完全に検出する契約ではありません。画像の検査後に追加・変更された参照先も検査対象の保証外です。再現可能な文書では local resource を使い、pagination に影響する非同期処理を必ず登録します。
 
 ## 2.9 CLI 設計
 
