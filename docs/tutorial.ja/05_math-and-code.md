@@ -101,6 +101,24 @@ flowchart LR
 
 `A -->|label| B`のような flowchart の edge label や、`<br/>` で改行した日本語の label も、同梱 font で寸法を測って配置します。
 
+Gantt も直接描画できます。幅は既定で 1200px です。図の front matter の `config.gantt.useWidth` で描画幅を指定できます。PDF では本文幅に合わせて縮小されるため、文字が小さい場合は描画幅を小さくします。
+
+```mermaid
+---
+config:
+  gantt:
+    useWidth: 800
+---
+gantt
+  dateFormat YYYY-MM-DD
+  axisFormat %m/%d
+  tickInterval 1day
+  todayMarker off
+  section Tasks
+    Prepare :a1, 2026-01-01, 3d
+    Build   :a2, after a1, 2d
+```
+
 ## 5.6 code block 内は変換されない
 
 code block と inline code の中では、`**strong**`、`$math$`、raw HTML、`___` などの記法は一切解釈されません。記法の説明を書くときに便利です。

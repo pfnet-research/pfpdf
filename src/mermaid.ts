@@ -1,6 +1,7 @@
 import { fromHtml } from 'hast-util-from-html';
 import type { Element, ElementContent, Root as HastRoot } from 'hast';
 import type MermaidRuntime from 'isomorphic-mermaid';
+import { Node } from 'svgdom';
 import { RuntimeError } from './errors.js';
 import { MERMAID_MEASURE_FAMILY, installMermaidTextMetrics } from './mermaid-fonts.js';
 
@@ -44,7 +45,18 @@ async function loadRuntime(): Promise<typeof MermaidRuntime> {
   return runtimePromise;
 }
 
-function installStyleSheetPolyfill(): void {
+function installDomPolyfills(): void {
+  // svgdom has parentNode but omits Node.parentElement. Gantt reads its
+  // container's offsetWidth through this getter; leaving offsetWidth absent
+  // lets Mermaid use its own 1200px fallback or the diagram's gantt.useWidth.
+  if (!('parentElement' in Node.prototype)) {
+    Object.defineProperty(Node.prototype, 'parentElement', {
+      configurable: true,
+      get(this: Node): Node | null {
+        return this.parentNode?.nodeType === 1 ? this.parentNode : null;
+      },
+    });
+  }
   if ('CSSStyleSheet' in globalThis) return;
   Object.defineProperty(globalThis, 'CSSStyleSheet', {
     configurable: true,
@@ -106,7 +118,7 @@ function normalizeGeneratedIds(svg: Element, rootId: string): void {
 }
 
 async function render(source: string, id: string): Promise<Element> {
-  installStyleSheetPolyfill();
+  installDomPolyfills();
   const mermaid = await loadRuntime();
   installMermaidTextMetrics();
   mermaid.initialize({

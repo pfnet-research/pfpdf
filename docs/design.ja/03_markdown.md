@@ -101,6 +101,8 @@ Mermaid は `startOnLoad: false`、`securityLevel: strict`、HTML label 無効�
 
 layout の既定は ELK(`@mermaid-js/layout-elk`)です。図の front matter の `config.layout` や init directive で layout を指定した図は、Mermaid の site config と diagram config の優先順位どおりその指定に従います(例：`layout: dagre`)。ELK も pure JavaScript で、追加の browser process を使いません。
 
+Gantt も同じ SVG 生成経路で描画します。server-side DOM に `Node.parentElement` がなければ、親が element のときはその親を、それ以外は `null` を返す getter を補います。`offsetWidth` は擬似的に実装せず、container の幅が得られない場合は Mermaid 自身の既定幅 1200px を使います。図の `config.gantt.useWidth` 指定を優先し、生成した SVG は通常の画像と同じく本文幅に合わせて配置します。
+
 server-side DOM の text 測定は、実 browser と同じ寸法になるよう次の点をそろえます。測定に使う font は同梱の Noto Sans JP で、unicode-range ごとの subset を code point ごとに引き、`Noto Sans JP` と既定の `sans-serif` の両方に割り当てます。`text` / `tspan` の位置属性の em は px に換算し、Mermaid 自身の stylesheet にある `.node .label text` の `text-anchor: middle` を反映し、`getBBox()` は SVGRect と同じ `x` / `y` / `width` / `height` だけを返します。これらは Mermaid が layout のために読む値だけを変え、生成 SVG の属性は変えません。em の誤読で生じていた flowchart の edge label の背景ずれも解消するため、`-->|label|` などの label 付き edge を使用できます。
 
 Mermaid source の構文・描画 error は source file / line 付き code `2`、同梱 runtime の load / initialization failure は code `1` とします。いずれも未描画 code や error diagram を PDF へ残しません。
