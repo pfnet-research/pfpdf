@@ -255,6 +255,38 @@ test('Mermaid lays out Japanese and multi-line labels with bundled font metrics'
   assert.match(svg, /outer-path[^>]*><\/path><g class="label" style="" transform="translate\(0, /);
 });
 
+test('Mermaid Gantt renders tasks and date axes with default and configured widths', async () => {
+  for (const [config, width] of [
+    [[], 1200],
+    [['---', 'config:', '  gantt:', '    useWidth: 900', '---'], 900],
+    [['---', 'config:', '  layout: dagre', '---'], 1200],
+  ] as const) {
+    const content = [
+      '# Test', '', '```mermaid', ...config, 'gantt',
+      '    dateFormat YYYY-MM-DD', '    section Tasks',
+      '        Task A :a1, 2026-01-01, 3d', '```',
+    ].join('\n');
+    const body = await buildDocumentBody([src(content, 'gantt.md')], new ResourceManifest(), [], { warn: noop });
+    assert.equal(body.generatedFiles.length, 1);
+    assert.match(toHtml(body.sections[0] as never), /<img src="generated\/mermaid-0001\.svg"/);
+    const svg = body.generatedFiles[0]![1];
+    assert.match(svg, /aria-roledescription="gantt"/);
+    assert.match(svg, />Task A\s*</);
+    assert.match(svg, />Tasks</);
+    assert.match(svg, />2026-01-01</);
+    assert.match(svg, />2026-01-04</);
+    const viewBox = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg);
+    assert.ok(viewBox);
+    assert.equal(Number(viewBox[1]), width);
+    assert.ok(Number(viewBox[2]) > 0);
+    const bar = /<rect[^>]+width="([\d.]+)" height="([\d.]+)"[^>]+class="task task0"/.exec(svg);
+    assert.ok(bar);
+    assert.ok(Number(bar[1]) > 0 && Number(bar[1]) < width);
+    assert.ok(Number(bar[2]) > 0 && Number(bar[2]) < Number(viewBox[2]));
+    assert.doesNotMatch(svg, /NaN|undefined|Infinity/);
+  }
+});
+
 test('Mermaid defaults to ELK and a diagram config selects another layout', async () => {
   const graph = [
     'flowchart LR', '  subgraph S["入力"]', '    A["一行目<br/>二行目"]', '  end',
@@ -337,6 +369,8 @@ test('multiple Mermaid diagram types receive deterministic unique SVG ids', asyn
     '```mermaid', 'flowchart LR', '  accTitle: Example flowchart',
     '  accDescr: A connects to B', '  A --> B', '```', '',
     '```mermaid', 'sequenceDiagram', '  Alice->>Bob: Hello', '```',
+    '```mermaid', 'gantt', '  dateFormat YYYY-MM-DD', '  todayMarker off',
+    '  section Tasks', '    Task A :a1, 2026-01-01, 3d', '```',
   ].join('\n');
   const build = () => buildDocumentBody([src(content)], new ResourceManifest(), [], { warn: noop });
   const first = await build();
@@ -344,13 +378,15 @@ test('multiple Mermaid diagram types receive deterministic unique SVG ids', asyn
   assert.deepEqual(second.generatedFiles, first.generatedFiles);
   assert.match(toHtml(first.sections[0] as never), /alt="Example flowchart — A connects to B"/);
   assert.deepEqual(first.generatedFiles.map(([name]) => name), [
-    'generated/mermaid-0001.svg', 'generated/mermaid-0002.svg',
+    'generated/mermaid-0001.svg', 'generated/mermaid-0002.svg', 'generated/mermaid-0003.svg',
   ]);
   const svgs = first.generatedFiles.map(([, svg]) => svg);
   assert.match(svgs[0]!, /id="pfpdf-mermaid-1"/);
   assert.match(svgs[0]!, /aria-roledescription="flowchart-v2"/);
   assert.match(svgs[1]!, /id="pfpdf-mermaid-2"/);
   assert.match(svgs[1]!, /aria-roledescription="sequence"/);
+  assert.match(svgs[2]!, /id="pfpdf-mermaid-3"/);
+  assert.match(svgs[2]!, /aria-roledescription="gantt"/);
   for (const svg of svgs) {
     const ids = new Set([...svg.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]));
     for (const match of svg.matchAll(/\saria-labelledby="([^"]+)"/g)) {

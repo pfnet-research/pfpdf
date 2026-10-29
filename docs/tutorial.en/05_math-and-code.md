@@ -101,6 +101,24 @@ flowchart LR
 
 Flowchart edge labels such as `A -->|label| B` and Japanese labels broken with `<br/>` are also laid out with sizes measured using the bundled font.
 
+Gantt diagrams can also be rendered directly. The default width is 1200px. Set `config.gantt.useWidth` in the diagram's front matter to choose a drawing width. The PDF scales the image to fit the body width, so reduce the drawing width if the text is too small.
+
+```mermaid
+---
+config:
+  gantt:
+    useWidth: 800
+---
+gantt
+  dateFormat YYYY-MM-DD
+  axisFormat %m/%d
+  tickInterval 1day
+  todayMarker off
+  section Tasks
+    Prepare :a1, 2026-01-01, 3d
+    Build   :a2, after a1, 2d
+```
+
 ## 5.6 No conversion inside code blocks
 
 Inside code blocks and inline code, notation such as `**strong**`, `$math$`, raw HTML, and `___` is never interpreted. This is handy when writing about the notation itself.

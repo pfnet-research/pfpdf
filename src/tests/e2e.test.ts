@@ -213,8 +213,9 @@ test('renders Mermaid fences to the PDF and rejects invalid diagrams', { skip: !
   assert.equal(fs.readFileSync(output).subarray(0, 5).toString('latin1'), '%PDF-');
   const extracted = spawnSync('pdftotext', [output, '-'], { encoding: 'utf8' });
   if (extracted.error === undefined && extracted.status === 0) {
-    assert.match(extracted.stdout, /Markdown input/);
-    assert.match(extracted.stdout, /Rendered diagram/);
+    // Some Chromium/Poppler font mappings extract an SVG space as U+0001.
+    assert.match(extracted.stdout, /Markdown[\s\u0001]+input/);
+    assert.match(extracted.stdout, /Rendered[\s\u0001]+diagram/);
     assert.match(extracted.stdout, /Initialization/);
     assert.match(extracted.stdout, /Conversion/);
     assert.match(extracted.stdout, /Result/);
@@ -232,6 +233,47 @@ test('renders Mermaid fences to the PDF and rejects invalid diagrams', { skip: !
   assert.equal(invalid.status, 2, invalid.stderr);
   assert.match(invalid.stderr, /doc\.md:\d+: Mermaid rendering failed/);
   assert.equal(fs.readFileSync(invalidOutput, 'utf8'), 'EXISTING');
+});
+
+test('renders the reported Gantt diagram using the renderer HTML and SVG asset', { skip: !enabled }, () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-e2e-gantt-'));
+  const input = path.join(dir, 'gantt.md');
+  const output = path.join(dir, 'gantt.pdf');
+  fs.writeFileSync(input, [
+    '# Test', '', '```mermaid', 'gantt', '    dateFormat YYYY-MM-DD',
+    '    section Tasks', '        Task A :a1, 2026-01-01, 3d', '```',
+  ].join('\n'));
+  const render = spawnSync(
+    process.execPath,
+    [cliPath, ...browserArgs, '--input', input, '--output', output, '--title', 'Test',
+      '--no-toc', '--keep-work-dir', '--render-timeout-ms', '600000'],
+    { encoding: 'utf8', env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' }, timeout: 660000 },
+  );
+  const workspace = /workspace kept at (.+?);/.exec(render.stderr)?.[1];
+  try {
+    assert.equal(render.status, 0, render.stderr);
+    assert.equal(fs.readFileSync(output).subarray(0, 5).toString('latin1'), '%PDF-');
+    assert.ok(workspace, render.stderr);
+    const html = fs.readFileSync(path.join(workspace, 'document.html'), 'utf8');
+    assert.match(html, /<img src="generated\/mermaid-0001\.svg"/);
+    assert.doesNotMatch(html, /language-mermaid/);
+    const svg = fs.readFileSync(path.join(workspace, 'generated', 'mermaid-0001.svg'), 'utf8');
+    assert.match(svg, /aria-roledescription="gantt"/);
+    assert.match(svg, /viewBox="0 0 1200 [\d.]+"/);
+    assert.doesNotMatch(svg, /NaN|undefined|Infinity/);
+    const extracted = spawnSync('pdftotext', [output, '-'], { encoding: 'utf8' });
+    if (extracted.error === undefined && extracted.status === 0) {
+      // Some Chromium/Poppler font mappings extract an SVG space as U+0001.
+      assert.match(extracted.stdout, /Task[\s\u0001]+A/);
+      assert.match(extracted.stdout, /Tasks/);
+      assert.match(extracted.stdout, /2026-01-01/);
+      assert.match(extracted.stdout, /2026-01-04/);
+      assert.doesNotMatch(extracted.stdout, /dateFormat/);
+    }
+  } finally {
+    if (workspace !== undefined) fs.rmSync(workspace, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('builds linked BibTeX citations and bibliography text', { skip: !enabled }, () => {

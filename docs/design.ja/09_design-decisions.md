@@ -498,3 +498,14 @@
 - 検証: 日本語 1 行の幅、3 行 label の高さ、円柱 label の中央配置、ELK 既定と `layout: dagre` 指定の優先、subgraph 内の複数行 label を unit test で検査する。subgraph の入れ子、edge label、init directive を含む実文書を全 bundled template で PDF 化して目視確認する
 - ID の回帰テスト: `constructor`、`toString`、`hasOwnProperty`、`__proto__` の subgraph、入れ子、置換先と同名の既存 node、edge、style、繰返し描画の一致を Markdown から SVG までの経路で検査する。PDF smoke test でも入れ子の subgraph と label の出力を確認する
 - 再検討条件: svgdom が em 長さや stylesheet を解釈するようになった場合、layout-elk が Mermaid 本体の描画処理を共有する構成になった場合、または描画 font を SVG 内へ埋め込む方針を採る場合
+
+## DD-44: Gantt の描画に必要な `parentElement` を server-side DOM に補う
+
+- 状態: 採用 (2026-10-29)
+- 問題: Mermaid の Gantt renderer は幅を決める前に `elem.parentElement.offsetWidth` を読む。svgdom には `parentNode` があるが `parentElement` がなく、正しい入力でも描画に失敗する。`gantt.useWidth` や `layout: dagre` の指定でも回避できない (#13)
+- 選択肢: (a) 利用者に SVG の事前生成を求める、(b) 別 browser process で Gantt を描画する、(c) DOM / Mermaid の依存を更新する、(d) 不足する DOM getter だけを補う
+- 採用: (d)。svgdom の `Node.prototype` に既存実装がない場合だけ `parentElement` getter を定義する。親が element ならその親、それ以外は `null` を返す。`offsetWidth` は追加せず、Mermaid 自身の幅 1200px への fallback と diagram config の `gantt.useWidth` を使う
+- 非採用理由: (a) は Mermaid fence の対応にならず、(b) は DD-28 で退けた browser 環境の二重化を生む。(c) は他の図種や PDF 出力にも影響し、今回不足する API を補うだけで修正できる問題に対して範囲が広い
+- 検証: 投稿された最小例の Markdown → SVG 変換でタスク名、日付軸、正の幅・高さ、既定幅と指定幅、dagre 指定を確認する。flowchart / sequence / Gantt の混在と繰り返し生成も検証する。PDF smoke test は renderer が消費する `document.html` と生成 SVG を検査し、PDF 内のタスク名と日付を確認する
+- risk: server-side DOM は browser の container layout を行わないため、Gantt の幅は本文幅の測定結果ではなく既定値または指定値になる
+- 再検討条件: svgdom が `parentElement` を実装するか、Mermaid の幅取得方法が変わる場合

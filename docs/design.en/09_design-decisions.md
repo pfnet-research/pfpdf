@@ -498,3 +498,14 @@ Each decision follows this format:
 - Verification: Unit tests check the width of a single Japanese line, the height of a three-line label, the centered cylinder label, ELK as the default with precedence for `layout: dagre`, and multi-line labels inside a subgraph. A real document with nested subgraphs, edge labels, and an init directive is rendered to PDF with all bundled templates and checked visually
 - ID regression tests: The Markdown-to-SVG pipeline covers subgraphs named `constructor`, `toString`, `hasOwnProperty`, and `__proto__`; nesting; existing nodes with candidate replacement IDs; edges; styles; and identical output across repeated renders. The PDF smoke test also checks nested subgraphs and their labels
 - Reconsideration conditions: if svgdom starts interpreting em lengths or stylesheets, if layout-elk moves to sharing Mermaid's own rendering code, or if the drawing font is to be embedded in the SVG
+
+## DD-44: Supply the server-side DOM with the `parentElement` needed for Gantt rendering
+
+- Status: Accepted (2026-10-29)
+- Problem: Mermaid's Gantt renderer reads `elem.parentElement.offsetWidth` before choosing a width. svgdom has `parentNode` but lacks `parentElement`, so valid input fails to render. Neither `gantt.useWidth` nor `layout: dagre` avoids the failure (#13)
+- Options: (a) require users to pre-generate SVG, (b) render Gantt in a separate browser process, (c) update the DOM / Mermaid dependencies, (d) supply only the missing DOM getter
+- Adopted: (d). Define a `parentElement` getter on svgdom's `Node.prototype` only when no implementation exists. Return the parent if it is an element, or `null` otherwise. Do not add `offsetWidth`; use Mermaid's own 1200px width fallback and the diagram config's `gantt.useWidth`
+- Rejection reasons: (a) does not support Mermaid fences, and (b) duplicates browser environments as rejected in DD-28. (c) affects other diagram types and PDF output and is too broad for a problem resolved by supplying the missing API
+- Verification: Markdown-to-SVG conversion of the reported minimal example checks task labels, date axes, positive dimensions, default and configured widths, and the dagre selection. Mixed flowchart / sequence / Gantt diagrams and repeated generation are also tested. The PDF smoke test inspects the `document.html` and generated SVG consumed by the renderer and checks task labels and dates in the PDF
+- Risk: The server-side DOM does not perform browser container layout, so Gantt uses the default or configured width rather than measuring the body width
+- Reconsider when: svgdom implements `parentElement` or Mermaid changes how it obtains the width
