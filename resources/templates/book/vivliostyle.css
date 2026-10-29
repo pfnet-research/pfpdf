@@ -36,7 +36,9 @@
   }
 }
 
-@page :first {
+.book-cover { page: pfpdf-cover; }
+
+@page pfpdf-cover:first {
   margin: 0;
   @top-left { border: 0; content: none; }
   @top-center { border: 0; content: none; }
@@ -66,6 +68,7 @@
 }
 
 .book-content h1 { break-before: page; }
+.pfpdf-no-cover .book-content > .pfpdf-source-file:first-child > h1:first-child { break-before: auto; }
 .book-content .pfpdf-toc-continuation-reset + section > h1 { break-before: auto; }
 .book-content .pfpdf-toc-continuation-reset + section > h1::before { padding-top: 0; }
 .book-content [data-pfpdf-page-break]:has(+ h1) { break-before: auto; }

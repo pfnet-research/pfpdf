@@ -544,3 +544,15 @@
 - 位置情報: 各 `SourceFile.content` はその file の front matter を除去した byte 表現とし、`lineOffset` に除去行数を保持する。file 順・anchor・file 間 link と本文の line ending は保持する。言語推定には metadata 除去後の全 file の本文を渡す
 - 検証: 複数 front matter と混在入力、先頭 file のみ採用、CLI 優先、後続 metadata の検証・未知 key・strict mode、無視する asset の非読込、BOM / CRLF、元行番号、file 間 link、正規 renderer HTML と最終 PDF を確認する
 - 再検討条件: file 単位の組版設定や bibliography 統合が独立した機能として必要になる場合
+
+## DD-49: 表紙を独立した document 設定と optional slot で切り替える
+
+- 状態: 採用 (2026-10-29)
+- 問題: 短い文書でも template を変えずに表紙だけ省略したい。目次の有無とは独立した操作である (#19)
+- 選択肢: (a) compact への template 変更だけを案内する、(b) CSS の display:none だけで表紙を隠す、(c) cover 設定と optional cover slot で element を除去し、組版上の表紙 page を区別する
+- 採用: (c)。`cover` は boolean、既定 true、front matter より `--cover` / `--no-cover` を優先する。全7 template の表紙（compact は先頭 header）に cover slot を設ける。custom template の slot は optional とし、ない場合は切替を no-op とする。content / toc は cover に含められない
+- 組版: 独立表紙は `pfpdf-cover` named page の first-page 規則、compact は body に与える専用 named page の first 規則を使う。表紙がない本文へ従来の `@page :first` の表紙用 margin / 柱抑制を適用せず、先頭の空白 page を作らない
+- metadata: 表紙上の title / author / date / series / logo は省略する。HTML title と PDF metadata は維持し、series / Confidential の named string source は高さ 0 の非表示 marker へ移す。pfn の running badge は cover の外に置く。custom template も独自 running element を cover の外へ置く
+- 非採用理由: (a) は本文デザインまで変わる。(b) は named string / running element の情報や first-page 用 CSS を失い、Confidential 非表示や余白不良を招く。本文へ代替 metadata header を自動生成する案は、利用者が省略したい情報を再表示し、template ごとの見た目を増やすため採用しない
+- 検証: CLI / front matter 優先・不正型、optional custom slot、全7 template の cover / toc 全4組合せで正規 renderer HTML と最終 PDF の page 数・先頭内容・Confidential・PDF title / author を確認する
+- 再検討条件: 表紙とは別に title / author を本文内へ表示する設定や、template 固有の複数表紙が必要になる場合

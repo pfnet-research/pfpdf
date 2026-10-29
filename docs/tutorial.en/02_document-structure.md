@@ -11,6 +11,7 @@ author: Taro Yamada
 series: Technical Report Series
 template: pfn
 toc: true
+cover: true
 logo: assets/logo.svg
 date: 2026-08-01
 page_size: A4
@@ -20,7 +21,7 @@ dir: ltr
 ---
 ```
 
-The following nine keys are available as document metadata. The `toc` / `logo` document settings and the `bibliography` build-input key described in Chapter 03 are also accepted. Other unknown keys produce warnings on stderr and are ignored by default. Duplicate keys, invalid YAML, and invalid types or values of known keys remain errors.
+The following nine keys are available as document metadata. The `toc` / `cover` / `logo` document settings and the `bibliography` build-input key described in Chapter 03 are also accepted. Other unknown keys produce warnings on stderr and are ignored by default. Duplicate keys, invalid YAML, and invalid types or values of known keys remain errors.
 
 For example, you can keep `tags` or `status` intended for other tools when building a PDF. Typos such as `page_szie` also produce warnings, so check that the intended settings took effect. To make unknown keys errors as before, pass the CLI flag `--strict-front-matter`.
 
@@ -37,6 +38,7 @@ This validation policy also applies to `--print-effective-config --input docs` a
 | `series` | string | none | Series name shown in the primary label position of every bundled template |
 | `template` | bundled template name | `default` | Bundled template used for the document |
 | `toc` | boolean | `true` | Whether to generate a table of contents |
+| `cover` | boolean | `true` | Whether to display the cover or leading document header |
 | `logo` | path string / `false` | template default | Cover logo. `false` displays no logo |
 | `date` | string | run date | Date shown on the cover |
 | `page_size` | keyword / dimensions | `A4` | Page size |

@@ -54,7 +54,7 @@ test('later metadata never supplies missing first-file metadata', (t) => {
 test('ignored metadata still validates syntax, known values, and unknown-key policy', (t) => {
   const dir = fixture(t);
   const second = path.join(dir, '02_second.md');
-  for (const yaml of ['title: false', 'title: ""', 'title: "<b>bad</b>"', 'lang: invalid_tag', 'dir: LTR', 'toc: yes', 'logo: true', 'bibliography: []', 'bibliography: missing.txt', 'bibliography: [missing.bib, ./missing.bib]', 'title: T\ntitle: U', 'tags: [unclosed']) {
+  for (const yaml of ['title: false', 'title: ""', 'title: "<b>bad</b>"', 'lang: invalid_tag', 'dir: LTR', 'toc: yes', 'cover: yes', 'logo: true', 'bibliography: []', 'bibliography: missing.txt', 'bibliography: [missing.bib, ./missing.bib]', 'title: T\ntitle: U', 'tags: [unclosed']) {
     fs.writeFileSync(second, `---\n${yaml}\n---\n# Second\n`);
     for (const strictFrontMatter of [false, true]) {
       for (const run of [() => resolveInput(dir, 'CLI title', env, noop, { strictFrontMatter }), () => readFrontMatterConfig(dir, noop, { strictFrontMatter })]) {

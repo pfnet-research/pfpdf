@@ -11,6 +11,7 @@ author: 山田 太郎
 series: 技術報告シリーズ
 template: pfn
 toc: true
+cover: true
 logo: assets/logo.svg
 date: 2026-08-01
 page_size: A4
@@ -20,7 +21,7 @@ dir: ltr
 ---
 ```
 
-文書 metadata として使える key は次の 9 つです。さらに文書設定の `toc` / `logo` と、第 3 章で説明する build input の `bibliography` も使用できます。それ以外の未知の key は、既定では stderr に警告を出して無視します。重複する key、不正な YAML、既知 key の型違い・不正値は引き続きエラーです。
+文書 metadata として使える key は次の 9 つです。さらに文書設定の `toc` / `cover` / `logo` と、第 3 章で説明する build input の `bibliography` も使用できます。それ以外の未知の key は、既定では stderr に警告を出して無視します。重複する key、不正な YAML、既知 key の型違い・不正値は引き続きエラーです。
 
 たとえば他ツール用の `tags` や `status` を残したまま PDF 化できます。`page_szie` のような誤記も警告されるため、意図した設定が反映されたか確認してください。未知 key を従来どおりエラーにする場合は、CLI の `--strict-front-matter` を指定します。
 
@@ -37,6 +38,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-m
 | `series` | string | なし | 全 bundled template の主要ラベル位置に表示するシリーズ名 |
 | `template` | bundled template 名 | `default` | 文書に使用する bundled template |
 | `toc` | boolean | `true` | 目次を生成するかどうか |
+| `cover` | boolean | `true` | 表紙または先頭の文書 header を表示するかどうか |
 | `logo` | path string / `false` | template 既定値 | 表紙ロゴ。`false` ならロゴを表示しません |
 | `date` | string | 実行日 | 表紙に表示する日付 |
 | `page_size` | keyword / 寸法 | `A4` | ページサイズ |
