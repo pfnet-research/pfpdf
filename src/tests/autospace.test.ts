@@ -51,6 +51,11 @@ test('Japanese autospace changes HTML and final PDF geometry across all seven te
   if (qa) fs.mkdirSync(qa, { recursive: true });
   let browser: Awaited<ReturnType<typeof openTestBrowser>> | undefined;
   t.after(async () => { await browser?.close(); fs.rmSync(dir, { recursive: true, force: true }); });
+  const pdfTextHelp = spawnSync('pdftotext', ['-h'], { encoding: 'utf8' });
+  const hasPdfText = pdfTextHelp.error === undefined;
+  // Xpdf and Poppler share this executable name, but only Poppler advertises
+  // bbox-layout. Keep portable PDF text checks when that optional mode is absent.
+  const hasBboxLayout = hasPdfText && /^\s*-bbox-layout(?:\s|$)/m.test(pdfTextHelp.stdout + '\n' + pdfTextHelp.stderr);
   for (const template of BUNDLED_TEMPLATE_NAMES) {
     await t.test(template, async () => {
       const input = path.join(dir, 'doc.md');
@@ -103,8 +108,13 @@ test('Japanese autospace changes HTML and final PDF geometry across all seven te
           for (const id of ['english', 'code', 'kbd', 'samp']) assert.equal(layout.policy[id], 'no-autospace');
           assert.equal(layout.math, 'no-autospace');
         } finally { await page.close(); }
-        const bbox = spawnSync('pdftotext', ['-bbox-layout', output, '-'], { encoding: 'utf8' });
-        if (bbox.error === undefined) {
+        if (hasPdfText) {
+          const extracted = spawnSync('pdftotext', [output, '-'], { encoding: 'utf8' });
+          assert.equal(extracted.status, 0, extracted.stderr);
+          assert.match(extracted.stdout, /QWERTY123/);
+        }
+        if (hasBboxLayout) {
+          const bbox = spawnSync('pdftotext', ['-bbox-layout', output, '-'], { encoding: 'utf8' });
           assert.equal(bbox.status, 0, bbox.stderr);
           const widths = pdfLineWidths(bbox.stdout, 'QWERTY123');
           assert.ok(widths.length >= 2, bbox.stdout);
