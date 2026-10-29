@@ -473,10 +473,14 @@ function readinessInitScript(): string {
           .map(async (image) => {
             const authored = image.getAttribute('data-pfpdf-image-destination');
             const current = image.currentSrc || image.src;
+            const picture = image.parentElement;
+            const pictureSource = picture && picture.tagName === 'PICTURE'
+              && Array.from(picture.children).some((source) => source.tagName === 'SOURCE'
+                && (source.getAttribute('srcset') || '').trim() !== '');
             // The paged renderer may expand src="" to the document base URL.
             const expandedEmpty = authored !== null && authored.trim() === '' && current === state.root.href;
-            if (expandedEmpty && !image.getAttribute('srcset')) throw imageFailure(image, 'image destination is empty');
-            if (!image.getAttribute('src') && !image.getAttribute('srcset')) {
+            if (expandedEmpty && !image.getAttribute('srcset') && !pictureSource) throw imageFailure(image, 'image destination is empty');
+            if (!image.getAttribute('src') && !image.getAttribute('srcset') && !image.currentSrc && !pictureSource) {
               throw imageFailure(image, image.hasAttribute('src') ? 'image destination is empty' : 'image src is not specified');
             }
             try { await image.decode(); }

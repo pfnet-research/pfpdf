@@ -111,10 +111,16 @@ test('image readiness diagnostics identify corrupt, empty, missing-src, HTTP and
   }
 });
 
-test('images populated by registered promises and documents without images still produce PDFs', { skip: process.env.RUN_E2E !== '1' }, async () => {
-  for (const body of ['# No images\n\nText.', `<img id="later" alt="scripted">\n\n<script>window.pfpdf.registerReady(new Promise(resolve => { setTimeout(() => { document.getElementById('later').src = ${JSON.stringify(validImage)}; resolve(); }, 20); }));</script>`]) {
+test('scripted images, picture sources, and image-free documents still produce PDFs', { skip: process.env.RUN_E2E !== '1' }, async () => {
+  for (const body of [
+    '# No images\n\nText.',
+    `<img id="later" alt="scripted">\n\n<script>window.pfpdf.registerReady(new Promise(resolve => { setTimeout(() => { document.getElementById('later').src = ${JSON.stringify(validImage)}; resolve(); }, 20); }));</script>`,
+    '<picture><source srcset="picture.svg"><img alt="picture source only"></picture>',
+    '<picture><source srcset="picture.svg"><img src="" alt="empty fallback"></picture>',
+  ]) {
     const f = fixture(body);
     try {
+      fs.writeFileSync(path.join(f.dir, 'picture.svg'), '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="blue"/></svg>');
       const browser = process.env.BROWSER_PATH ? ['--browser-path', process.env.BROWSER_PATH] : [];
       await runBuild(resolveConfig(['--input', f.input, '--output', f.output, ...browser], f.dir), env, log);
       assert.equal(fs.readFileSync(f.output).subarray(0, 5).toString(), '%PDF-');
