@@ -14,7 +14,7 @@ pfpdf ships with seven bundled templates.
 | `pfn` | A design for corporate documents. No logo is bundled; you supply one yourself |
 | `technical` | A dense design for technical documents that lays out code, tables, and long identifiers for readability |
 
-Normally, select a template by writing `template` in the front matter of the first Markdown file.
+Normally, select a template by writing `template` in Markdown front matter. With multiple files, the first supplied value is used.
 
 ```md
 ---
@@ -47,7 +47,7 @@ For a custom template, put the entire cover in an element marked `data-pfpdf-slo
 
 ## 6.2 Injecting a logo
 
-Bundled templates include no logo image. Normally select a local file you have the rights to use in the first Markdown file's front matter. A custom template can have a default logo by putting a template-relative path in the `src` of its `logo` slot.
+Bundled templates include no logo image. Normally select a local file you have the rights to use in Markdown front matter. Relative paths are based on the parent directory of the Markdown file that first supplies `logo`. A custom template can have a default logo by putting a template-relative path in the `src` of its `logo` slot.
 
 ```md
 ---

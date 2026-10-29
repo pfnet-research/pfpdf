@@ -2,7 +2,7 @@
 
 ## 2.1 front matter
 
-文書の metadata は、最初の Markdown ファイルの先頭に YAML front matter として書きます。
+文書の metadata は、Markdown ファイルの先頭に YAML front matter として書きます。複数ファイルでは、キーごとに最初に書かれた値が優先されます。
 
 ```md
 ---
@@ -52,7 +52,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-m
 - `series` を省略するとシリーズ表示領域自体が削除されます。bundled template は固定の出版名、文書種別、ブランド名、定型ラベルを補いません
 - 表紙のタイトルを改行したいときは `title: "長いタイトル<br>サブタイトル"` のように `<br>` を使います。使える tag は `<br>` / `<br/>` だけです
 - front matter は YAML mapping として読みます。pfpdf が利用するのは上表と第 3 章で説明する `bibliography` だけで、metadata key は表に記載した型である必要があります。複雑な YAML 値を書けても metadata としては利用されません
-- source file の最初の行が `---` なら front matter delimiter とみなされます。最初の file では閉じる `---` または `...` が必要で、2 個目以降の file では front matter の重複としてエラーです。各 file の先頭で水平線を出したい場合は `***` を使ってください
+- source file の最初の行が `---` なら front matter delimiter とみなされ、同じ file 内に閉じる `---` または `...` が必要です。各 file の front matter は本文から除去されます。各 file の先頭で水平線を出したい場合は `***` を使ってください
 - `page_size` の keyword は `A3` / `A4` / `A5`、`JIS-B4` / `JIS-B5`、`ISO-B4` / `ISO-B5`、`Letter` / `Legal` です。規格が曖昧な `B4` / `B5` は使えません。`210mm 297mm` のように幅と高さを指定することもできます
 - `lang: en` / `lang: ja-JP` のような明示した BCP 47 language tag が最優先です。省略時は全入力 file の本文から日英を推定し、host locale は使いません。かな・漢字・英字を数え、ひらがなが 2 字以上かつ対象文字の 1% 以上、かなを含み日本語文字数が英字数以上、または漢字数が英字数を超える場合は `ja`、それ以外は `en` です。code・数式・raw HTML block・URL は除外し、判定対象文字がなければ title を使います。短文や多言語文書では `lang` を明示してください
 - 右から左へ書く文書は `dir: rtl`、左から右なら `dir: ltr` を指定できます。`auto` は文書内容から browser が判定し、`lang` や host locale だけから方向を推測しません
@@ -62,7 +62,9 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-m
 
 ディレクトリを入力にすると、直下の `*.md` がファイル名順に結合されます。
 
-- front matter を書けるのは、並び順で最初のファイルの先頭 1 か所だけです。2 つ目以降のファイルに `---` front matter があるとエラーになります
+- 各ファイルに front matter を書けます。文書全体の metadata・設定は並び順でキーごとに最初の値を採用し、後続ファイルは未設定のキーを補います。先頭ファイルに front matter がなくても、後続ファイルで `title` を指定できます。既存の値を一時的に置き換えたい場合は、対応する CLI option を使って上書きします
+- `false` も指定済みの値として扱います。`bibliography` のリストは一つの値として選び、後続ファイルのリストを連結しません
+- 不正 YAML、既知 key の型・値の誤り、未知 key の warning / `--strict-front-matter` は採否にかかわらず全ファイルで検査します。選ばれない logo / bibliography は参照先の存在確認や読込をしません。選択された相対 path は、そのキーを最初に指定したファイルの親 directory 基準です
 - 拡張子は小文字の `.md` だけが対象です
 - ファイルは UTF-8 で保存してください(先頭の BOM と CRLF 改行は受け付けます)
 - 各ファイルは独立した Markdown として解釈されます。code fence、list、raw HTML block、reference link definition を次のファイルへ続けることはできません。章をまたぐ構文は 1 ファイル内で閉じてください
