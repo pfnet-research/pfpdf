@@ -568,6 +568,16 @@ Each decision follows this format:
 - Validation: Empty URLs, original lines, missing local files, HTML without src, corrupt local / data images, HTTP404, dropped connections, src populated by registered promises, image-free documents, and preservation of existing output, using exact renderer HTML and rendering
 - Revisit when: A user-provided source-location API for script-generated images becomes necessary
 
+## DD-51: Docker execution requires non-root users and a working Chromium sandbox
+
+- Status: Accepted (2026-10-29)
+- Problem: Browsers fail in root Ubuntu containers, and there is no complete workflow covering shared libraries, initial extraction, cache and mount permissions, and host restrictions (#27)
+- Options: (a) disable the sandbox implicitly, (b) add a CLI-only disable option, (c) retain non-root sandboxed execution and provide a verified container example
+- Decision: (c). The Ubuntu 24.04 amd64 Dockerfile includes Node.js, locked dependencies, Chrome shared libraries, and unzip. Run as non-root using the host UID / GID, read-only input, writable output, and a persistent browser cache. Explicitly supply SYS_ADMIN for the container's Chromium sandbox as required by upstream instructions. Root remains unsupported; add no runtime option
+- Rejected: (a) changes the default launch policy without user intent. (b) adds a separate execution policy for a requirement already met by the non-root workflow. Distinguish root refusal, missing libraries, and namespace / AppArmor restrictions using doctor's cause classifications and original stderr
+- Validation: Ubuntu 24.04 amd64, Node 22.23.2, Vivliostyle 11.1.0, Chrome 150.0.7871.115. On an Arm64 Docker daemon with amd64 emulation, verified fresh / reused caches, input / output mounts, host-owned PDFs, doctor success, root refusal, and namespace launch failure without the capability. This is distinct from testing an actual Ubuntu host's AppArmor profile
+- Revisit when: Official support expands to environments without non-root sandboxed execution, or upstream changes the container capability requirement
+
 ## DD-53: Join Japanese paragraph source wrapping in the AST
 
 - Status: Accepted (2026-10-29)
