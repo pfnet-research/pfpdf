@@ -205,7 +205,9 @@ Options:
 
 - `title` は必須とし、front matter と `--title` のどちらにもなければ終了 code `2` で失敗する
 - `title` は空でない string とし、HTML tokenizer で text / character reference と、大小文字を区別しない attribute なしの `<br>` / `<br/>` / `<br />` token だけを許可する。その他の comment、tag、attribute は除去せずエラーにする。plain な `x < y` は text として扱う。plain text 表現では許可した改行 tag を U+000A へ変換し、HTML `<title>` では空白へ畳んでから DOM API で設定する
-- `author`、`series`、`date` は string、`confidential` は YAML boolean、`page_size` は allowlist keyword または寸法 2 個だけを受け付け、省略時は `A4` とする。`author` / `series` / `date` には HTML を許可せず DOM の text として挿入する
+- `author` は string または著者名の string 配列とし、入力順の名前配列へ正規化する。各名前の前後の空白を除き、CRLF / CR を LF に統一する。省略、空白だけの string、空配列は著者なしとする。配列の各要素は空白だけでない string に限り、null、数値、object、入れ子の配列、空の要素は入力エラーとする。scalar の null も入力エラーとする
+- 著者は順序を保って `, ` で区切り、幅に応じて自然に折り返す。名前中の literal newline は表示上の `<br>` とし、著者ごとの強制改行は入れない。文字列中の HTML や character reference は解釈せず、DOM text として挿入する
+- `series` と `date` は string、`confidential` は YAML boolean、`page_size` は allowlist keyword または寸法 2 個だけを受け付け、省略時は `A4` とする。`series` / `date` は DOM の text として挿入する
 - title の視覚的な改行は YAML block scalar や literal newline ではなく、許可した `<br>` を使う
 - `lang` は well-formed な BCP 47 language tag の string とし、Node.js の `Intl.getCanonicalLocales` で canonical form へ正規化する。省略時は `ja` とし、生成 HTML root の `lang` attribute、hyphenation、font 選択へ使う
 - `dir` は `ltr` / `rtl` / `auto` の ASCII case-sensitive enum とし、省略時は `auto` とする。生成 HTML root の `dir` attribute へ設定し、host locale や `lang` だけから text direction を推測しない。upstream の reading progression は固定値で上書きせず、computed `writing-mode` / direction から自動判定させ、horizontal RTL と vertical writing の PDF direction を compatibility test で確認する
@@ -216,7 +218,7 @@ Options:
 - `confidential` の既定値は `false` とし、利用者が明示した場合だけ `Confidential` 表示を行う
 - `SOURCE_DATE_EPOCH` は ASCII decimal の非負整数 Unix seconds とし、13 digit を超える値は数値変換前に拒否する。その後 JavaScript `Number` を経由せず parse し、安全な整数かつ ECMAScript `Date` の表現範囲にあることを確認する。不正値は無視せずエラーにする。`date` が省略されてこの値が有効なら、表示日付には UTC のその日付を使う。未設定時の表示日付は process 起動時に 1 回だけ取得した local date、PDF metadata は同じ起動 instant を使う。front matter の `date` の有無にかかわらず、`SOURCE_DATE_EPOCH` 未設定時は再現可能 build ではないことを warning にする
 - 生成日付は `lang` の primary language が `ja` なら `2026 年 8 月 3 日`、それ以外なら locale 非依存の `2026-08-03` とする。template は日付へ固定 label を追加せず、利用者が指定した任意 string の `date` は書式変更しない
-- PDF Info / XMP の title は title の plain text 表現、author は HTML として解釈しない元 string を使い、author 未指定時は field を作らない。PDF catalog の `/Lang` は canonical `lang` にする。表示用 `date` や confidential flag を PDF の作成 timestamp / author field へ流用しない
+- PDF Info / XMP の title は title の plain text 表現を使う。PDF Info の author は名前中の改行・連続空白を単一空白へ畳み、名前を `, ` で連結する。XMP の `dc:creator` は同じ空白処理を行った名前ごとに、入力順の `rdf:Seq` 要素を作る。author 未指定・空値の場合は field を作らない。PDF catalog の `/Lang` は canonical `lang` にする。表示用 `date` や confidential flag を PDF の作成 timestamp / author field へ流用しない
 - PDF の CreationDate / ModDate と XMP timestamp は、`SOURCE_DATE_EPOCH` があればその UTC instant、なければ process 起動時刻を使う。任意 string である front matter の `date` は PDF timestamp に流用しない。upstream の正式 option または構造を理解する PDF library で設定し、PDF byte 列を正規表現置換しない
 - canonical CI では `SOURCE_DATE_EPOCH` を固定し、生成 HTML と PDF Info / XMP title・author・language・timestamp / timezone policy を同じ fixture で検査する。timestamp を固定しても browser / OS 間の PDF byte 一致までは保証しない
 

@@ -10,7 +10,7 @@ import type { Metadata } from '../input.js';
 
 const metadata: Metadata = {
   title: { lines: ['A & B', '第二行'], plainText: 'A & B\n第二行' },
-  author: 'Alice',
+  author: ['Alice'],
   series: null,
   date: '2025-01-01',
   confidential: false,
@@ -199,4 +199,24 @@ test('an absent author removes renderer-provided author metadata', async () => {
   });
   const result = await PDFDocument.load(fs.readFileSync(finalOutput), { updateMetadata: false });
   assert.equal(result.getAuthor(), undefined);
+});
+
+test('multiple authors have a comma-separated PDF Author and distinct ordered XMP creators', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-output-authors-'));
+  t.after(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+  const rendererOutput = path.join(dir, 'renderer.pdf');
+  fs.writeFileSync(rendererOutput, await minimalPdf());
+  const finalOutput = path.join(dir, 'authors.pdf');
+  await commitOutput({
+    rendererOutput,
+    finalOutput,
+    metadata: { ...metadata, author: ['Alice & Bob', '山田 太郎', 'Carol\nExample Institute'] },
+    sourceDateEpoch: 0,
+    processStart: new Date(0),
+    deadline: Date.now() + 10_000,
+    warn: () => {},
+  });
+  const result = await PDFDocument.load(fs.readFileSync(finalOutput), { updateMetadata: false });
+  assert.equal(result.getAuthor(), 'Alice & Bob, 山田 太郎, Carol Example Institute');
+  assert.match(fs.readFileSync(finalOutput).toString('utf8'), /<dc:creator><rdf:Seq><rdf:li>Alice &amp; Bob<\/rdf:li><rdf:li>山田 太郎<\/rdf:li><rdf:li>Carol Example Institute<\/rdf:li><\/rdf:Seq><\/dc:creator>/);
 });

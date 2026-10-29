@@ -237,8 +237,22 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
 
   // Slot: author
   if (slots.author) {
-    if (metadata.author === null) removeElement(root, slots.author);
-    else slots.author.children = [text(metadata.author)];
+    if (metadata.author === null) {
+      removeElement(root, slots.author);
+    } else {
+      const properties = slots.author.properties ??= {};
+      const classes = properties.className;
+      properties.className = [
+        ...(Array.isArray(classes) ? classes : typeof classes === 'string' ? [classes] : []),
+        'pfpdf-authors',
+      ];
+      slots.author.children = metadata.author.flatMap((name, index) => {
+        const lines: ElementContent[] = name.split('\n').flatMap((line, lineIndex) =>
+          lineIndex === 0 ? [text(line)] : [el('br', {}, []), text(line)]);
+        const author = el('span', { className: ['pfpdf-author'] }, lines);
+        return index === 0 ? [author] : [text(', '), author];
+      });
+    }
   }
 
   // Slot: series

@@ -520,3 +520,15 @@
 - 互換性: 未知 key の拒否という既定動作だけを変更する。既知 key の型違い・不正値、重複 key、不正 YAML、未知 CLI option は引き続きエラーであり、CLI は front matter より優先される。厳格モードの変換・設定表示は code `2`、doctor は既存の診断契約に従って入力 check を `fail` とし code `1` を返す。front matter 自身では厳格検証を設定できない
 - 検証: 投稿例の `tags` / `status`、未知 key の値が設定や文書へ入らないこと、誤記の警告、厳格モード、既知 key の不正値、重複 key、不正 YAML、各コマンドの stdout / stderr、CLI 優先順位を unit / integration test で検査する。PDF smoke test で投稿例の変換成功と厳格モード失敗時の既存出力保持を確認し、日英の設計・チュートリアルを PDF 化する
 - 再検討条件: 未知 key の利用状況から追加の正式 metadata が必要になった場合、または warning の集約表示が必要になった場合
+
+## DD-46: 複数著者は順序付き名前配列とし、byline と PDF metadata を文脈別に出力する
+
+- 状態: 採用 (2026-10-29)
+- 問題: `author` が string のみで、複数著者を YAML 配列として指定できない。表示用改行と、単一 string の PDF Info / 順序付き XMP creator の区別も必要である (#20)
+- 選択肢: (a) 配列を1つの string に早期結合する、(b) 著者ごとに必ず改行する、(c) 順序付き名前配列を保ち、表示はカンマと空白でつなぎ、PDF Info は文字列、XMP は個別 creator にする
+- 採用: (c)。既存の単一 string は1著者として扱い、カンマなどを自動分割しない。Wiley の [WJOHNS Author Guidelines の Title page file 節](https://onlinelibrary.wiley.com/doi/pdfdirect/10.1002/wjo2.70083)が指定する、著者名をまとめてカンマで区切る形式を参考にし、簡潔な byline としてカンマと空白の区切りを選ぶ。氏名順や綴りは利用者の指定を保持する。日本語名にも同じ区切りを使い、言語ごとに著者情報を変換しない
+- 正規化: 名前の前後の空白を除き、CRLF / CR は LF にする。省略、空白だけの scalar、空配列は著者なし。配列の各要素は非空白 string に限り、不正な要素を黙って捨てない。HTML / character reference を解釈せず literal text とし、名前中の明示 newline だけを表示用 br にする
+- 出力: byline は各著者の span を `, ` でつなぎ、自然に折り返す。長い非分割名もページ幅内で折り返せるようにする。PDF Info の Author は名前中の改行・連続空白を単一空白へ畳んで `, ` で連結する。XMP の dc:creator は同じ名前を入力順の rdf:Seq に個別登録する
+- 非採用理由: (a) は氏名内のカンマと著者区切りを区別できず XMP の個別 creator を失う。(b) は著者が多い文書で不要な縦空間を消費する。氏名の省略、et al.、ソートは入力順と著者情報を変えるため行わない。所属・連絡先 object への拡張や他の既知 key の型緩和は今回の scope 外とする
+- 検証: scalar / 配列、空値、不正要素、氏名内カンマ、日本語、literal HTML、明示改行、全7 template の byline、折り返し、PDF Info と XMP の順序・escaping を検査する
+- 再検討条件: 著者所属、責任著者、ORCID などを first-class metadata として扱う場合、または投稿規程別の byline 書式が必要になった場合

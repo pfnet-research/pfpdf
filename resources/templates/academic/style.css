@@ -110,13 +110,14 @@ html {
   color: var(--academic-color-muted);
   display: flex;
   justify-content: space-between;
+  column-gap: 1.5em;
   margin-top: auto;
   padding: 4.5mm 0;
 }
 
 .academic-cover-meta p { margin: 0; }
 .academic-cover-author { color: var(--academic-color-ink); font-size: 11pt; }
-.academic-cover-date { font-size: 9.5pt; font-variant-numeric: tabular-nums; }
+.academic-cover-date { flex-shrink: 0; font-size: 9.5pt; font-variant-numeric: tabular-nums; }
 
 .academic-toc-container { break-after: page; }
 

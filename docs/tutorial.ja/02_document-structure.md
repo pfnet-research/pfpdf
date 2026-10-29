@@ -33,7 +33,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-m
 | key | 型 | 既定値 | 説明 |
 |---|---|---|---|
 | `title` | string | なし(必須) | 文書タイトル。表紙では `<br>` で改行できます |
-| `author` | string | なし | 著者名 |
+| `author` | string / string 配列 | なし | 著者名。配列は入力順にカンマで区切って表示します |
 | `series` | string | なし | 全 bundled template の主要ラベル位置に表示するシリーズ名 |
 | `template` | bundled template 名 | `default` | 文書に使用する bundled template |
 | `toc` | boolean | `true` | 目次を生成するかどうか |
@@ -55,6 +55,10 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-m
 - 英語文書なら `lang: en` のように BCP 47 language tag を指定します。省略時は host の言語に依存せず `ja` です
 - 右から左へ書く文書は `dir: rtl`、左から右なら `dir: ltr` を指定できます。`auto` は文書内容から browser が判定し、`lang` や host locale だけから方向を推測しません
 - `lang` の primary language が `ja` なら自動日付は `2026 年 8 月 3 日`、それ以外では `2026-08-03` の固定表記になります。front matter に書いた `date` の文字列自体は書き換えられません
+
+複数著者は `author: [山田 太郎, 佐藤 花子, Alice Smith]` のように指定します。名前は入力順に `, ` で区切り、表紙の幅に合わせて折り返します。単一の string も引き続き使えます。カンマを含む名前でも1要素は1著者であり、名前の文字列を自動的に分割しません。
+
+著者名の中に意図した改行を入れる場合は、YAML の `|` block scalar または double-quoted string の `\n` を使います。改行は表示だけに反映し、PDF metadata では空白になります。HTML tag や `&amp;` などはそのままの文字として表示します。空 string、空白だけの string、空配列は著者表示を省略します。配列の空要素、null、数値、object は入力エラーです。`series` など他の key は従来の型制約のままです。
 
 ## 2.2 複数ファイルの結合
 
