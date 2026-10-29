@@ -18,6 +18,16 @@
 html { font-family: var(--pfpdf-font-body); }
 body { margin: 0; }
 
+/* Japanese prose gets visual inter-script spacing without changing its text.
+ * Explicit nested language tags reset the inherited policy. Zero specificity
+ * keeps document/template CSS able to override the default. */
+:where([lang]) { text-autospace: no-autospace; }
+:where([lang]:lang(ja)) { text-autospace: normal; }
+:where(pre, code, kbd, samp, textarea, svg, math, .pfpdf-math-src, .pfpdf-math-inline, .pfpdf-math-display),
+:where(pre, code, kbd, samp, textarea, svg, math, .pfpdf-math-src, .pfpdf-math-inline, .pfpdf-math-display) * {
+  text-autospace: no-autospace;
+}
+
 /* Semantic DPUB notes are paginated by Vivliostyle at their first reference. */
 .pfpdf-page-footnote { font-size: 0.85em; line-height: 1.45; text-align: start; }
 .pfpdf-page-footnote p { margin-block: 0.25em; text-align: inherit; }

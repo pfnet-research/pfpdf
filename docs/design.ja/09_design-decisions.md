@@ -602,3 +602,16 @@
 - 互換性: 英語・他言語、和欧境界、明示空白、hard break、段落境界は従来どおり。GFM parser 自体は変更せず、意図的な差分を Markdown 仕様と fixture に記録する
 - 検証: pinned parser の GfmAdapter fixture、inline 要素・文字参照・CRLF・入れ子・raw HTML・code / math・ID / URL / position の検査、全7 template の正規 renderer HTML の表示幅と最終 PDF
 - 再検討条件: 和欧境界も結合する要件、または raw HTML 内の source 改行を制御する明示設定が必要になった場合
+
+## DD-54: 和欧間の空きを日本語向け CSS の既定値にする
+
+- 状態: 採用 (2026-10-29)
+- 問題: 和文と欧文・数字が空きなしで隣接し、印刷物として読み取りづらい (#24)
+- 選択肢: (a) 実際の空白を source / DOM へ挿入する、(b) 新しい front matter / CLI 設定を導入する、(c) 既存 lang に基づき CSS text-autospace を日本語の既定値にする
+- 採用: (c)。全 bundled template の共通 CSS で、明示 lang の日本語要素へ text-autospace: normal（ideograph-alpha / ideograph-numeric 相当）を適用し、別言語の subtree では解除する。code、pre、kbd、samp、textarea、SVG、MathML、数式とその子孫は対象外とする。selector の specificity はゼロにし、利用者の CSS で上書きできる
+- 非採用理由: (a) は URL・識別子・コピー文字列を変更する。(b) は既存の文書言語で決まる組版のために設定を増やす。約物の自動調整や replace は今回の範囲へ含めない
+- 実装互換性: 固定 Chrome 150 は normal を受け付けるが、ideograph-alpha ideograph-numeric の組合せ値を受け付けないため、[CSS Text 4](https://drafts.csswg.org/css-text-4/#text-autospace-property) で同じ動作と定義される normal を使う
+- fallback: 非対応 browser は CSS property を無視し、従来の空きなしで変換する。依存や renderer の更新は行わない
+- 検証: 固定 Chrome 150 / Vivliostyle 11.1.0、全7 template のゴシック・明朝、Latin / 数字、明示空白、約物、link、nested lang、code / math、DOM text と selection の保持、正規 document.html の computed style / geometry と PDF の文字位置・抽出結果
+- risk: 自動空きで改行位置が変わる。PDF 抽出器が視覚的な空きを空白として復元する可能性はあるが、DOM の source text は変更しない
+- 再検討条件: browser 間で既定の空き量や対応範囲が変わる場合、または CSS override より文書設定での切替が必要になった場合
