@@ -172,6 +172,7 @@ Options:
   --browser-path PATH      browser used by the renderer
   --render-timeout-ms N    from renderer preparation to PDF inspection completion. Default is 300000
   --keep-work-dir          keep the temporary workspace
+  --strict-front-matter    reject unknown front matter keys; default: warn and ignore
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config print the applied configuration and its sources, then exit
   --doctor                 diagnose the renderer, browser, and assets
@@ -209,7 +210,7 @@ Options:
 - `lang` is a string that must be a well-formed BCP 47 language tag, normalized to canonical form with Node.js `Intl.getCanonicalLocales`. It defaults to `ja` and is used for the generated HTML root's `lang` attribute, hyphenation, and font selection
 - `dir` is an ASCII case-sensitive enum of `ltr` / `rtl` / `auto`, defaulting to `auto`. It is set on the generated HTML root's `dir` attribute; text direction is never inferred from the host locale or from `lang` alone. The upstream reading progression is not overridden with a fixed value; it is determined automatically from the computed `writing-mode` / direction, and the PDF direction for horizontal RTL and vertical writing is confirmed by compatibility tests
 - Page size keywords are ASCII case-insensitive `A3`, `A4`, `A5`, `JIS-B4`, `JIS-B5`, `ISO-B4`, `ISO-B5`, `Letter`, `Legal`. The ambiguous `B4` / `B5` are not accepted. Dimensions are `<number><unit><ASCII-whitespace+><number><unit>` in width-height order, with units `mm` / `cm` / `in` / `pt`, and each side a positive finite decimal. pfpdf imposes no upper bound of its own beyond what the renderer handles
-- The metadata keys are the allowlist `title`, `author`, `series`, `date`, `page_size`, `confidential`, `lang`, `dir`; duplicate and unknown keys are reported as input mistakes
+- The metadata keys are `title`, `author`, `series`, `date`, `page_size`, `confidential`, `lang`, and `dir`. Keys outside the known set, which also includes document settings and `bibliography`, produce one warning per key on stderr containing the source file and key name, and their values are ignored by default. Unknown values never enter metadata, effective configuration, or the generated document. With `--strict-front-matter`, unknown keys are input errors (code `2`). Duplicate keys, invalid YAML, and invalid types or values of known keys remain input errors in either mode
 - The document setting `template` is a bundled template name, `toc` is a YAML boolean, and `logo` is a local path string or `false`. A relative `logo` path is resolved from the parent directory of the front matter source. Git repository sources are rejected in front matter and accepted only through `--logo`
 - `--title` overrides only the value of a valid front matter title. Even with the CLI override, the entire front matter's syntax, keys, and types are validated first; invalid values are not hidden
 - `confidential` defaults to `false`; the `Confidential` marking appears only when the user sets it explicitly
@@ -222,7 +223,8 @@ Options:
 ### 2.9.3 Configuration resolution and diagnostics
 
 - For the document settings `template` / `toc` / `logo`, a CLI value wins; otherwise front matter is used; otherwise the built-in default. Template source / explicit preset and logo source / disabled are each one exclusive logical setting
-- Browser paths, additional font directories, host fonts, timeouts, workspace retention, and log levels are CLI-only. Lists are never implicitly concatenated across sources
+- Browser paths, additional font directories, host fonts, timeouts, workspace retention, log levels, and `--strict-front-matter` are CLI-only. Lists are never implicitly concatenated across sources
+- Warning and ignoring unknown front matter keys, and strict validation, apply consistently to conversion, `--print-effective-config --input PATH`, and `--doctor --input PATH`. Warnings follow the normal log level and never enter stdout JSON. Doctor marks the input check as `warning`, or `fail` when strict validation rejects a key, preserving its existing diagnostic exit codes (`1` if any check fails, otherwise `0`)
 - Only `SOURCE_DATE_EPOCH` remains as a standard reproducible-build environment variable. It controls the display date and PDF metadata timestamp, while front matter `date` overrides only the display date
 - Child processes inherit the caller's environment variables, like ordinary CLI tools
 - `--print-effective-config` prints exactly one JSON object with a versioned schema to stdout, including each value and whether its source is the CLI, front matter, or a default. When `--input` is present, the result includes `template` / `toc` / `logo` selected by the first Markdown file. Tokens, credentials, and raw environment variable values are not included, and the contents of proxy URLs and custom CAs, which may contain secrets, are not shown
@@ -234,6 +236,8 @@ Options:
 - `--doctor` writes a JSON object with a versioned schema to stdout, giving each check `pass` / `warning` / `fail` / `not-run` and its rationale. The exit code is `1` when a problem is detected, `0` when there are only warnings or no problems
 
 An unspecified logo is the `template` state that uses the slot's default `src`; front matter `logo: false` or CLI `--no-logo` is the distinct `none` state that removes it too.
+
+The effective configuration's `strictFrontMatter` is a boolean, defaulting to `{"value": false, "source": "default"}` and becoming `{"value": true, "source": "cli"}` with `--strict-front-matter`. This additive field keeps schema version `5`.
 
 The effective configuration has `schemaVersion: 5` and `command` at the top level, with `config.<name> = {"value": ..., "source": "cli|front-matter|default"}`. Schema 5 removes the environment source and lets `toc` / `logo` have a front matter source. Templates have a repository variant, and logos have `template` / `none` / `local` / `repository` variants. Doctor remains at `schemaVersion: 2` and has an overall `status` plus `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}`. Doctor's overall status is fail if any check fails, otherwise warning if any check warns, and pass if at least one check ran and all passed. Key and check output order is fixed, and exactly one line of compact UTF-8 JSON plus a trailing LF is written to stdout. Adding optional fields in the future is allowed under the same schemaVersion, but changing the meaning or type of an existing field, or removing one, bumps the version.
 

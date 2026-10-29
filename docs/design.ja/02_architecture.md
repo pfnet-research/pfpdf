@@ -172,6 +172,7 @@ Options:
   --browser-path PATH      renderer が使う browser
   --render-timeout-ms N    renderer 準備から PDF 検査完了まで。既定は 300000
   --keep-work-dir          一時 workspace を保持する
+  --strict-front-matter    未知の front matter key をエラーにする。既定は警告して無視
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config 適用後の設定と設定元を表示して終了する
   --doctor                 renderer、browser、asset を診断する
@@ -209,7 +210,7 @@ Options:
 - `lang` は well-formed な BCP 47 language tag の string とし、Node.js の `Intl.getCanonicalLocales` で canonical form へ正規化する。省略時は `ja` とし、生成 HTML root の `lang` attribute、hyphenation、font 選択へ使う
 - `dir` は `ltr` / `rtl` / `auto` の ASCII case-sensitive enum とし、省略時は `auto` とする。生成 HTML root の `dir` attribute へ設定し、host locale や `lang` だけから text direction を推測しない。upstream の reading progression は固定値で上書きせず、computed `writing-mode` / direction から自動判定させ、horizontal RTL と vertical writing の PDF direction を compatibility test で確認する
 - page size keyword は ASCII case-insensitive の `A3`、`A4`、`A5`、`JIS-B4`、`JIS-B5`、`ISO-B4`、`ISO-B5`、`Letter`、`Legal` とする。曖昧な `B4` / `B5` は受け付けない。寸法は `<number><unit><ASCII-whitespace+><number><unit>` の幅・高さ順とし、unit は `mm` / `cm` / `in` / `pt`、各辺は正の有限 decimal とする。renderer が扱える寸法へ pfpdf 独自の上限を設けない
-- metadata key は `title`、`author`、`series`、`date`、`page_size`、`confidential`、`lang`、`dir` の allowlist とし、重複 key と未知 key は入力誤りとして報告する
+- metadata key は `title`、`author`、`series`、`date`、`page_size`、`confidential`、`lang`、`dir` とする。文書設定と `bibliography` を含む既知 key 以外は、既定では source file と key 名を含む warning を key ごとに stderr へ出し、値を無視する。未知 key の値は metadata、effective config、生成文書へ渡さない。`--strict-front-matter` を指定した場合は未知 key を入力誤り (code `2`) とする。重複 key、不正 YAML、既知 key の不正な型・値はモードにかかわらず入力誤りとする
 - 文書設定の`template`はbundled template名、`toc`はYAML boolean、`logo`はlocal path stringまたは`false`とする。`logo`の相対pathはfront matter sourceの親directory基準で解決し、Git repository sourceはfront matterでは拒否して`--logo`だけから受け付ける
 - `--title` は有効な front matter title の値だけを上書きする。CLI override があっても front matter 全体の syntax、key、型を先に検証し、不正値を隠さない
 - `confidential` の既定値は `false` とし、利用者が明示した場合だけ `Confidential` 表示を行う
@@ -222,7 +223,8 @@ Options:
 ### 2.9.3 設定解決と診断
 
 - 文書設定の`template` / `toc` / `logo`は、CLIに値があればCLI、なければfront matter、どちらにもなければ組み込み既定値を採用する。template source / explicit presetと、logo source / disabledはそれぞれ排他的な1つの論理設定とする
-- browser path、追加font directory、host font、timeout、workspace保持、log levelはCLIだけから設定する。listを別の設定元から暗黙連結しない
+- browser path、追加font directory、host font、timeout、workspace保持、log level、`--strict-front-matter`はCLIだけから設定する。listを別の設定元から暗黙連結しない
+- 未知 front matter key の警告・無視と厳格検証は、通常変換、`--print-effective-config --input PATH`、`--doctor --input PATH` に共通で適用する。警告は通常の log level に従い、stdout の JSON に混ぜない。doctor では入力 check を `warning`、厳格検証で拒否した場合は `fail` とし、既存の診断用終了 code (`fail` があれば `1`、それ以外は `0`) を維持する
 - `SOURCE_DATE_EPOCH`だけは再現可能buildの標準環境変数として扱い、表示日付とPDF metadata timestampに使用する。front matterの`date`は表示日付だけを上書きする
 - child process は通常の CLI tool と同様に呼出元の環境変数を継承する
 - `--print-effective-config` は versioned schema を持つ JSON object を 1 個だけ stdout へ表示し、各値と、その設定元が CLI、front matter、default のどれかを含める。`--input` があれば先頭 Markdown の `template` / `toc` / `logo` まで反映する。token、credential、環境変数の生値は含めず、秘密を含み得る proxy URL と custom CA の内容は表示しない
@@ -234,6 +236,8 @@ Options:
 - `--doctor` は versioned schema の JSON object を stdout へ出し、検査ごとに `pass` / `warning` / `fail` / `not-run` と根拠を持たせる。問題を検出した場合に終了 code `1`、warning のみまたは問題なしの場合は `0` を返す
 
 logo未指定はtemplate slotの既定`src`を使用する`template`状態、front matterの`logo: false`またはCLIの`--no-logo`はそれも削除する`none`状態としてeffective configで区別します。
+
+effective config の `strictFrontMatter` は boolean で、既定は `{"value": false, "source": "default"}`、`--strict-front-matter` 指定時は `{"value": true, "source": "cli"}` です。追加 field として schema version は `5` を維持します。
 
 effective config の top-level は `schemaVersion: 5` と `command` を持ち、`config.<name> = {"value": ..., "source": "cli|front-matter|default"}` を含みます。schema 5ではenvironment sourceを削除し、`toc` / `logo`がfront matter sourceを持てるようにします。template はrepository variant、logoは`template` / `none` / `local` / `repository` variantを持ちます。doctor は `schemaVersion: 2` のままとし、全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。doctor の全体 status は 1 個でも fail があれば fail、なければ warning があれば warning、実行対象が 1 個以上すべて pass なら pass とします。key と check の出力順を固定し、UTF-8 の compact JSON 1 行と末尾 LF だけを stdout へ書きます。将来の optional field 追加は同じ schemaVersion で許可しますが、既存 field の意味・型の変更や削除では version を上げます。
 

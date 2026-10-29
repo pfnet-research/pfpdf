@@ -20,7 +20,15 @@ dir: ltr
 ---
 ```
 
-The following nine keys are available as document metadata. The `toc` / `logo` document settings and the `bibliography` build-input key described in Chapter 03 are also accepted. All other unknown keys, and duplicate keys, are errors.
+The following nine keys are available as document metadata. The `toc` / `logo` document settings and the `bibliography` build-input key described in Chapter 03 are also accepted. Other unknown keys produce warnings on stderr and are ignored by default. Duplicate keys, invalid YAML, and invalid types or values of known keys remain errors.
+
+For example, you can keep `tags` or `status` intended for other tools when building a PDF. Typos such as `page_szie` also produce warnings, so check that the intended settings took effect. To make unknown keys errors as before, pass the CLI flag `--strict-front-matter`.
+
+```bash
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-matter
+```
+
+This validation policy also applies to `--print-effective-config --input docs` and `--doctor --input docs`. Since `--strict-front-matter` is a runtime setting, it cannot be set in front matter.
 
 | Key | Type | Default | Description |
 |---|---|---|---|

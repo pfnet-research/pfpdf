@@ -83,9 +83,67 @@ test('--title does not hide an invalid front matter title', () => {
   assert.throws(() => resolveInput(p, 'CLI Title', {}, noop), InputError);
 });
 
-test('unknown / duplicate front matter keys rejected', () => {
-  assert.throws(() => resolveInput(tmpFile('---\ntitle: A\nbogus: x\n---\n'), null, {}, noop), InputError);
-  assert.throws(() => resolveInput(tmpFile('---\ntitle: A\ntitle: B\n---\n'), null, {}, noop), InputError);
+test('unknown front matter keys warn once each and do not affect metadata or configuration', () => {
+  const p = tmpFile('---\ntitle: Example\nauthor: Alice\ntags: [documentation, example]\nstatus: draft\npage_szie: A5\nstrictFrontMatter: true\n---\n# Body\n');
+  const warnings: string[] = [];
+  const result = resolveInput(p, null, { SOURCE_DATE_EPOCH: '0' }, (msg) => warnings.push(msg));
+  assert.equal(result.metadata.title.plainText, 'Example');
+  assert.equal(result.metadata.author, 'Alice');
+  assert.equal(result.metadata.pageSize.css, '210mm 297mm');
+  assert.deepEqual(result.config, { template: null, toc: null, logo: null });
+  assert.equal(result.files[0]!.content, '# Body\n');
+  assert.equal(result.files[0]!.lineOffset, 8);
+  assert.deepEqual(warnings, ['tags', 'status', 'page_szie', 'strictFrontMatter'].map(
+    (key) => `${p}: unknown front matter key: ${key}; ignored`,
+  ));
+  const configWarnings: string[] = [];
+  assert.deepEqual(readFrontMatterConfig(p, (msg) => configWarnings.push(msg)), result.config);
+  assert.deepEqual(configWarnings, warnings);
+});
+
+test('strict front matter rejects unknown keys for input and configuration diagnostics', () => {
+  const p = tmpFile('---\ntitle: A\nbogus: x\n---\n');
+  const options = { strictFrontMatter: true };
+  const warnings: string[] = [];
+  const warn = (msg: string): void => { warnings.push(msg); };
+  assert.throws(
+    () => resolveInput(p, null, {}, warn, options),
+    { name: 'InputError', exitCode: 2, message: `${p}: unknown front matter key: bogus` },
+  );
+  assert.throws(() => readFrontMatterConfig(p, warn, options), InputError);
+  assert.deepEqual(warnings, []);
+  const valid = tmpFile('---\ntitle: A\n---\n');
+  assert.equal(resolveInput(valid, null, { SOURCE_DATE_EPOCH: '0' }, noop, options).metadata.title.plainText, 'A');
+});
+
+test('duplicate keys and malformed YAML remain errors in both front matter modes', () => {
+  for (const strictFrontMatter of [false, true]) {
+    for (const yaml of [
+      'title: A\ntitle: B',
+      'title: A\ntags: a\ntags: b',
+      'title: A\ntags: [unclosed',
+      '- title: A',
+    ]) {
+      const p = tmpFile(`---\n${yaml}\n---\n`);
+      assert.throws(() => resolveInput(p, null, {}, noop, { strictFrontMatter }), InputError);
+      assert.throws(() => readFrontMatterConfig(p, noop, { strictFrontMatter }), InputError);
+    }
+  }
+});
+
+test('known front matter values stay validated in both modes, including CLI overrides', () => {
+  for (const strictFrontMatter of [false, true]) {
+    for (const yaml of [
+      'title: false', 'title: "<b>bad</b>"', 'title: T\nauthor: []',
+      'title: T\npage_size: B4', 'title: T\nconfidential: yes',
+      'title: T\nlang: invalid_tag', 'title: T\ndir: LTR',
+      'title: T\ntemplate: missing', 'title: T\ntoc: yes',
+      'title: T\nlogo: true', 'title: T\nbibliography: []',
+    ]) {
+      const p = tmpFile(`---\n${yaml}\n---\n`);
+      assert.throws(() => resolveInput(p, 'CLI Title', {}, noop, { strictFrontMatter }), InputError);
+    }
+  }
 });
 
 test('unclosed front matter rejected', () => {

@@ -509,3 +509,14 @@
 - 検証: 投稿された最小例の Markdown → SVG 変換でタスク名、日付軸、正の幅・高さ、既定幅と指定幅、dagre 指定を確認する。flowchart / sequence / Gantt の混在と繰り返し生成も検証する。PDF smoke test は renderer が消費する `document.html` と生成 SVG を検査し、PDF 内のタスク名と日付を確認する
 - risk: server-side DOM は browser の container layout を行わないため、Gantt の幅は本文幅の測定結果ではなく既定値または指定値になる
 - 再検討条件: svgdom が `parentElement` を実装するか、Mermaid の幅取得方法が変わる場合
+
+## DD-45: 未知の front matter key は警告して無視し、厳格検証は CLI で選ぶ
+
+- 状態: 採用 (2026-10-29)
+- 問題: 他ツール用の `tags` / `status` などを持つ Markdown を PDF 化すると、従来の未知 key 拒否によって失敗する (#15)。同じ文書を複数ツールで再利用できるようにしたい
+- 選択肢: (a) 未知 key の拒否を維持する、(b) 黙って無視する、(c) 既定では警告して無視し、CLI で厳格検証を選ぶ、(d) 許可する任意 key のリストや project config file を追加する
+- 採用: (c)。未知 key ごとに source file と key 名を含む warning を stderr へ出し、値を捨てる。CLI-only の `--strict-front-matter` で従来の入力エラーを選べる。通常変換、`--print-effective-config`、`--doctor` は同じ parser と検証方針を使い、警告は既存の log level に従う。effective config へ boolean の `strictFrontMatter` と source を追加し、既存の field を変えないため schema version `5` を維持する
+- 非採用理由: (a) は文書の再利用に metadata の削除を要求する。(b) は `page_szie` のような誤記に気付けない。(d) は利用ツールごとに key の保守を必要とし、設定を front matter と CLI に限定する方針にも反する
+- 互換性: 未知 key の拒否という既定動作だけを変更する。既知 key の型違い・不正値、重複 key、不正 YAML、未知 CLI option は引き続きエラーであり、CLI は front matter より優先される。厳格モードの変換・設定表示は code `2`、doctor は既存の診断契約に従って入力 check を `fail` とし code `1` を返す。front matter 自身では厳格検証を設定できない
+- 検証: 投稿例の `tags` / `status`、未知 key の値が設定や文書へ入らないこと、誤記の警告、厳格モード、既知 key の不正値、重複 key、不正 YAML、各コマンドの stdout / stderr、CLI 優先順位を unit / integration test で検査する。PDF smoke test で投稿例の変換成功と厳格モード失敗時の既存出力保持を確認し、日英の設計・チュートリアルを PDF 化する
+- 再検討条件: 未知 key の利用状況から追加の正式 metadata が必要になった場合、または warning の集約表示が必要になった場合
