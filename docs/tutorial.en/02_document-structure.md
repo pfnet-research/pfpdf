@@ -60,7 +60,8 @@ This validation policy also applies to `--print-effective-config --input docs` a
 
 When the input is a directory, pfpdf combines the `*.md` files directly inside it in filename order.
 
-- Front matter may appear in exactly one place: at the top of the first file in order. A `---` front matter block in any later file is an error
+- Every file may have front matter. Only the first file in sort order supplies document-wide metadata and settings, which the CLI overrides. Later metadata is removed from the body without filling in or merging values. If the first file has no front matter, even a title in a later file is not used as the document title
+- Invalid YAML, invalid known-key types / values, and unknown-key warnings / `--strict-front-matter` are checked in every file. Later logo / bibliography paths receive syntax validation only; their targets are neither checked for existence nor opened. Selected relative paths use the first file's parent directory
 - Only the lowercase `.md` extension is accepted
 - Save files as UTF-8 (a leading BOM and CRLF line endings are accepted)
 - Each file is parsed as independent Markdown. Code fences, lists, raw HTML blocks, and reference link definitions cannot continue into the next file. Close any syntax that would otherwise span chapters within a single file
