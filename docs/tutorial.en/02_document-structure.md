@@ -2,7 +2,7 @@
 
 ## 2.1 Front matter
 
-Write document metadata as YAML front matter at the top of the first Markdown file.
+Write document metadata as YAML front matter at the top of a Markdown file. With multiple files, the first supplied value for each key takes precedence.
 
 ```md
 ---
@@ -52,7 +52,7 @@ This validation policy also applies to `--print-effective-config --input docs` a
 - If `series` is omitted, the series display area is removed entirely. The bundled templates never fill it with a fixed publication name, document type, brand name, or boilerplate label
 - To break the title across lines on the cover, use `<br>`, as in `title: "Long Title<br>Subtitle"`. The only tags allowed are `<br>` / `<br/>`
 - The front matter is parsed as a YAML mapping. pfpdf uses only the keys in the table above and the `bibliography` key described in Chapter 03; each metadata key must have the type listed in the table. You can write complex YAML values, but they are not used as metadata
-- If the first line of a source file is `---`, pfpdf treats it as a front matter delimiter. The first file must contain a closing `---` or `...`; the same opening delimiter in any later file is an error because it would introduce duplicate front matter. To place a horizontal rule at the top of a file, use `***`
+- If the first line of a source file is `---`, pfpdf treats it as a front matter delimiter and requires a closing `---` or `...` in that file. Front matter is removed from the body of every file. To place a horizontal rule at the top of a file, use `***`
 - The `page_size` keywords are `A3` / `A4` / `A5`, `JIS-B4` / `JIS-B5`, `ISO-B4` / `ISO-B5`, and `Letter` / `Legal`. The ambiguous `B4` / `B5` are not allowed. You can also specify an explicit width and height, such as `210mm 297mm`
 - An explicit BCP 47 language tag such as `lang: en` / `lang: ja-JP` always wins. When omitted, Japanese or English is inferred from prose across all input files without using the host locale. Count kana, Han, and Latin characters: select `ja` if at least two hiragana make up at least 1% of those characters, if kana is present and Japanese characters are at least as numerous as Latin characters, or if Han characters outnumber Latin characters; otherwise select `en`. Code, math, raw HTML blocks, and URLs are excluded; use the title if no counted prose characters remain. Specify `lang` for short or multilingual documents
 - For right-to-left documents you can specify `dir: rtl`, and for left-to-right documents, `dir: ltr`. With `auto`, the browser determines the direction from the document content; it does not guess the direction from `lang` or the host locale alone
@@ -62,7 +62,9 @@ This validation policy also applies to `--print-effective-config --input docs` a
 
 When the input is a directory, pfpdf combines the `*.md` files directly inside it in filename order.
 
-- Front matter may appear in exactly one place: at the top of the first file in order. A `---` front matter block in any later file is an error
+- Every file may have front matter. Document-wide metadata and settings retain the first supplied value for each key in sort order; later files fill unset keys. A later file can supply `title` even if the first file has no front matter. To replace an existing value for one invocation, use its corresponding CLI option
+- `false` also counts as a supplied value. A `bibliography` list is selected as one value and is never concatenated with later files' lists
+- Invalid YAML, invalid types or values of known keys, and unknown-key warnings / `--strict-front-matter` apply to all files regardless of selection. Unselected logo / bibliography targets are neither checked for existence nor opened. A selected relative path is based on the parent directory of the file that first supplies that key
 - Only the lowercase `.md` extension is accepted
 - Save files as UTF-8 (a leading BOM and CRLF line endings are accepted)
 - Each file is parsed as independent Markdown. Code fences, lists, raw HTML blocks, and reference link definitions cannot continue into the next file. Close any syntax that would otherwise span chapters within a single file

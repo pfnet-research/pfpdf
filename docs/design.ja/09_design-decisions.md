@@ -533,6 +533,19 @@
 - 検証: 明示 tag 優先、複数 file、日英・混在・code / math / HTML / URL 除外、空本文の title fallback、自動日付、全7 template の正規 renderer HTML と日英 PDF、繰返し参照の label・link・目次除外を検査する
 - 再検討条件: 日英以外の自動分類や、利用者指定の翻訳 label が必要になった場合
 
+## DD-48: 複数 file の front matter は key ごとの先勝ちで継承する
+
+- 状態: 採用 (2026-10-29)
+- 問題: 個別に metadata を持つメモを結合すると、後続 file の front matter が重複として拒否される (#21)
+- 選択肢: (a) 後続 block を拒否する、(b) 全 block を除去し先頭 file だけを使う、(c) key ごとに後勝ちで上書きする、(d) key ごとに最初の値を採用し、後続 file は未設定 key を補う
+- 採用: (d)。入力順で key ごとに最初に現れた値を文書全体へ適用し、CLI がその選択値を上書きする。先頭 file に値や front matter 自体がなくても後続 file の title や設定を使える。`false` も指定済みと扱い、`bibliography` list は一つの値として選び、後続 list と連結しない。DD-31 / DD-39 の front matter を先頭 file に限定する部分と、従来の後続 front matter 拒否を置き換える
+- 選択元: key ごとに source file を保持し、相対 logo / bibliography path はその key を最初に指定した Markdown の親 directory を基準にする。選択されない logo / bibliography の file は存在確認・読込をしない
+- 検証方針: 全 file で YAML mapping、未知 key の warning / strict mode、既知 key の型・値・path 構文と bibliography の重複 path を採否にかかわらず検査する。変換・effective config・doctor が同じ選択・検証経路を使い、不正な後続 block も文書全体の失敗とする
+- 非採用理由: (a) はメモを編集してから結合する必要がある。(b) は後続 file の有用な未設定値まで捨てる。(c) はメモを追加するだけで既存の文書設定が変わる。file 単位の局所適用も、単一文書の page size・template・language の適用範囲を曖昧にするため採用しない
+- 位置情報: 各 `SourceFile.content` はその file の front matter を除去した byte 表現とし、`lineOffset` に除去行数を保持する。file 順・anchor・file 間 link と本文の line ending は保持する。言語推定には metadata 除去後の全 file の本文を渡す
+- 検証: 複数 front matter と混在入力、key ごとの先勝ち・後続 file からの title / 設定補完、CLI 優先、false と list 全体の選択、採否にかかわらない metadata 検証・未知 key・strict mode、選択 asset の解決と不採用 asset の非読込、BOM / CRLF、元行番号、file 間 link、正規 renderer HTML と最終 PDF を確認する
+- 再検討条件: file 単位の組版設定や bibliography 統合が独立した機能として必要になる場合
+
 ## DD-49: 表紙を独立した document 設定と optional slot で切り替える
 
 - 状態: 採用 (2026-10-29)

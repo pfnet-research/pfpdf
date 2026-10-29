@@ -76,11 +76,11 @@ resources/templates/
     vivliostyle.css
 ```
 
-- Select a bundled template with the first Markdown file's front matter `template`, or with `--template SOURCE` when the source exactly matches a bundled name. `--template-preset NAME` explicitly requires a bundled preset. CLI arguments take precedence over front matter
+- Select a bundled template with Markdown front matter `template`, or with `--template SOURCE` when the source exactly matches a bundled name. With multiple files, the first supplied `template` is used. `--template-preset NAME` explicitly requires a bundled preset. CLI arguments take precedence over front matter
 - A custom or repository template may declare a default logo by putting a template-relative path in the `src` of its `logo` slot. Bundled templates have no default logo
 - Front matter `logo` accepts a local path or `false`. CLI `--logo SOURCE` accepts a local path or Git locator and overrides front matter and the template default; `--no-logo` disables both
 - If no logo is explicit and the slot has no `src`, the logo placeholder itself is not emitted. No broken image placeholder is left behind
-- A relative front matter logo path is resolved from the first Markdown file's parent directory; a relative CLI logo path is resolved from the current directory
+- A relative front matter logo path is resolved from the parent directory of the Markdown file that first supplies `logo`; a relative CLI logo path is resolved from the current directory
 - The logo and template are trusted input; only their existence and readability are pre-checked. Their content is not sandboxed
 
 ## 4.5 Custom templates

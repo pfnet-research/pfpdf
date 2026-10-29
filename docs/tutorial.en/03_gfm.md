@@ -89,7 +89,7 @@ Mermaid is supported as a dedicated pfpdf extension; see the `mermaid` fenced co
 
 ## 3.9 BibTeX bibliographies
 
-Specify `.bib` files in the front matter of the first Markdown file. Relative paths are resolved against the directory containing the Markdown file that holds the front matter. Multiple files can be given as a list.
+Specify `.bib` files with `bibliography` in Markdown front matter. Relative paths are resolved against the parent directory of the Markdown file that first supplies that key. Multiple `.bib` files can be given as a list, and that whole list is selected as one value.
 
 ```yaml
 ---

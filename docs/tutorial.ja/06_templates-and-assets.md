@@ -14,7 +14,7 @@ pfpdf には 7 つの template が同梱されています。
 | `pfn` | 企業文書向けのデザイン。ロゴは同梱されず、外部から注入します |
 | `technical` | コード、表、長い識別子を読みやすく配置する高密度な技術文書向けデザイン |
 
-通常は先頭 Markdown の front matter に `template` を書いて選択します。
+通常は Markdown の front matter に `template` を書いて選択します。複数ファイルでは最初に指定された値を使います。
 
 ```md
 ---
@@ -47,7 +47,7 @@ custom template で表紙を切り替える場合は、その全体を `data-pfp
 
 ## 6.2 ロゴの注入
 
-bundled template にはロゴ画像を含めていません。通常は先頭Markdownのfront matterに、利用者が権利を持つlocal fileを指定します。custom templateは`logo` slotの`src`にtemplate相対pathを書くことで既定ロゴを持てます。
+bundled template にはロゴ画像を含めていません。通常はMarkdownのfront matterに、利用者が権利を持つlocal fileを指定します。相対pathは`logo`を最初に指定したMarkdownの親directory基準です。custom templateは`logo` slotの`src`にtemplate相対pathを書くことで既定ロゴを持てます。
 
 ```md
 ---

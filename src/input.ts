@@ -263,9 +263,59 @@ export function readFrontMatterConfig(
   warn: (msg: string) => void = (msg) => { process.stderr.write(`pfpdf: warn: ${msg}\n`); },
   options: FrontMatterOptions = {},
 ): FrontMatterConfig {
-  const firstPath = resolveInputFilePaths(inputAbs)[0]!;
-  const parsed = parseFrontMatter(firstPath, readInputFile(firstPath), warn, options);
-  return resolveFrontMatterConfig(parsed.fm?.raw ?? new Map<string, unknown>(), firstPath);
+  const input = readSourceFiles(inputAbs, warn, options);
+  return resolveFrontMatterConfig(input.raw, input.keySources.get('logo') ?? input.files[0]!.path);
+}
+
+/** Strip every file independently; the earliest value for each key is retained. */
+function readSourceFiles(
+  inputAbs: string,
+  warn: (msg: string) => void,
+  options: FrontMatterOptions,
+): { files: SourceFile[]; raw: Map<string, unknown>; keySources: Map<string, string> } {
+  const raw = new Map<string, unknown>();
+  const keySources = new Map<string, string>();
+  const files = resolveInputFilePaths(inputAbs).map((filePath) => {
+    const parsed = parseFrontMatter(filePath, readInputFile(filePath), warn, options);
+    if (parsed.fm !== null) {
+      try {
+        validateFrontMatterValues(parsed.fm.raw, filePath);
+      } catch (error) {
+        if (error instanceof InputError) throw new InputError(`${filePath}: ${error.message}`);
+        throw error;
+      }
+      for (const [key, value] of parsed.fm.raw) {
+        if (raw.has(key)) continue;
+        raw.set(key, value);
+        keySources.set(key, filePath);
+      }
+    }
+    return {
+      path: filePath,
+      name: path.basename(filePath),
+      content: parsed.body,
+      lineOffset: parsed.fm?.lineCount ?? 0,
+    };
+  });
+  return { files, raw, keySources };
+}
+
+/** Validate every block, including unselected values, without opening assets. */
+function validateFrontMatterValues(raw: Map<string, unknown>, filePath: string): void {
+  for (const key of ['title', 'series', 'date', 'page_size', 'lang', 'dir']) {
+    const value = raw.get(key);
+    if (value !== undefined && typeof value !== 'string') throw new InputError(`front matter ${key}: expected a string`);
+  }
+  if (raw.has('title')) validateTitle(raw.get('title') as string);
+  normalizeAuthors(raw.get('author'));
+  const confidential = raw.get('confidential');
+  if (confidential !== undefined && typeof confidential !== 'boolean') throw new InputError('front matter confidential: expected a YAML boolean');
+  if (raw.has('page_size')) parsePageSize(raw.get('page_size') as string);
+  if (raw.has('lang')) canonicalizeLang(raw.get('lang') as string);
+  const dir = raw.get('dir');
+  if (dir !== undefined && dir !== 'ltr' && dir !== 'rtl' && dir !== 'auto') throw new InputError(`front matter dir: expected ltr / rtl / auto, got ${JSON.stringify(dir)}`);
+  resolveFrontMatterConfig(raw, filePath);
+  bibliographyPaths(raw.get('bibliography'), filePath);
 }
 
 const PAGE_SIZE_KEYWORDS: Record<string, string> = {
@@ -379,35 +429,10 @@ export function resolveInput(
   options: FrontMatterOptions & { processStart?: Date } = {},
 ): ResolvedInput {
   const processStart = options.processStart ?? new Date();
-  const filePaths = resolveInputFilePaths(inputAbs);
+  const { files, raw, keySources } = readSourceFiles(inputAbs, warn, options);
 
-  const files: SourceFile[] = [];
-  let fm: FrontMatter | null = null;
-  for (let i = 0; i < filePaths.length; i++) {
-    const p = filePaths[i]!;
-    const text = readInputFile(p);
-    if (i === 0) {
-      const parsed = parseFrontMatter(p, text, warn, options);
-      fm = parsed.fm;
-      files.push({
-        path: p,
-        name: path.basename(p),
-        content: parsed.body,
-        lineOffset: parsed.fm ? parsed.fm.lineCount : 0,
-      });
-    } else {
-      const firstLine = text.split(/\r\n|\n/, 1)[0];
-      if (firstLine === '---') {
-        throw new InputError(`${p}: duplicate front matter; only the first file may have one`);
-      }
-      files.push({ path: p, name: path.basename(p), content: text, lineOffset: 0 });
-    }
-  }
-
-  const raw = fm?.raw ?? new Map<string, unknown>();
-
-  const bibliography = resolveBibliographyFiles(raw.get('bibliography'), filePaths[0]!);
-  const config = resolveFrontMatterConfig(raw, filePaths[0]!);
+  const bibliography = resolveBibliographyFiles(raw.get('bibliography'), keySources.get('bibliography') ?? files[0]!.path);
+  const config = resolveFrontMatterConfig(raw, keySources.get('logo') ?? files[0]!.path);
 
   const requireString = (key: string): string | null => {
     const v = raw.get(key);
@@ -483,7 +508,7 @@ export function resolveInput(
   };
 }
 
-function resolveBibliographyFiles(value: unknown, frontMatterPath: string): BibliographyFile[] {
+function bibliographyPaths(value: unknown, frontMatterPath: string): string[] {
   if (value === undefined) return [];
   const declared = typeof value === 'string'
     ? [value]
@@ -493,8 +518,6 @@ function resolveBibliographyFiles(value: unknown, frontMatterPath: string): Bibl
   if (declared === null || declared.length === 0) {
     throw new InputError('front matter bibliography: expected a string or non-empty string list');
   }
-  const baseDir = path.dirname(frontMatterPath);
-  const files: BibliographyFile[] = [];
   const seen = new Set<string>();
   for (const declaredPath of declared) {
     if (declaredPath === '' || declaredPath.includes('\0')) {
@@ -503,13 +526,22 @@ function resolveBibliographyFiles(value: unknown, frontMatterPath: string): Bibl
     if (!declaredPath.toLowerCase().endsWith('.bib')) {
       throw new InputError(`front matter bibliography: expected a .bib file: ${declaredPath}`);
     }
-    const absolute = path.isAbsolute(declaredPath)
-      ? path.normalize(declaredPath)
-      : path.resolve(baseDir, declaredPath);
+    const absolute = path.resolve(path.dirname(frontMatterPath), declaredPath);
     if (seen.has(absolute)) {
       throw new InputError(`front matter bibliography: duplicate path: ${declaredPath}`);
     }
     seen.add(absolute);
+  }
+  return declared;
+}
+
+function resolveBibliographyFiles(value: unknown, frontMatterPath: string): BibliographyFile[] {
+  const baseDir = path.dirname(frontMatterPath);
+  const files: BibliographyFile[] = [];
+  for (const declaredPath of bibliographyPaths(value, frontMatterPath)) {
+    const absolute = path.isAbsolute(declaredPath)
+      ? path.normalize(declaredPath)
+      : path.resolve(baseDir, declaredPath);
     let st: fs.Stats;
     try {
       st = fs.statSync(absolute);

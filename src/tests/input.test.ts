@@ -155,7 +155,7 @@ test('metadata fields still require their documented scalar types', () => {
   assert.throws(() => resolveInput(tmpFile('---\ntitle: A\nseries: 42\n---\n'), null, {}, noop), InputError);
 });
 
-test('directory input sorts by name and rejects duplicate front matter', () => {
+test('directory input sorts by name and strips later front matter', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-test-'));
   fs.writeFileSync(path.join(dir, '01_b.md'), '# B\n');
   fs.writeFileSync(path.join(dir, '00_a.md'), '---\ntitle: T\n---\n# A\n');
@@ -163,7 +163,10 @@ test('directory input sorts by name and rejects duplicate front matter', () => {
   assert.deepEqual(r.files.map((f) => f.name), ['00_a.md', '01_b.md']);
 
   fs.writeFileSync(path.join(dir, '02_c.md'), '---\ntitle: X\n---\n# C\n');
-  assert.throws(() => resolveInput(dir, null, {}, noop), InputError);
+  const combined = resolveInput(dir, null, { SOURCE_DATE_EPOCH: '0' }, noop);
+  assert.equal(combined.metadata.title.plainText, 'T');
+  assert.equal(combined.files[2]!.content, '# C\n');
+  assert.equal(combined.files[2]!.lineOffset, 3);
 });
 
 test('bibliography paths resolve from the front matter Markdown directory', () => {

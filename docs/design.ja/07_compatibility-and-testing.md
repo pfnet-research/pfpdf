@@ -43,7 +43,7 @@ Linux では browser archive だけでは shared library が揃いません。
 - CJK-friendly extension 適用後も pinned CommonMark / GFM の既存 fixture に意図しない差がないこと
 - inline / block raw HTML と `style` / `script`、document 制御要素、独自 attribute が trusted input として保持されること
 - 単独行の `___` は改ページになること、GFM の thematic break には `---` / `***` が使えること
-- front matter の正常系・異常系、複数 metadata の拒否、title 内の許可された改行、seriesの任意表示、正の page size、BCP 47 language tag の明示優先と省略時の日英推定、`dir` の `ltr` / `rtl` / `auto` と既定 `auto`、primary language ごとの固定 date 表示の検証
+- front matter の正常系・異常系、各 file の metadata の除去と key ごとの先勝ち・後続 file による未設定値の補完、選択元基準の相対 path・list 全体の選択・不採用 asset の非読込、全 file の検証・元行番号の保持、title 内の許可された改行、seriesの任意表示、正の page size、BCP 47 language tag の明示優先と省略時の日英推定、`dir` の `ltr` / `rtl` / `auto` と既定 `auto`、primary language ごとの固定 date 表示の検証
 - YAML mapping と利用 metadata field の型検査
 - 未知 front matter key の既定の警告・無視、`--strict-front-matter` の拒否、既知 key の不正値・重複 key・不正 YAML の継続拒否。通常変換・設定表示・doctor での一貫性、stderr warning と stdout JSON の分離、CLI 優先順位、厳格モード失敗時の既存 PDF 保持を検査する
 - UTF-8 BOM / CRLF、不正 UTF-8、locale 非依存 filename sort
