@@ -532,3 +532,14 @@ Each decision follows this format:
 - Risk: English with a small Japanese example, multilingual text, and Han-only Chinese cannot be classified perfectly. Specify `lang` to override inference. Inference also changes dates, contents labels, and HTML / PDF language, not just footnotes
 - Validation: Explicit tag precedence, multiple files, Japanese/English/mixed text, code / math / HTML / URL exclusion, empty-prose title fallback, automatic dates, exact renderer HTML and Japanese/English PDFs across all seven templates, repeated-reference labels, links, and exclusion from contents
 - Revisit when: Automatic classification beyond Japanese/English or user-provided translated labels become necessary
+
+## DD-53: Join Japanese paragraph source wrapping in the AST
+
+- Status: Accepted (2026-10-29)
+- Problem: Editing-oriented source wrapping inserts visible spaces in Japanese paragraphs, changing layout relative to continuous prose (#23)
+- Options: (a) replace newlines throughout the source, (b) use CSS white-space alone, (c) remove only soft breaks in Japanese Markdown paragraphs after checking neighboring characters and source provenance
+- Decision: (c). Reuse resolved document `lang`; join only source LF / CRLF between Han, kana, Japanese punctuation, or full-width characters. Evaluate text continuously through emphasis/strong/link elements; code/math/images/note references are boundaries and paragraphs containing raw HTML are protected. Preserve authored trailing spaces and newline character references; Markdown continuation indentation does not become text. Preserve headings and source positions
+- Rejected: (a) breaks code, raw HTML, hard breaks, and original line numbers. (b) cannot distinguish authored spaces from source wrapping and leaves unintended extraction whitespace
+- Compatibility: English/other languages, Japanese/Latin boundaries, authored spaces, hard breaks, and paragraph boundaries retain previous behavior. The GFM parser is unchanged; record the intended deviation in the Markdown specification and fixtures
+- Validation: Pinned-parser GfmAdapter fixtures, inline elements, character references, CRLF, nesting, raw HTML, code/math, IDs/URLs/positions, exact renderer HTML widths and final PDFs across all seven templates
+- Revisit when: Joining Japanese/Latin boundaries or explicit control of source wrapping inside raw HTML is needed

@@ -124,6 +124,12 @@ The explicit position of the bibliography list is a top-level standalone line `\
 
 The initial version ships a single version-pinned numeric CSL style. The CSL processor's bibliography order is the canonical source of numbering, and entry bodies are not rebuilt by a custom formatter. Custom CSL, locators, prenotes, author-only and year-only forms, `\nocite`, and Pandoc's `[@key]` are out of scope for the initial version.
 
+### 3.3.8 Source line wrapping in Japanese paragraphs
+
+When the resolved document language is `ja` or a variant tag, remove only source soft line breaks whose immediate neighbors in a Markdown paragraph are Han, kana, Japanese punctuation, or full-width characters. The same rule crosses inline strong/emphasis/link elements and applies to paragraphs in lists, blockquotes, and notes, with LF and CRLF support.
+
+Preserve Latin word boundaries, Japanese/Latin boundaries, explicit spaces, soft breaks with authored trailing spaces, hard breaks, and paragraph boundaries. Code, math, images, and footnote references are boundaries; paragraphs containing raw HTML and raw HTML blocks are unchanged. Preserve authored newline character references such as `&#10;` / `&NewLine;` too. Headings, IDs, URLs, and source positions are unchanged. Non-Japanese document languages retain GFM soft breaks.
+
 ## 3.4 Handling raw HTML
 
 Inline and block-level raw HTML pass through to preserve the flexibility that Markdown alone cannot provide. pfpdf follows GFM parsing rules but does not apply GitHub.com's post-conversion sanitization or GFM's "Disallowed Raw HTML" tag filter. Authors may use `table`, `div`, `section`, `figure`, `style`, and `script` where needed. Input is treated as trusted code, and local file access is not sandboxed (see Chapter 08).
@@ -166,3 +172,4 @@ GFM Spec examples are run against the `GfmAdapter` before pfpdf-specific post-pr
 | `\cite{key}` / `\printbibliography` | Plain text | Citation link / bibliography list | pfpdf extension |
 | `<base>` | Preserved as raw HTML | Input error | To fix the basis of logical resource URLs and internal links |
 | `meta[http-equiv=refresh]` | Preserved as raw HTML | Input error | To forbid document navigation during rendering |
+| Soft breaks between CJK characters in Japanese paragraphs | Preserves newline | Removes source-only breaks with `lang: ja` | Source wrapping must not add whitespace; preserve authored spaces and code / HTML |

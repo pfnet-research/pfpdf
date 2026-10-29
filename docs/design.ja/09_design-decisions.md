@@ -532,3 +532,14 @@
 - risk: 少量の日本語例を含む英語、多言語、漢字だけの中国語を完全には区別できない。誤判定は `lang` の明示で回避する。推定は date・目次・HTML / PDF language も変えるため、脚注だけの表示変更ではない
 - 検証: 明示 tag 優先、複数 file、日英・混在・code / math / HTML / URL 除外、空本文の title fallback、自動日付、全7 template の正規 renderer HTML と日英 PDF、繰返し参照の label・link・目次除外を検査する
 - 再検討条件: 日英以外の自動分類や、利用者指定の翻訳 label が必要になった場合
+
+## DD-53: 日本語 paragraph のソース改行を AST 上で結合する
+
+- 状態: 採用 (2026-10-29)
+- 問題: 日本語 paragraph の編集用改行が表示上の空白になり、折り返していない本文と異なる組版になる (#23)
+- 選択肢: (a) source 全体の改行を文字列置換する、(b) CSS white-space だけで制御する、(c) 日本語文書の Markdown paragraph 内で、両隣の文字と source 由来を確認して soft break だけを除く
+- 採用: (c)。文書言語は既存の解決済み `lang` を再利用し、漢字・かな・和文約物・全角文字間の source LF / CRLF だけを結合する。emphasis / strong / link の text は連続して評価し、code / math / image / note reference は境界、raw HTML を含む paragraph は保護する。行末に記述された空白と文字参照による改行を保護し、Markdown の構造的な継続 indent は文字へ変換しない。見出しや source position は保持する
+- 非採用理由: (a) は code・raw HTML・hard break と元の行番号を壊す。(b) は明示空白とソース改行を区別できず、text extraction にも意図しない空白が残る
+- 互換性: 英語・他言語、和欧境界、明示空白、hard break、段落境界は従来どおり。GFM parser 自体は変更せず、意図的な差分を Markdown 仕様と fixture に記録する
+- 検証: pinned parser の GfmAdapter fixture、inline 要素・文字参照・CRLF・入れ子・raw HTML・code / math・ID / URL / position の検査、全7 template の正規 renderer HTML の表示幅と最終 PDF
+- 再検討条件: 和欧境界も結合する要件、または raw HTML 内の source 改行を制御する明示設定が必要になった場合

@@ -1,0 +1,17 @@
+[
+  { "name": "Japanese source wrapping", "markdown": "日本語\n日本語", "gfm": "<p>日本語\n日本語</p>", "ja": "<p>日本語日本語</p>" },
+  { "name": "CRLF source wrapping", "markdown": "日本語\r\n日本語", "gfm": "<p>日本語\r\n日本語</p>", "ja": "<p>日本語日本語</p>" },
+  { "name": "Japanese punctuation", "markdown": "本文。\n「続き」", "gfm": "<p>本文。\n「続き」</p>", "ja": "<p>本文。「続き」</p>" },
+  { "name": "emphasis and links", "markdown": "**本文**\n[続き](https://example.test)", "gfm": "<p><strong>本文</strong>\n<a href=\"https://example.test\">続き</a></p>", "ja": "<p><strong>本文</strong><a href=\"https://example.test\">続き</a></p>" },
+  { "name": "English word boundary", "markdown": "hello\nworld", "gfm": "<p>hello\nworld</p>", "ja": "<p>hello\nworld</p>" },
+  { "name": "Japanese Latin boundary", "markdown": "日本語\nEnglish\n日本語", "gfm": "<p>日本語\nEnglish\n日本語</p>", "ja": "<p>日本語\nEnglish\n日本語</p>" },
+  { "name": "explicit spaces", "markdown": "日本語 日本語\n\n日本語 \n日本語", "gfm": "<p>日本語 日本語</p>\n<p>日本語\n日本語</p>", "ja": "<p>日本語 日本語</p>\n<p>日本語\n日本語</p>" },
+  { "name": "hard break", "markdown": "本文  \n続き", "gfm": "<p>本文<br>\n続き</p>", "ja": "<p>本文<br>\n続き</p>" },
+  { "name": "escaped hard break", "markdown": "本文\\\n続き", "gfm": "<p>本文<br>\n続き</p>", "ja": "<p>本文<br>\n続き</p>" },
+  { "name": "authored newline reference", "markdown": "本文&NewLine;続き", "gfm": "<p>本文\n続き</p>", "ja": "<p>本文\n続き</p>" },
+  { "name": "reference and physical newline", "markdown": "本&#10;文\n続き", "gfm": "<p>本\n文\n続き</p>", "ja": "<p>本\n文続き</p>" },
+  { "name": "inline code boundary", "markdown": "本文\n`コード`\n続き", "gfm": "<p>本文\n<code>コード</code>\n続き</p>", "ja": "<p>本文\n<code>コード</code>\n続き</p>" },
+  { "name": "raw HTML paragraph", "markdown": "本文\n<span>続き\n本文</span>", "gfm": "<p>本文\n<span>続き\n本文</span></p>", "ja": "<p>本文\n<span>続き\n本文</span></p>" },
+  { "name": "paragraph boundary", "markdown": "本文\n\n続き", "gfm": "<p>本文</p>\n<p>続き</p>", "ja": "<p>本文</p>\n<p>続き</p>" },
+  { "name": "nested prose", "markdown": "> 本文\n> 続き\n\n- 本文\n  続き", "gfm": "<blockquote>\n<p>本文\n続き</p>\n</blockquote>\n<ul>\n<li>本文\n続き</li>\n</ul>", "ja": "<blockquote>\n<p>本文続き</p>\n</blockquote>\n<ul>\n<li>本文続き</li>\n</ul>" }
+]
