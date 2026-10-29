@@ -20,21 +20,52 @@ function backLabel(number: number, occurrence: number, japanese: boolean): strin
     : `Back to reference ${number}${occurrence > 1 ? `-${occurrence}` : ''}`;
 }
 
+function noteDefinitions(sections: Element[]): Map<string, Element> {
+  const definitions = new Map<string, Element>();
+  for (const section of sections) {
+    for (const list of section.children) {
+      if (list.type !== 'element' || list.tagName !== 'ol') continue;
+      for (const item of list.children) {
+        if (item.type === 'element' && item.tagName === 'li' && typeof item.properties?.id === 'string') {
+          definitions.set(item.properties.id, item);
+        }
+      }
+    }
+  }
+  return definitions;
+}
+
+function removeConsumedNotes(root: Root, sections: Element[], consumed: Set<Element>): void {
+  const emptySections = new Set<Element>();
+  for (const section of sections) {
+    let changed = false;
+    for (const list of section.children) {
+      if (list.type !== 'element' || list.tagName !== 'ol') continue;
+      list.children = list.children.filter((item) => {
+        if (item.type !== 'element' || !consumed.has(item)) return true;
+        changed = true;
+        return false;
+      });
+    }
+    if (!changed) continue;
+    const remaining = section.children.filter((item) => {
+      if (item.type === 'text') return item.value.trim() !== '';
+      if (item.type !== 'element') return true;
+      if (item.tagName === 'ol') return item.children.some((child) => child.type !== 'text' || child.value.trim() !== '');
+      return item.properties?.id !== 'footnote-label';
+    });
+    if (remaining.length === 0) emptySections.add(section);
+  }
+  root.children = root.children.filter((node) => node.type !== 'element' || !emptySections.has(node));
+}
+
 export function preparePageFootnotes(roots: Root[], allocator: IdAllocator, lang: string): void {
   const japanese = lang === 'ja' || lang.startsWith('ja-');
   let nextNumber = 1;
   for (const root of roots) {
     const sections = root.children.filter((node): node is Element =>
       node.type === 'element' && generated(node, 'dataFootnotes'));
-    const definitions = new Map<string, Element>();
-    for (const section of sections) {
-      visit(section, 'element', (element: Element) => {
-        element.properties ??= {};
-        if (element.tagName === 'li' && typeof element.properties.id === 'string') {
-          definitions.set(element.properties.id, element);
-        }
-      });
-    }
+    const definitions = noteDefinitions(sections);
     if (definitions.size === 0) continue;
     const notes = new Map<string, Note>();
     const idMap = new Map<string, string>();
@@ -81,7 +112,7 @@ export function preparePageFootnotes(roots: Root[], allocator: IdAllocator, lang
         if (ref) element.properties.ariaLabel = backLabel(ref.number, ref.occurrence, japanese);
       }
     });
-    root.children = root.children.filter((node) => !sections.includes(node as Element));
+    removeConsumedNotes(root, sections, new Set(Array.from(notes.values(), (note) => note.body)));
     for (const note of notes.values()) {
       const children = note.body.children;
       const marker: Element = {

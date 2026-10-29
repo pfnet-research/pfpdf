@@ -112,6 +112,24 @@ test('page mode integrates with the exact renderer HTML while default endnotes r
   assert.doesNotMatch(endnotes.html, /role="doc-footnote"/);
 });
 
+test('page conversion preserves unrelated raw HTML carrying footnote-like attributes', async () => {
+  const raw = '<section data-footnotes><p>Authored heading</p><ol><li id="manual-note">Authored content</li></ol></section>\n\n';
+  for (const markdown of [raw, raw + 'Text[^n].\n\n[^n]: Generated note.\n']) {
+    const body = await buildDocumentBody([source(markdown, 'a.md')], new ResourceManifest(), [], { warn: log.warn, footnotes: 'page' });
+    const html = body.sections.map((section) => toHtml(section as never)).join('');
+    assert.match(html, /<li id="manual-note">Authored content<\/li>/);
+    assert.match(html, /Authored heading/);
+  }
+  const referenced = '<p>Call<a data-footnote-ref href="#manual-note" id="manual-reference">9</a></p>\n\n'
+    + '<section data-footnotes><p>Authored heading</p><ol><li id="manual-note">Referenced body</li><li id="unreferenced">Retained body</li></ol><p>Authored footer</p></section>\n';
+  const body = await buildDocumentBody([source(referenced, 'b.md')], new ResourceManifest(), [], { warn: log.warn, footnotes: 'page' });
+  const html = body.sections.map((section) => toHtml(section as never)).join('');
+  assert.match(html, /Authored heading/);
+  assert.match(html, /Authored footer/);
+  assert.match(html, /<li id="unreferenced">Retained body<\/li>/);
+  assert.equal((html.match(/Referenced body/g) ?? []).length, 1);
+});
+
 interface Word { text: string; y: number }
 interface PdfPage { height: number; words: Word[] }
 
