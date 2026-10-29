@@ -260,7 +260,7 @@ export function readFrontMatterConfig(
   options: FrontMatterOptions = {},
 ): FrontMatterConfig {
   const input = readSourceFiles(inputAbs, warn, options);
-  return resolveFrontMatterConfig(input.raw, input.files[0]!.path);
+  return resolveFrontMatterConfig(input.raw, input.keySources.get('logo') ?? input.files[0]!.path);
 }
 
 /** Strip every file independently; only the first file configures the document. */
@@ -268,8 +268,9 @@ function readSourceFiles(
   inputAbs: string,
   warn: (msg: string) => void,
   options: FrontMatterOptions,
-): { files: SourceFile[]; raw: Map<string, unknown> } {
-  let raw = new Map<string, unknown>();
+): { files: SourceFile[]; raw: Map<string, unknown>; keySources: Map<string, string> } {
+  const raw = new Map<string, unknown>();
+  const keySources = new Map<string, string>();
   const files = resolveInputFilePaths(inputAbs).map((filePath, index) => {
     const parsed = parseFrontMatter(filePath, readInputFile(filePath), warn, options);
     if (parsed.fm !== null) {
@@ -279,7 +280,12 @@ function readSourceFiles(
         if (error instanceof InputError) throw new InputError(`${filePath}: ${error.message}`);
         throw error;
       }
-      if (index === 0) raw = parsed.fm.raw;
+      if (index === 0) {
+        for (const [key, value] of parsed.fm.raw) {
+          raw.set(key, value);
+          keySources.set(key, filePath);
+        }
+      }
     }
     return {
       path: filePath,
@@ -288,7 +294,7 @@ function readSourceFiles(
       lineOffset: parsed.fm?.lineCount ?? 0,
     };
   });
-  return { files, raw };
+  return { files, raw, keySources };
 }
 
 /** Validate ignored metadata too, without accessing its local assets. */
@@ -306,7 +312,7 @@ function validateFrontMatterValues(raw: Map<string, unknown>, filePath: string):
   const dir = raw.get('dir');
   if (dir !== undefined && dir !== 'ltr' && dir !== 'rtl' && dir !== 'auto') throw new InputError(`front matter dir: expected ltr / rtl / auto, got ${JSON.stringify(dir)}`);
   resolveFrontMatterConfig(raw, filePath);
-  bibliographyPaths(raw.get('bibliography'));
+  bibliographyPaths(raw.get('bibliography'), filePath);
 }
 
 const PAGE_SIZE_KEYWORDS: Record<string, string> = {
@@ -420,10 +426,10 @@ export function resolveInput(
   options: FrontMatterOptions & { processStart?: Date } = {},
 ): ResolvedInput {
   const processStart = options.processStart ?? new Date();
-  const { files, raw } = readSourceFiles(inputAbs, warn, options);
+  const { files, raw, keySources } = readSourceFiles(inputAbs, warn, options);
 
-  const bibliography = resolveBibliographyFiles(raw.get('bibliography'), files[0]!.path);
-  const config = resolveFrontMatterConfig(raw, files[0]!.path);
+  const bibliography = resolveBibliographyFiles(raw.get('bibliography'), keySources.get('bibliography') ?? files[0]!.path);
+  const config = resolveFrontMatterConfig(raw, keySources.get('logo') ?? files[0]!.path);
 
   const requireString = (key: string): string | null => {
     const v = raw.get(key);
@@ -499,7 +505,7 @@ export function resolveInput(
   };
 }
 
-function bibliographyPaths(value: unknown): string[] {
+function bibliographyPaths(value: unknown, frontMatterPath: string): string[] {
   if (value === undefined) return [];
   const declared = typeof value === 'string'
     ? [value]
@@ -509,6 +515,7 @@ function bibliographyPaths(value: unknown): string[] {
   if (declared === null || declared.length === 0) {
     throw new InputError('front matter bibliography: expected a string or non-empty string list');
   }
+  const seen = new Set<string>();
   for (const declaredPath of declared) {
     if (declaredPath === '' || declaredPath.includes('\0')) {
       throw new InputError('front matter bibliography: empty paths and NUL are not allowed');
@@ -516,6 +523,11 @@ function bibliographyPaths(value: unknown): string[] {
     if (!declaredPath.toLowerCase().endsWith('.bib')) {
       throw new InputError(`front matter bibliography: expected a .bib file: ${declaredPath}`);
     }
+    const absolute = path.resolve(path.dirname(frontMatterPath), declaredPath);
+    if (seen.has(absolute)) {
+      throw new InputError(`front matter bibliography: duplicate path: ${declaredPath}`);
+    }
+    seen.add(absolute);
   }
   return declared;
 }
@@ -523,15 +535,10 @@ function bibliographyPaths(value: unknown): string[] {
 function resolveBibliographyFiles(value: unknown, frontMatterPath: string): BibliographyFile[] {
   const baseDir = path.dirname(frontMatterPath);
   const files: BibliographyFile[] = [];
-  const seen = new Set<string>();
-  for (const declaredPath of bibliographyPaths(value)) {
+  for (const declaredPath of bibliographyPaths(value, frontMatterPath)) {
     const absolute = path.isAbsolute(declaredPath)
       ? path.normalize(declaredPath)
       : path.resolve(baseDir, declaredPath);
-    if (seen.has(absolute)) {
-      throw new InputError(`front matter bibliography: duplicate path: ${declaredPath}`);
-    }
-    seen.add(absolute);
     let st: fs.Stats;
     try {
       st = fs.statSync(absolute);
