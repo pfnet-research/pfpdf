@@ -15,7 +15,7 @@ import {
 import type { Metadata, NormalizedTitle } from './input.js';
 import type { DocumentBody, TocEntry } from './markdown.js';
 
-const SLOTS = new Set(['content', 'title', 'author', 'series', 'date', 'confidential', 'toc', 'logo']);
+const SLOTS = new Set(['content', 'cover', 'title', 'author', 'series', 'date', 'confidential', 'toc', 'logo']);
 
 export interface Template {
   dir: string;
@@ -137,6 +137,14 @@ function validateTemplate(root: HastRoot, tpl: Template): { slots: SlotMap; html
 
   if (!html || !head || !body) throw err('template.html must explicitly declare html, head, and body');
   if (!slots.content) throw err('required slot "content" is missing');
+  if (slots.cover) {
+    let insideBody = false;
+    visit(body, 'element', (element: Element) => { if (element === slots.cover && element !== body) insideBody = true; });
+    if (!insideBody) throw err('cover slot must be a removable body element');
+    visit(slots.cover, 'element', (element: Element) => {
+      if (element === slots.content || element === slots.toc) throw err('cover slot must not contain the content or toc slot');
+    });
+  }
   return { slots, html, head, body };
 }
 
@@ -205,8 +213,33 @@ export interface BuildOptions {
   manifest: ResourceManifest;
   logo: { kind: 'template' | 'none' } | { kind: 'file'; absPath: string };
   toc: boolean;
+  cover?: boolean;
   fontFaceCss: string;
   warn: (msg: string) => void;
+}
+
+function applyCoverVisibility(root: HastRoot, body: Element, slots: SlotMap, visible: boolean, metadata: Metadata): void {
+  const properties = body.properties ??= {};
+  const classes = properties.className;
+  properties.className = [
+    ...(Array.isArray(classes) ? classes : typeof classes === 'string' ? [classes] : []),
+    visible ? 'pfpdf-has-cover' : 'pfpdf-no-cover',
+  ];
+  if (visible || !slots.cover) return;
+  const coverElements = new Set<Element>();
+  visit(slots.cover, 'element', (element: Element) => { coverElements.add(element); });
+  // Keep named-string sources in flow without painting omitted metadata.
+  // Their existing template classes retain confidential/series styling.
+  const running: ElementContent[] = [];
+  for (const name of ['series', 'confidential']) {
+    const slot = slots[name];
+    if (slot && coverElements.has(slot) && (name === 'series' ? metadata.series !== null : metadata.confidential)) {
+      removeElement(root, slot);
+      running.push(slot);
+    }
+  }
+  removeElement(root, slots.cover);
+  if (running.length > 0) body.children.unshift(el('div', { className: ['pfpdf-running-metadata'], ariaHidden: 'true' }, running));
 }
 
 export function buildDocumentHtml(opts: BuildOptions): { html: string; generatedCss: Array<[string, string]> } {
@@ -292,6 +325,8 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   }
 
   // Slot: toc / content
+  applyCoverVisibility(root, htmlBody, slots, opts.cover !== false, metadata);
+
   const tocEl = opts.toc && opts.body.toc.length > 0 ? tocElement(opts.body.toc, metadata.lang) : null;
   if (slots.toc) {
     if (tocEl) slots.toc.children = [tocEl];
@@ -335,6 +370,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   generatedCss.push(['generated/style.css', rewriteTemplateCss(template, template.stylePath, opts.manifest)]);
   generatedCss.push(['generated/vivliostyle.css', rewriteTemplateCss(template, template.vivliostylePath, opts.manifest)]);
   const pageCss = `@page { size: ${metadata.pageSize.css}; }\n` +
+    `.pfpdf-running-metadata { display: block; height: 0; overflow: hidden; margin: 0; padding: 0; }\n` +
     `.pfpdf-toc-continuation-marker { display: block; height: 0; overflow: hidden; ` +
     `string-set: pfpdf-toc-continuation content(); width: 0; }\n` +
     `[data-pfpdf-page-break] { break-before: page; height: 0; margin: 0; padding: 0; }\n` +

@@ -533,6 +533,18 @@ Each decision follows this format:
 - Validation: Explicit tag precedence, multiple files, Japanese/English/mixed text, code / math / HTML / URL exclusion, empty-prose title fallback, automatic dates, exact renderer HTML and Japanese/English PDFs across all seven templates, repeated-reference labels, links, and exclusion from contents
 - Revisit when: Automatic classification beyond Japanese/English or user-provided translated labels become necessary
 
+## DD-49: Toggle the cover with an independent document setting and an optional slot
+
+- Status: Accepted (2026-10-29)
+- Problem: Short documents need to omit the cover without changing template or table-of-contents visibility (#19)
+- Options: (a) recommend switching to compact only, (b) hide the cover with display:none alone, (c) remove its element using a cover setting and optional cover slot while distinguishing the cover page in pagination
+- Decision: (c). `cover` is a boolean, default true, with `--cover` / `--no-cover` overriding front matter. All seven templates declare a cover slot (the leading header for compact). The custom-template slot is optional; when absent the toggle is a no-op. Content / toc cannot be inside the cover
+- Pagination: Standalone covers use the first-page rule of the `pfpdf-cover` named page, while compact uses the first rule of its own body-assigned named page. The old cover-only margins / running-information suppression in `@page :first` no longer apply to a coverless body, avoiding an empty first page
+- Metadata: Omit the cover title / author / date / series / logo displays. Retain the HTML title and PDF metadata; move series / Confidential named-string sources to a zero-height non-painted marker. Keep pfn's running badge outside the cover. Custom templates also keep custom running elements outside the cover
+- Rejected: (a) also changes body design. (b) loses named strings / running elements and cover-specific first-page CSS, causing missing Confidential labels or wrong margins. Automatically inserting a replacement body metadata header would redisplay intentionally omitted information and add template-specific variants
+- Validation: CLI / front matter precedence and invalid types, optional custom slots, all four cover / toc combinations across all seven templates, exact renderer HTML, final PDF page counts / first-page content / Confidential labels / title and author metadata
+- Revisit when: Settings to display title / author separately within the body, or template-specific multiple covers, are needed
+
 ## DD-50: Preserve original image locations and diagnose dynamic destinations after readiness
 
 - Status: Accepted (2026-10-29)

@@ -57,7 +57,9 @@
   }
 }
 
-@page :first {
+.technical-cover { page: pfpdf-cover; }
+
+@page pfpdf-cover:first {
   margin: 0;
   @top-left { content: none; border: 0; }
   @top-right { content: none; border: 0; }

@@ -37,6 +37,7 @@ test('front matter document configuration applies over defaults', () => {
   const base = resolveConfig(['--input', 'a.md', '--output', 'a.pdf'], cwd);
   const resolved = applyFrontMatterConfig(base, {
     template: 'pfn',
+    cover: null,
     toc: false,
     logo: { kind: 'local', path: 'assets/logo.svg', absPath: '/docs/assets/logo.svg' },
   });
@@ -58,6 +59,7 @@ test('CLI document configuration overrides front matter', () => {
   ], cwd);
   const resolved = applyFrontMatterConfig(cli, {
     template: 'pfn',
+    cover: null,
     toc: false,
     logo: { kind: 'local', path: 'assets/logo.svg', absPath: '/docs/assets/logo.svg' },
   });
@@ -69,7 +71,7 @@ test('CLI document configuration overrides front matter', () => {
 test('front matter can explicitly disable the logo', () => {
   const config = applyFrontMatterConfig(
     resolveConfig(['--input', 'a.md', '--output', 'a.pdf'], cwd),
-    { template: null, toc: null, logo: { kind: 'none' } },
+    { template: null, cover: null, toc: null, logo: { kind: 'none' } },
   );
   assert.deepEqual(config.logo, { value: { kind: 'none' }, source: 'front-matter' });
   assert.equal(config.logoAbs, null);
@@ -78,7 +80,7 @@ test('front matter can explicitly disable the logo', () => {
 test('effective configuration uses schema version 5 and records front matter', () => {
   const config = applyFrontMatterConfig(
     resolveConfig(['--input', 'a.md', '--output', 'a.pdf'], cwd),
-    { template: null, toc: false, logo: null },
+    { template: null, cover: null, toc: false, logo: null },
   );
   const result = JSON.parse(effectiveConfigJson(config)) as {
     schemaVersion: number;
