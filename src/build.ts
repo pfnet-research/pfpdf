@@ -117,6 +117,7 @@ async function prepareDocument(
     manifest,
     logo,
     toc: documentConfig.toc.value,
+    cover: documentConfig.cover.value,
     fontFaceCss: fonts.css,
     warn: log.warn,
   });
