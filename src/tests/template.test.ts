@@ -361,7 +361,7 @@ test('default template renders title, author, series, date, and content', async 
   assert.match(generated.get('generated/style.css')!.toString(), /Shared structural rules for bundled templates/);
   assert.match(generated.get('generated/vivliostyle.css')!.toString(), /Shared pagination safeguards/);
   assert.match(generated.get('generated/page.css')!.toString(),
-    /\.pfpdf-mermaid img \{[^}]*max-width: 100%;[^}]*max-height: 100vh;/);
+    /\.pfpdf-mermaid img \{[^}]*max-width: 100%;[^}]*max-height: calc\(100vh - 2\.5em\);/);
   assert.doesNotMatch(generated.get('generated/style.css')!.toString(), /@import\s+["']\.\.\/common\.css/);
 });
 

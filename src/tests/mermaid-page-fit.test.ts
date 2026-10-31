@@ -24,7 +24,8 @@ const steps = Array.from({ length: 16 }, (_, i) => `  S${i} --> S${i + 1}`);
 const filler = Array.from({ length: 12 }, (_, i) => `Paragraph ${i + 1} fills the upper part of the page before the next diagram.`);
 const source = [
   '---', 'title: Mermaid page fit', 'toc: false', '---', '',
-  '# Tall diagram', '', '```mermaid', 'flowchart TD', ...steps, '```', '',
+  // With no preceding heading, the first diagram keeps its top margin.
+  '```mermaid', 'flowchart TD', ...steps, '```', '',
   '# Pushed diagram', '', ...filler.flatMap((line) => [line, '']),
   '```mermaid', 'flowchart TD', ...steps, '```', '',
   '# Small diagram', '', '```mermaid', 'flowchart LR', '  A[Input] --> B[Output]', '```', '',
