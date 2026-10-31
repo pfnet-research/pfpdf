@@ -373,6 +373,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   const pageCss = `@page { size: ${metadata.pageSize.css}; }\n` +
     `.pfpdf-toc-continuation-marker { display: block; height: 0; overflow: hidden; ` +
     `string-set: pfpdf-toc-continuation content(); width: 0; }\n` +
+    `.pfpdf-outline[hidden] { display: none; }\n` +
     `[data-pfpdf-page-break] { break-before: page; height: 0; margin: 0; padding: 0; }\n` +
     `.pfpdf-mermaid { break-inside: avoid; margin: 1.25em auto; text-align: center; }\n` +
     `.pfpdf-mermaid img { display: inline-block; height: auto; max-width: 100%; }\n`;
