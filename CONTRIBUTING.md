@@ -36,6 +36,16 @@ npm run lint
   contents, then renders every page as a sequentially named PNG for visual
   review.
 
+## Pull request reviews
+
+Follow the [review guide](docs/reviewing.en.md)
+([canonical Japanese version](docs/reviewing.ja.md)) for investigation, validation,
+maintainer fixes, and posting review comments. Explain what the PR changes, who
+it affects, what was checked, and what remains unresolved so readers outside the
+discussion can assess it. Treat proposed changes as potentially malicious.
+Maintainers normally make necessary corrections and limit the final diff
+against `main` to what the PR's purpose requires.
+
 ## Release notes
 
 - Use a Conventional Commit title for the squash commit of a user-visible pull
