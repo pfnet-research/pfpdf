@@ -3,6 +3,27 @@
 Notable changes to pfpdf are documented in this file. Versions follow Semantic
 Versioning; breaking changes before 1.0 are called out explicitly.
 
+## [0.4.0](https://github.com/pfnet-research/pfpdf/compare/v0.3.0...v0.4.0) (2026-10-31)
+
+
+### Features
+
+* **input:** infer omitted titles from headings and input names ([#44](https://github.com/pfnet-research/pfpdf/issues/44)) ([2bad35b](https://github.com/pfnet-research/pfpdf/commit/2bad35b020f8aa4735373af7bfb26784e2f440e1))
+* **input:** parse front matter in every input file ([#35](https://github.com/pfnet-research/pfpdf/issues/35)) ([e99c739](https://github.com/pfnet-research/pfpdf/commit/e99c7395efc613a716de73253ce5aa9264947250))
+* **markdown:** render footnotes at the bottom of reference pages ([#38](https://github.com/pfnet-research/pfpdf/issues/38)) ([4b0fcf1](https://github.com/pfnet-research/pfpdf/commit/4b0fcf123ea4a52818f17118761d4284b75553a2))
+* **outline:** nest PDF bookmarks by heading level ([#42](https://github.com/pfnet-research/pfpdf/issues/42)) ([ee652f7](https://github.com/pfnet-research/pfpdf/commit/ee652f768e31f6e4a9fa26efa17ff73a4a6baf67))
+* **template:** allow omitting the cover independently of contents ([#36](https://github.com/pfnet-research/pfpdf/issues/36)) ([f473497](https://github.com/pfnet-research/pfpdf/commit/f473497d69b9bf49ba180410cf0d4c23bc37b50e))
+* **typography:** enable Japanese inter-script spacing ([#39](https://github.com/pfnet-research/pfpdf/issues/39)) ([b9dda10](https://github.com/pfnet-research/pfpdf/commit/b9dda10593e966faec9f0ec389446f8bc21152f5))
+
+
+### Bug Fixes
+
+* **doctor:** preserve browser launch failure diagnostics ([#31](https://github.com/pfnet-research/pfpdf/issues/31)) ([64950f6](https://github.com/pfnet-research/pfpdf/commit/64950f62bc456033306c421a50bad39ae2c08fc7))
+* **markdown:** join source soft breaks in Japanese prose ([#40](https://github.com/pfnet-research/pfpdf/issues/40)) ([23c725a](https://github.com/pfnet-research/pfpdf/commit/23c725a82fb9acffd1db354ea0738c2954624b57))
+* **metadata:** keep author lists as fallback and infer language ([#32](https://github.com/pfnet-research/pfpdf/issues/32)) ([9d5cbe3](https://github.com/pfnet-research/pfpdf/commit/9d5cbe3e6dda90085c94923dbf45a94f74f22a9d))
+* **resources:** retain image source locations in load failures ([#41](https://github.com/pfnet-research/pfpdf/issues/41)) ([fb41737](https://github.com/pfnet-research/pfpdf/commit/fb41737fbb74dd37cad31075de4e68a9427ac0fb))
+* **templates:** preserve GFM table column alignment ([#30](https://github.com/pfnet-research/pfpdf/issues/30)) ([726c502](https://github.com/pfnet-research/pfpdf/commit/726c502a42a275babffdc98acd6ec662e7aa7ef7))
+
 ## [0.3.0](https://github.com/pfnet-research/pfpdf/compare/v0.2.1...v0.3.0) (2026-10-29)
 
 
