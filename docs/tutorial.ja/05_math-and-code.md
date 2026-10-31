@@ -101,6 +101,8 @@ flowchart LR
 
 `A -->|label| B`のような flowchart の edge label や、`<br/>` で改行した日本語の label も、同梱 font で寸法を測って配置します。
 
+図はページをまたいで分割されないため、本文の幅と 1 ページの高さに収まるよう縮小されます。縦に長い図で文字が小さくなりすぎる場合は、`flowchart LR` のように向きを変えるか、図を分けます。
+
 Gantt も直接描画できます。幅は既定で 1200px です。図の front matter の `config.gantt.useWidth` で描画幅を指定できます。PDF では本文幅に合わせて縮小されるため、文字が小さい場合は描画幅を小さくします。
 
 ```mermaid

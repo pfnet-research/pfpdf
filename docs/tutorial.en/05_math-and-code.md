@@ -101,6 +101,8 @@ flowchart LR
 
 Flowchart edge labels such as `A -->|label| B` and Japanese labels broken with `<br/>` are also laid out with sizes measured using the bundled font.
 
+A diagram is never split across pages, so it is scaled down to fit both the body width and the height of one page. If a tall diagram makes its text too small, change its direction, for example to `flowchart LR`, or split it into several diagrams.
+
 Gantt diagrams can also be rendered directly. The default width is 1200px. Set `config.gantt.useWidth` in the diagram's front matter to choose a drawing width. The PDF scales the image to fit the body width, so reduce the drawing width if the text is too small.
 
 ```mermaid

@@ -406,6 +406,9 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   generatedCss.push(['generated/fonts.css', opts.fontFaceCss]);
   generatedCss.push(['generated/style.css', rewriteTemplateCss(template, template.stylePath, opts.manifest)]);
   generatedCss.push(['generated/vivliostyle.css', rewriteTemplateCss(template, template.vivliostylePath, opts.manifest)]);
+  // Reserve the diagram's two 1.25em margins within the page area. A block
+  // image avoids the extra baseline space of an inline image. Vivliostyle's
+  // `vh` follows the page area left by each template's page margins.
   const pageCss = `@page { size: ${metadata.pageSize.css}; }\n` +
     `.pfpdf-running-metadata { display: block; height: 0; overflow: hidden; margin: 0; padding: 0; }\n` +
     `.pfpdf-toc-continuation-marker { display: block; height: 0; overflow: hidden; ` +
@@ -413,7 +416,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
     `.pfpdf-outline[hidden] { display: none; }\n` +
     `[data-pfpdf-page-break] { break-before: page; height: 0; margin: 0; padding: 0; }\n` +
     `.pfpdf-mermaid { break-inside: avoid; margin: 1.25em auto; text-align: center; }\n` +
-    `.pfpdf-mermaid img { display: inline-block; height: auto; max-width: 100%; }\n`;
+    `.pfpdf-mermaid img { display: block; height: auto; margin: 0 auto; max-width: 100%; max-height: calc(100vh - 2.5em); }\n`;
   generatedCss.push(['generated/page.css', pageCss]);
 
   const headExtra: ElementContent[] = [
