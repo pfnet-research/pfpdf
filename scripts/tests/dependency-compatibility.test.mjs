@@ -117,5 +117,8 @@ test('cacache traversal and press-ready executable lookup remain usable', async 
   await cacache.rm.all(cache);
   const pressReady = createRequire(cli.resolve('press-ready'));
   const shell = pressReady('shelljs');
-  assert.equal(String(shell.which(process.execPath)), process.execPath);
+  // ShellJS uppercases PATH lookup results on Windows.
+  const found = String(shell.which(process.execPath));
+  assert.equal(process.platform === 'win32' ? found.toLowerCase() : found,
+    process.platform === 'win32' ? process.execPath.toLowerCase() : process.execPath);
 });

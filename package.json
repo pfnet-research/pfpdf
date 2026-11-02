@@ -127,14 +127,37 @@
     "@vivliostyle/cli": {
       "handlebars": "4.7.10",
       "puppeteer-core": "25.13.0",
-      "vite": "8.1.6",
-      "glob@>=9": "14.0.2",
-      "minimatch@>=5": "11.0.1",
-      "press-ready": {
-        "shelljs": "0.10.0",
-        "@types/shelljs": "0.10.0"
-      }
+      "vite": "8.1.6"
     },
-    "katex": "0.18.2"
+    "katex": "0.18.2",
+    "@npmcli/arborist": {
+      "minimatch": "11.0.1"
+    },
+    "@npmcli/map-workspaces": {
+      "glob": "14.0.2",
+      "minimatch": "11.0.1"
+    },
+    "@npmcli/package-json": {
+      "glob": "14.0.2"
+    },
+    "cacache": {
+      "glob": "14.0.2"
+    },
+    "archiver-utils": {
+      "glob": "14.0.2"
+    },
+    "@tufjs/models": {
+      "minimatch": "11.0.1"
+    },
+    "ignore-walk": {
+      "minimatch": "11.0.1"
+    },
+    "readdir-glob": {
+      "minimatch": "11.0.1"
+    },
+    "press-ready": {
+      "shelljs": "0.10.0",
+      "@types/shelljs": "0.10.0"
+    }
   }
 }
