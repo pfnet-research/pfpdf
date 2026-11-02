@@ -131,29 +131,29 @@
     },
     "katex": "0.18.2",
     "@npmcli/arborist": {
-      "minimatch": "11.0.1"
+      "minimatch": "11.0.2"
     },
     "@npmcli/map-workspaces": {
-      "glob": "14.0.2",
-      "minimatch": "11.0.1"
+      "glob": "14.0.3",
+      "minimatch": "11.0.2"
     },
     "@npmcli/package-json": {
-      "glob": "14.0.2"
+      "glob": "14.0.3"
     },
     "cacache": {
-      "glob": "14.0.2"
+      "glob": "14.0.3"
     },
     "archiver-utils": {
-      "glob": "14.0.2"
+      "glob": "14.0.3"
     },
     "@tufjs/models": {
-      "minimatch": "11.0.1"
+      "minimatch": "11.0.2"
     },
     "ignore-walk": {
-      "minimatch": "11.0.1"
+      "minimatch": "11.0.2"
     },
     "readdir-glob": {
-      "minimatch": "11.0.1"
+      "minimatch": "11.0.2"
     },
     "press-ready": {
       "shelljs": "0.10.0",

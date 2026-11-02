@@ -11,7 +11,7 @@ const cli = createRequire(import.meta.resolve('@vivliostyle/cli'));
 const arborist = createRequire(cli.resolve('@npmcli/arborist'));
 const archiver = createRequire(cli.resolve('archiver'));
 const workspaces = createRequire(arborist.resolve('@npmcli/map-workspaces'));
-const { glob } = workspaces('glob');
+const { glob, Glob } = workspaces('glob');
 const { Minimatch } = workspaces('minimatch');
 
 function fixture(t) {
@@ -40,8 +40,8 @@ test('runtime glob and minimatch trees support the oldest supported Node', () =>
     if (updated && entry.engines?.node) {
       assert.ok(semver.satisfies('22.12.0', entry.engines.node), `${name}: ${entry.engines.node}`);
     }
-    if (name.endsWith('/glob')) assert.equal(entry.version, '14.0.2', name);
-    if (name.endsWith('/minimatch')) assert.equal(entry.version, '11.0.1', name);
+    if (name.endsWith('/glob')) assert.equal(entry.version, '14.0.3', name);
+    if (name.endsWith('/minimatch')) assert.equal(entry.version, '11.0.2', name);
   }
 });
 
@@ -74,6 +74,11 @@ test('installed minimatch bounds optimization and supports Windows paths', () =>
     platform: 'win32', windowsPathsNoEscape: true, nocase: true,
   });
   assert.equal(windows.match('c:\\packages\\a\\package.json'), true);
+});
+
+test('the default glob export bounds its bundled matcher preprocessing', () => {
+  const walker = new Glob(Array(8).fill('**/../a/b').join('/'), { braceExpandMax: 32 });
+  assert.equal(walker.patterns.length, 32);
 });
 
 test('workspace discovery and ignore-walk retain inclusion and negation', async (t) => {
