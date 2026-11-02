@@ -94,7 +94,8 @@ test('workspace discovery and ignore-walk retain inclusion and negation', async 
 test('archiver glob expansion and ZIP traversal retain filtering', async (t) => {
   const { root } = fixture(t);
   const utils = archiver('archiver-utils');
-  assert.deepEqual(utils.file.expand({ cwd: root }, ['notes/*.md', '!notes/drop.md']), ['notes/keep.md']);
+  const expanded = utils.file.expand({ cwd: root }, ['notes/*.md', '!notes/drop.md']);
+  assert.deepEqual(expanded.map((file) => file.split(path.sep).join('/')), ['notes/keep.md']);
   const archive = cli('archiver')('zip');
   const entries = [];
   archive.on('entry', (entry) => entries.push(entry.name));
