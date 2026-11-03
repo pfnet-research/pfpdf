@@ -639,3 +639,17 @@
 - リスク: 全差分の調査と隔離環境の用意には工数がかかり、検査しても不正な変更の不在を保証できない。確認済みと未確認を分けて記録し、重要な検証不足はマージ前に解消する。pfpdf は入力文書を信頼する方針を維持し、worktree や AssetServer を隔離の手段として扱わない
 - 検証: 日英の手順、5節の雛形、参照リンクの対応と、AGENTS.md の英語限定規則を確認する。`npm ci`、`npm test`、`npm run lint` を実行し、新しいチェックアウトで `make docs` により日英4冊を生成する
 - 再検討条件: レビュー規模や実行環境が変わり、手順の自動化や役割分担を更新する必要が生じた場合
+
+## DD-57: glob と minimatch の修正版を利用箇所に限定して固定する
+
+- 状態: 採用 (2026-11-03)
+- 問題: 配布する依存ツリーが glob のキャンセル後の走査継続 ([GHSA-3g3m-2fjr-6pw4](https://github.com/isaacs/node-glob/security/advisories/GHSA-3g3m-2fjr-6pw4)) と minimatch のパターン前処理増幅 ([GHSA-g3hv-75wg-m249](https://github.com/isaacs/minimatch/security/advisories/GHSA-g3hv-75wg-m249)) の対象版を含む。修正版はそれぞれ 14.0.2 と 11.0.1 で、既存の依存範囲を超える
+- 選択肢: (a) 全親パッケージを最新版にする、(b) 全 major に一律の override をかける、(c) 親の使用 API を確認し、使用する親に限定した override と旧 API の親更新を組み合わせる
+- 採用: (c)。Vivliostyle CLI 11.1.0 が使用する個々の親を root override の selector とし、glob を 14.0.3、minimatch を 11.0.2 に固定する。CLI 配下の多段 nested override は npm 10 が一部の枝に適用しないため、各親を直接指定する。Arborist / map-workspaces / package-json / cacache は glob の Promise API、archiver-utils は `glob.sync` を使い、14 でも利用できる。minimatch の直接利用箇所である Arborist / map-workspaces / TUF models は `minimatch` / `match`、ignore-walk は `Minimatch.match` / `globParts` / `negate`、readdir-glob は `Minimatch.match` を使う。削除された `makeRe` / `matchOne` や RegExp の `set` 要素には依存しない
+- 同梱 matcher: glob 14.0.2 の既定の圧縮済み export は未修正の minimatch 前処理コードを内包しており、別途インストールする minimatch の override では置き換わらないため採用しない。`**/../a/b` を8回繰り返し `braceExpandMax: 32` を指定すると、既定の `Glob` constructor は256パターンを生成する一方、`glob/raw` はインストール済みの修正版を使用して32パターンになる。再ビルド済みの glob 14.0.3 と、それが要求する minimatch 11.0.2 を使用し、実際の親経由で既定の export をテストする
+- 旧 API: press-ready 配下の ShellJS とその型を上流の 0.10.0 に固定し、glob 7 / minimatch 3 の枝を除去する。ShellJS は fast-glob に移行しており、press-ready が使用する `which` を維持する。glob 7 を直接 14 に差し替えて旧関数 export / callback 契約を壊す案は採用しない
+- 非採用理由: (a) の最新版 Arborist / map-workspaces は Node.js 22.22.2 以降を要求し、pfpdf の 22.12.0 互換性を失ううえ、依然として旧 minimatch を要求する。(b) は旧 API を壊し、無関係な依存にも影響する。Vivliostyle CLI、Markdown parser、CJK 拡張は更新しない
+- 配布: DD-17 に従い `package-lock.json` と `npm-shrinkwrap.json` を同一内容にする。追加される matcher / path-scurry / fast-glob 系を含め最低 Node.js 要件は引き上げない。上流の glob 14 / minimatch 11 は一部のパターン、Windows UNC、末尾 slash の一致規則を変更するため、audit 成功だけで互換性を判断しない
+- 検証: 実際の親から解決した依存で、キャンセル後のディレクトリ読み取り停止、制限付き前処理、Windows path、workspace 除外、ignore 再包含、archive の glob / ZIP、cache 検証・削除、ShellJS の実行ファイル探索を回帰チェックする。通常の unit / lint、日英4冊、PDF smoke、配布 tarball の依存再現を検証し、他 OS の結果は CI と区別して記録する
+- 配布検証の注意: npm 10.9.0 / 11.17.0 のローカル `.tgz` 直接 install は shrinkwrap を無視する既知の上流制限がある。registry と同じ `_hasShrinkwrap` metadata を使うローカル registry では固定 tree が再現する。公開・deploy は行わずにこれを検証し、既存 release 手順どおり展開した package root の `npm ci --omit=dev` / `npm ls` / lock 比較 / PDF smoke も行う。利用者 project からの `npm ls` は親範囲を超える override を invalid と表示し得るため、正確な版と integrity の検査と区別する
+- 再検討条件: 親が修正版を正式に採用したら override を除去する。新しい advisory またはパターン互換性の問題が判明したら再評価する
