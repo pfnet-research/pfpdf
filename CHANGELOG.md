@@ -3,6 +3,13 @@
 Notable changes to pfpdf are documented in this file. Versions follow Semantic
 Versioning; breaking changes before 1.0 are called out explicitly.
 
+## [0.4.1](https://github.com/pfnet-research/pfpdf/compare/v0.4.0...v0.4.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* **deps:** patch glob cancellation and minimatch amplification ([#46](https://github.com/pfnet-research/pfpdf/issues/46)) ([adfd71f](https://github.com/pfnet-research/pfpdf/commit/adfd71fba966a7c150a76cd5a541ae307ae96592))
+
 ## [0.4.0](https://github.com/pfnet-research/pfpdf/compare/v0.3.0...v0.4.0) (2026-10-31)
 
 
