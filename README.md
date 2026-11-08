@@ -2,7 +2,8 @@
 
 pfpdf is a command-line tool that converts Markdown documents into PDFs with
 support for Japanese typesetting. Use it to create technical reports and manuals
-with cover pages, tables of contents, equations, and highlighted code.
+with cover pages and tables of contents. It also supports tables, equations, and
+syntax highlighting.
 
 [日本語](README.ja.md) · [Website](https://pfpdf.preferred.tech/) · [Tutorial](docs/tutorial.en/01_getting-started.md)
 
@@ -50,8 +51,8 @@ megabytes; later runs reuse the cached browser. Rendering uses
 Open `document.pdf` to check the result: it contains a cover with the title, a
 table of contents, and the body text.
 
-For CI or saved build instructions, pin the package version by replacing `@latest`
-with a version such as `@0.2.1`.
+For CI or build steps you run repeatedly, pin the package version by replacing
+`@latest` with a version such as `@0.2.1`.
 
 ## Combine chapters
 
@@ -64,8 +65,8 @@ npx @pfnet-research/pfpdf@latest --input chapters --output report.pdf
 
 pfpdf combines `.md` files directly inside the directory in filename order; the
 extension must be lowercase. Use names such as `00_title.md`, `01_intro.md`, and
-`02_results.md` to set the reading order. Put front matter at the top of the first
-file only. See
+`02_results.md` to set the reading order. Put shared settings together in front
+matter at the top of the first file. See
 [document structure](docs/tutorial.en/02_document-structure.md) for links between
 chapters, page breaks, and image paths.
 
@@ -79,13 +80,9 @@ The templates come with their default fonts, including Japanese fonts. For custo
 templates, logos, or local fonts, see
 [templates and assets](docs/tutorial.en/06_templates-and-assets.md).
 
-Use the following tutorial sections as you add content:
-
-| Content | Support and examples |
-| --- | --- |
-| Tables and task lists | [GitHub Flavored Markdown (GFM)](docs/tutorial.en/03_gfm.md), including strikethrough and emphasis next to Japanese full-width punctuation. |
-| Equations, code, and diagrams | [TeX math, syntax highlighting, and Mermaid](docs/tutorial.en/05_math-and-code.md), with bundled rendering assets. |
-| Citations and references | [BibTeX bibliographies](docs/tutorial.en/03_gfm.md#39-bibtex-bibliographies), with numbered citations linked to reference entries. |
+- Tables and task lists: pfpdf supports [GitHub Flavored Markdown (GFM)](docs/tutorial.en/03_gfm.md), including strikethrough and emphasis next to Japanese punctuation and brackets.
+- Equations, code, and diagrams: Use [TeX math, syntax highlighting, and Mermaid](docs/tutorial.en/05_math-and-code.md). The required rendering assets are bundled.
+- Citations and references: Generate bibliographies from [BibTeX files](docs/tutorial.en/03_gfm.md#39-bibtex-bibliographies). Numbered citations in the text link to the reference entries.
 
 ## Environments and troubleshooting
 
@@ -125,8 +122,9 @@ vulnerabilities.
 
 The Japanese documents are the source for the specification and usage; the English
 documents are translations. Each GitHub Release includes all four PDFs. To build
-them locally or contribute changes, follow the setup instructions in
-[Contributing](CONTRIBUTING.md), then run `make docs`.
+PDFs of the design and tutorial documentation locally or contribute to development,
+follow the setup instructions in [Contributing](CONTRIBUTING.md). Run `make docs`
+to build the documentation PDFs.
 
 See the [CLI reference](docs/tutorial.en/07_cli-and-renderers.md) for all options.
 

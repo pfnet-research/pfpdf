@@ -2,7 +2,7 @@
 
 ## 2.1 Front matter
 
-Write document metadata as YAML front matter at the top of a Markdown file. With multiple files, the first supplied value for each key takes precedence.
+Write document metadata and settings as YAML front matter at the top of a Markdown file. With multiple files, the first supplied value for each key takes precedence.
 
 ```md
 ---
@@ -21,21 +21,21 @@ dir: ltr
 ---
 ```
 
-The following nine keys are available as document metadata. The `toc` / `cover` / `logo` document settings and the `bibliography` build-input key described in Chapter 03 are also accepted. Other unknown keys produce warnings on stderr and are ignored by default. Duplicate keys, invalid YAML, and invalid types or values of known keys remain errors.
+The following table lists eight metadata fields and the `template` / `toc` / `cover` / `logo` document settings. The `bibliography` key described in Chapter 03 is also accepted as a build input. Other keys produce warnings on stderr and are ignored by default. Duplicate keys, invalid YAML, and invalid types or values of known keys are errors.
 
-For example, you can keep `tags` or `status` intended for other tools when building a PDF. Typos such as `page_szie` also produce warnings, so check that the intended settings took effect. To make unknown keys errors as before, pass the CLI flag `--strict-front-matter`.
+For example, you can keep `tags` or `status` intended for other tools when building a PDF. Typos such as `page_szie` also produce warnings, so check that the intended settings took effect. To treat unknown keys as errors, pass the CLI flag `--strict-front-matter`.
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-matter
 ```
 
-This validation policy also applies to `--print-effective-config --input docs` and `--doctor --input docs`. Since `--strict-front-matter` is a runtime setting, it cannot be set in front matter.
+The unknown-key warnings and strict validation also apply to `--print-effective-config --input docs` and `--doctor --input docs`. Since `--strict-front-matter` is a runtime setting, it cannot be set in front matter.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `title` | string | inferred from H1, then input name | Document title. Explicit values can use `<br>` for line breaks |
 | `author` | string | none | Author name |
-| `series` | string | none | Series name shown in the primary label position of every bundled template |
+| `series` | string | none | Series name, shown as a primary label in every bundled template |
 | `template` | bundled template name | `default` | Bundled template used for the document |
 | `toc` | boolean | `true` | Whether to generate a table of contents |
 | `cover` | boolean | `true` | Whether to display the cover or leading document header |
@@ -43,44 +43,49 @@ This validation policy also applies to `--print-effective-config --input docs` a
 | `date` | string | run date | Date shown on the cover |
 | `page_size` | keyword / dimensions | `A4` | Page size |
 | `confidential` | boolean | `false` | When `true`, shows a Confidential mark on every page |
-| `lang` | BCP 47 string | `ja` / `en` inferred from prose | Document language. Used for the HTML `lang` attribute, typesetting, and font selection |
-| `dir` | `ltr` / `rtl` / `auto` | `auto` | Text direction of the document. Used for the `dir` attribute of the HTML root |
+| `lang` | string (BCP 47 language tag) | `ja` / `en` inferred from prose | Document language. Used for the HTML `lang` attribute, typesetting, and font selection |
+| `dir` | `ltr` / `rtl` / `auto` | `auto` | Text direction of the document. Used for the `dir` attribute of the HTML root element |
 
 - Title precedence is `--title` → first front matter `title` in input order → first non-empty top-level H1 in input order → input name. Both `# Heading` and Setext H1s qualify; headings inside quotes, lists, code, raw HTML blocks, or footnote definitions do not. The body heading is retained
-- Flatten H1 formatting into one line, using link text, code / math source, and image alt text. Without an H1, use the filename without `.md` for a single file or the directory name for directory input. If collapsing whitespace and line breaks leaves an empty input name, use `document`. Do not reinterpret `<br>` or character references in inferred values
-- An explicitly empty `title`, invalid type, or disallowed HTML remains an input error (exit code `2`). Inference and CLI overrides never hide these errors
+- pfpdf removes H1 formatting and flattens the title into one line, using link text, code / math source, and image alt text. Without an H1, it uses the filename without `.md` for a single file or the directory name for directory input. If the input name is empty or contains only whitespace and line breaks, it uses `document`. It does not reinterpret `<br>` or character references in inferred values
+- An empty string, a value of an invalid type, or disallowed HTML in an explicit `title` causes an input error (exit code `2`), even when title inference or a CLI override is available
 - Front matter `template` must be one of `academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical`. The CLI's `--template` / `--template-preset` override front matter
 - Relative `logo` paths are resolved from the directory containing the front matter Markdown. Front matter accepts only local files; use `--logo` for a Git repository source
 - If `series` is omitted, the series display area is removed entirely. The bundled templates never fill it with a fixed publication name, document type, brand name, or boilerplate label
-- To break the title across lines on the cover, use `<br>`, as in `title: "Long Title<br>Subtitle"`. The only tags allowed are `<br>` / `<br/>`
-- The front matter is parsed as a YAML mapping. pfpdf uses only the keys in the table above and the `bibliography` key described in Chapter 03; each metadata key must have the type listed in the table. You can write complex YAML values, but they are not used as metadata
+- To break the title across lines on the cover, use `<br>`, as in `title: "Long Title<br>Subtitle"`. The only HTML element allowed is an attribute-free `br` element, with spellings such as `<br>` / `<br/>` / `<BR />`
+- The front matter is parsed as a YAML mapping. pfpdf uses only the keys in the table above and the `bibliography` key described in Chapter 03. Supply each key's value using the type listed in the table. You can write complex YAML values, but they are not used as metadata
 - If the first line of a source file is `---`, pfpdf treats it as a front matter delimiter and requires a closing `---` or `...` in that file. Front matter is removed from the body of every file. To place a horizontal rule at the top of a file, use `***`
 - The `page_size` keywords are `A3` / `A4` / `A5`, `JIS-B4` / `JIS-B5`, `ISO-B4` / `ISO-B5`, and `Letter` / `Legal`. The ambiguous `B4` / `B5` are not allowed. You can also specify an explicit width and height, such as `210mm 297mm`
-- An explicit BCP 47 language tag such as `lang: en` / `lang: ja-JP` always wins. When omitted, Japanese or English is inferred from prose across all input files without using the host locale. Count kana, Han, and Latin characters: select `ja` if at least two hiragana make up at least 1% of those characters, if kana is present and Japanese characters are at least as numerous as Latin characters, or if Han characters outnumber Latin characters; otherwise select `en`. Code, math, raw HTML blocks, and URLs are excluded; use the title if no counted prose characters remain. Specify `lang` for short or multilingual documents
+- An explicit BCP 47 language tag such as `lang: en` / `lang: ja-JP` always wins. When omitted, pfpdf infers Japanese or English from prose across all input files without using the host locale. It counts kana, Han, and Latin characters and selects `ja` if any of the following conditions hold; otherwise it selects `en`
+  - At least two hiragana are present and make up at least 1% of the counted characters
+  - Kana is present, and the combined count of kana and Han characters is at least the count of Latin characters
+  - Han characters outnumber Latin characters
+
+  Code, math, raw HTML blocks, and URLs are excluded. If no counted prose characters remain, pfpdf uses the title. Specify `lang` for short or multilingual documents
 - For right-to-left documents you can specify `dir: rtl`, and for left-to-right documents, `dir: ltr`. With `auto`, the browser determines the direction from the document content; it does not guess the direction from `lang` or the host locale alone
-- If the primary language of `lang` is `ja`, the automatically generated date is rendered in Japanese style, as in `2026 年 8 月 3 日`; otherwise it uses the fixed `2026-08-03` format. A `date` string written in the front matter is never rewritten
+- If the leading language subtag of `lang` is `ja`, the automatically generated date uses Japanese formatting, as in `2026 年 8 月 3 日`; otherwise it uses the format `2026-08-03`. A `date` string written in the front matter is never rewritten
 
 ## 2.2 Combining multiple files
 
 When the input is a directory, pfpdf combines the `*.md` files directly inside it in filename order.
 
 - Every file may have front matter. Document-wide metadata and settings retain the first supplied value for each key in sort order; later files fill unset keys. A later file can supply `title` even if the first file has no front matter. To replace an existing value for one invocation, use its corresponding CLI option
-- Search for an H1 only if no file supplies an explicit `title`. A later file's explicit `title` overrides an earlier file's H1. Without an H1 either, use the input directory name rather than the first filename
+- pfpdf searches for an H1 only if no file supplies an explicit `title`. A later file's explicit `title` overrides an earlier file's H1. Without an H1 either, it uses the input directory name rather than the first filename
 - `false` also counts as a supplied value. A `bibliography` list is selected as one value and is never concatenated with later files' lists
-- Invalid YAML, invalid types or values of known keys, and unknown-key warnings / `--strict-front-matter` apply to all files regardless of selection. Unselected logo / bibliography targets are neither checked for existence nor opened. A selected relative path is based on the parent directory of the file that first supplies that key
+- Front matter in every file is checked for valid YAML and valid types and values of known keys, regardless of which values are selected. Unknown keys produce warnings, or errors with `--strict-front-matter`. For unselected `logo` / `bibliography` values, pfpdf neither checks the referenced files' existence nor opens them. A selected relative path is resolved from the parent directory of the file that first supplies that key
 - Only the lowercase `.md` extension is accepted
 - Save files as UTF-8 (a leading BOM and CRLF line endings are accepted)
-- Each file is parsed as independent Markdown. Code fences, lists, raw HTML blocks, and reference link definitions cannot continue into the next file. Close any syntax that would otherwise span chapters within a single file
+- Each file is parsed as independent Markdown. Code fences, lists, raw HTML blocks, and reference link definitions cannot continue into the next file. Keep each of these constructs within one file
 
 ## 2.3 Links between files
 
-Relative links to Markdown files in the same document—whether written in Markdown syntax or as raw HTML `<a href>` elements—become internal links to the beginning of the target file in the generated PDF. A link to a nonexistent file is an input error.
+Relative links to Markdown files combined into the same document become internal PDF links when they contain no query string. Without a fragment, the link goes to the beginning of the target file. You can use either Markdown syntax or raw HTML `<a href>` elements.
 
 ```md
 See [Chapter 03](03_gfm.md) for details.
 ```
 
-To jump directly to a heading in another file, add a fragment. When the same heading text appears more than once, the second and later anchors get `-2`, `-3`, and so on, so specify the ID that is actually rendered.
+To jump directly to a heading in another file, add the heading's ID as a fragment (the part of a URL after `#`). When the same heading appears more than once in the document, IDs for the second and later occurrences receive suffixes such as `-2` and `-3`. Use the actual generated ID in the link.
 
 ```md
 See [the tables section](03_gfm.md#34-tables).
@@ -92,11 +97,11 @@ Links to headings within the same document also work.
 See [the front matter section](#21-front-matter).
 ```
 
-Relative links to local files other than `.md`, such as a spreadsheet distributed with the PDF, are rejected because they stop working when the conversion server shuts down. Use HTTP(S) URLs for portable links. Use an explicit, absolute `file:` URL only when the link is intentionally specific to one machine.
+Relative links with query strings, links to `.md` files outside the combined document, and links to other local files are passed to the renderer without rewriting. pfpdf does not check whether link targets or specified fragments exist, so provide references that can be opened in the PDF's viewing environment. Use HTTP(S) URLs for files that should remain accessible when you distribute the PDF. For a file on a specific computer, you can use an absolute `file:` URL.
 
 ## 2.4 Table of contents and page breaks
 
-- A table of contents is generated by default. Normally disable it with `toc: false` in front matter; use `--toc` / `--no-toc` for temporary overrides
+- A table of contents is generated by default. To disable it, use `toc: false` in front matter; use `--toc` / `--no-toc` for temporary overrides
 - PDF bookmarks follow the same heading hierarchy as the table of contents. They remain even when `toc: false` omits the table of contents
 - To force a page break, write `___` (three or more consecutive underscores) on a line by itself
 
@@ -110,11 +115,11 @@ A new page starts here.
 
 `___` is a pfpdf extension. To produce a horizontal rule (thematic break), use `---` or `***`.
 
-A page break starts the next block on a new page. Page breaks at the very beginning or end of the document, and consecutive `___` lines, do not create blank pages; they are merged into a single page break.
+A page break starts the next block on a new page. Markers at the very beginning or end of the document are ignored. Consecutive `___` markers are collapsed into a single page break without creating blank pages.
 
 ## 2.5 Relative paths for images and other assets
 
-With file input, relative paths are resolved against the Markdown file's parent directory; with directory input, against the input directory. Since all Markdown files in directory input sit directly under it, the base is the same either way.
+With a Markdown file as input, relative paths are resolved from its parent directory. With a directory as input, they are resolved from the input directory, which directly contains all the Markdown files being combined.
 
 ```md
 ![Architecture diagram](assets/diagram.png)
@@ -122,6 +127,6 @@ With file input, relative paths are resolved against the Markdown file's parent 
 
 By contrast, relative paths in CLI arguments such as `--input`, `--output`, and `--logo` are resolved from the directory in which you run `pfpdf`.
 
-Local URLs written statically in Markdown, raw HTML, and CSS are resolved through the resource graph. Local paths that a script builds from strings at runtime are not automatically exposed, so declare resources with static `src` / `href` / CSS `url()`, or use HTTP(S) URLs.
+Local URLs written statically in Markdown, raw HTML, and CSS are resolved through the resource graph, which tracks resource references. Local paths that a script builds from strings at runtime are not automatically exposed. Declare resources with static `src` / `href` / CSS `url()`, or use HTTP(S) URLs.
 
-The URL separator inside documents is `/` regardless of OS. A Windows absolute path is written as `file:///C:/docs/image.png`, and a UNC path as a valid `file://server/share/...` URL. Only paths in CLI arguments may use the native path notation of the OS you are running on.
+Use `/` to separate path components in document URLs, regardless of OS. Write a Windows absolute path as a valid URL such as `file:///C:/docs/image.png`, and a UNC path as `file://server/share/...`. Only paths in CLI arguments may use the native path notation of the OS you are running on.

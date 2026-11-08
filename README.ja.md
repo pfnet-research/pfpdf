@@ -39,7 +39,7 @@ npx @pfnet-research/pfpdf@latest --input document.md --output document.pdf
 
 生成された`document.pdf`を開くと、タイトルの入った表紙、目次、本文を確認できます。
 
-CIや継続して使うビルド手順では、`@latest`を`@0.2.1`のような指定に置き換え、バージョンを固定してください。
+CIや繰り返し実行するビルド手順では、`@latest`を`@0.2.1`のような指定に置き換え、バージョンを固定してください。
 
 ## 複数ファイルの結合
 
@@ -49,21 +49,17 @@ CIや継続して使うビルド手順では、`@latest`を`@0.2.1`のような�
 npx @pfnet-research/pfpdf@latest --input chapters --output report.pdf
 ```
 
-直下の`.md`ファイル（拡張子は小文字）をファイル名順に結合します。`00_title.md`、`01_intro.md`、`02_results.md`のように番号を付けると、読む順序を指定できます。フロントマターは、最初のファイルの先頭にだけ書きます。章の間のリンク、改ページ、画像のパスは[文書の構成](docs/tutorial.ja/02_document-structure.md)を参照してください。
+直下の`.md`ファイル（拡張子は小文字）をファイル名順に結合します。`00_title.md`、`01_intro.md`、`02_results.md`のように番号を付けると、読む順序を指定できます。共通の設定は、最初のファイルの先頭にフロントマターとしてまとめて書いてください。章の間のリンク、改ページ、画像のパスは[文書の構成](docs/tutorial.ja/02_document-structure.md)を参照してください。
 
 ## テンプレートと記法
 
 見た目はフロントマターの`template`で選びます。一度だけ別のデザインを試す場合は、コマンドに`--template notebook`などを追加してください。コマンドライン引数がフロントマターより優先されます。
 
-各テンプレートの既定フォントも、日本語フォントを含めて同梱しています。独自のテンプレートやロゴ、手元のフォントの指定方法は[テンプレートとアセット](docs/tutorial.ja/06_templates-and-assets.md)にまとめています。
+各テンプレートの既定フォントは、日本語フォントを含めて同梱しています。独自のテンプレートやロゴ、手元のフォントの指定方法は[テンプレートとアセット](docs/tutorial.ja/06_templates-and-assets.md)にまとめています。
 
-文書に内容を追加するときは、次の記法を使えます。
-
-| 書きたい内容 | 対応する記法と使用例 |
-| --- | --- |
-| 表・タスクリスト | [GitHub Flavored Markdown（GFM）](docs/tutorial.ja/03_gfm.md)に対応しています。取り消し線や、日本語の句読点・括弧に隣接する強調も扱えます。 |
-| 数式・コード・図 | [TeXの数式、コードハイライト、Mermaid](docs/tutorial.ja/05_math-and-code.md)を使えます。描画に必要なアセットは同梱しています。 |
-| 引用・参考文献 | [BibTeXファイル](docs/tutorial.ja/03_gfm.md#39-bibtex-参考文献)から参考文献一覧を生成し、本文の引用番号から各文献へリンクします。 |
+- 表・タスクリスト：[GitHub Flavored Markdown（GFM）](docs/tutorial.ja/03_gfm.md)に対応しています。取り消し線や、日本語の句読点・括弧に隣接する強調も扱えます。
+- 数式・コード・図：[TeXの数式、コードハイライト、Mermaid](docs/tutorial.ja/05_math-and-code.md)を使えます。描画に必要なアセットは同梱しています。
+- 引用・参考文献：[BibTeXファイル](docs/tutorial.ja/03_gfm.md#39-bibtex-参考文献)から参考文献一覧を生成し、本文の引用番号から各文献へリンクします。
 
 ## 動作環境とトラブルシューティング
 
@@ -95,7 +91,7 @@ Node.js、ブラウザー、フォントなどの問題と対処方法が表示�
 | チュートリアル：使い方と文書の例 | [日本語](docs/tutorial.ja/) | [English](docs/tutorial.en/) |
 | 設計書：仕様と設計判断 | [日本語](docs/design.ja/) | [English](docs/design.en/) |
 
-仕様と使い方は日本語版を基準とし、英語版はその翻訳です。各GitHub Releaseには4文書のPDFを添付しています。手元でPDFを生成したり開発に参加したりする場合は、[コントリビューションガイド](CONTRIBUTING.md)に従って環境を用意してください。文書のPDFは`make docs`で生成できます。
+仕様と使い方は日本語版を基準とし、英語版はその翻訳です。各GitHub Releaseには4文書のPDFを添付しています。設計書やチュートリアルのPDFを手元で生成したり、開発に参加したりする場合は、[コントリビューションガイド](CONTRIBUTING.md)に従って環境を用意してください。文書のPDFは`make docs`で生成できます。
 
 コマンドライン引数の一覧は[CLIの使い方](docs/tutorial.ja/07_cli-and-renderers.md)を参照してください。
 

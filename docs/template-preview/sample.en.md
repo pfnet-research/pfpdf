@@ -10,7 +10,7 @@ bibliography: references.bib
 
 # 1. Text and Paragraphs
 
-This shared input mixes English, 日本語, digits 0123456789, and symbols “”—… in one place.
+The same input is used to check each template. English, 日本語, digits 0123456789, and symbols “”—… appear together.
 
 ## 1.1 Regular paragraph
 
@@ -43,7 +43,7 @@ Long identifiers: previewRendererKeepsLongIdentifiersVisible123456789 / preview_
 ## 2.1 Bulleted list
 
 - A short item
-- A longer item that checks wrapping behavior; mixing English words and 日本語 should still keep the second line aligned with the first
+- A longer item for checking line wrapping. With English words and 日本語 mixed, the second line should align with the text on the first line
 - The final item
 
 ## 2.2 Numbered list
@@ -179,11 +179,11 @@ ___
 
 ## 5.1 Image
 
-![A sample image that checks aspect ratio and caption-like placement](assets/preview.svg)
+![A gray circle on the left and three horizontal lines on the right inside a wide, rounded frame](assets/preview.svg)
 
 ## 5.2 Keyboard keys
 
-Raw HTML renders <kbd>Ctrl</kbd> + <kbd>Enter</kbd>, subscript H<sub>2</sub>O, and superscript x<sup>2</sup>.
+Raw HTML displays the key combination <kbd>Ctrl</kbd> + <kbd>Enter</kbd>, H<sub>2</sub>O with a subscript, and x<sup>2</sup> with a superscript.
 
 ## 5.3 details element
 
@@ -194,7 +194,7 @@ Raw HTML renders <kbd>Ctrl</kbd> + <kbd>Enter</kbd>, subscript H<sub>2</sub>O, a
 
 ## 5.4 Inline style
 
-Placing a <span style="border: 1px solid currentColor; padding: 0.15em 0.4em;">short framed element</span> inside running text.
+A <span style="border: 1px solid currentColor; padding: 0.15em 0.4em;">short framed element</span> appears inside running text.
 
 ## 5.5 Unicode
 
@@ -240,6 +240,6 @@ Checks that headings stay on the same page as the following text and that the en
 
 # 7. Bibliography
 
-This paragraph checks a single citation\cite{commonmark2024} and multiple citations\cite{citationjs2019,vivliostyle2026}, their numbering, wrapping, and internal links. Re-citing the same reference\cite{citationjs2019} yields multiple back links.
+This paragraph checks numbering, wrapping, and internal links when citing one reference\cite{commonmark2024} or several references together\cite{citationjs2019,vivliostyle2026}. When the same reference is cited again\cite{citationjs2019}, its bibliography entry links back to each citation.
 
 \printbibliography

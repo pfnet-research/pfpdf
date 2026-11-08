@@ -2,16 +2,16 @@ import type { en } from './en';
 
 export const ja: typeof en = {
   siteName: 'pfpdf',
-  tagline: 'Markdown から、印刷品質の PDF へ',
+  tagline: 'Markdown を印刷品質の PDF に',
   description:
-    'pfpdf は Markdown を印刷品質の PDF に変換するコマンドラインツールです。日本語組版を第一級でサポートし、GFM・数式・コードハイライト・BibTeX・表紙を Vivliostyle と Chromium で組版します。',
+    'pfpdf は Markdown を印刷品質の PDF に変換するコマンドラインツールです。GFM・数式・コードハイライト・BibTeX の引用・表紙に対応し、Vivliostyle と Chromium で日本語の文書も組版できます。',
   nav: { gallery: 'ギャラリー', docs: 'ドキュメント', github: 'GitHub' },
   langSwitch: { label: 'EN', title: 'Read this page in English' },
   theme: { toggle: 'ダークモード切替' },
   hero: {
     subcopy:
-      '日本語組版を第一級でサポート。GFM・数式・コードハイライト・BibTeX・表紙を Vivliostyle と Chromium で組版します。',
-    installNote: 'インストール不要 — npx がそのまま pfpdf を取得して実行します。',
+      '日本語の文書も Vivliostyle と Chromium で組版できます。GFM・数式・コードハイライト・BibTeX の引用・表紙に対応しています。',
+    installNote: 'pfpdf の事前インストールは不要です。Node.js 22.12.0 以上と npm を用意し、npx で取得して実行します。',
     getStarted: 'はじめる',
     browseTemplates: 'テンプレートを見る',
     viewOnGitHub: 'GitHub で見る',
@@ -24,8 +24,8 @@ export const ja: typeof en = {
     title: '機能',
     items: [
       {
-        title: 'GFM Markdown',
-        body: '表・タスクリスト・取り消し線・自動リンク・ネストしたリストなど、GitHub 標準の記法がそのまま使えます。',
+        title: 'GitHub の Markdown 記法（GFM）',
+        body: '表・タスクリスト・取り消し線・自動リンク・入れ子のリストなど、GitHub で使われる記法に対応しています。',
       },
       {
         title: '日本語対応の強調処理',
@@ -33,45 +33,45 @@ export const ja: typeof en = {
       },
       {
         title: '数式とコードハイライト',
-        body: 'インライン・ディスプレイ数式とコードブロックのハイライトを同梱アセットだけで組版します。',
+        body: '文中と別行立ての数式、コードブロックのハイライトに対応しています。必要なアセットは同梱しています。',
       },
       {
         title: 'BibTeX 参考文献',
-        body: 'front matter で .bib を指定し、\\cite{key} で番号付き引用と参考文献リストを生成します。',
+        body: 'フロントマターで .bib ファイルを指定し、\\cite{key} で番号付き引用と参考文献リストを生成します。',
       },
       {
-        title: '7つの同梱テンプレート + ロゴ注入',
-        body: '論文向けからコード主体まで。ロゴは同梱せず --logo PATH で注入します。',
+        title: '7つのテンプレートとロゴの指定',
+        body: '論文向けからコード中心の文書向けまで選べます。ロゴは同梱せず、--logo PATH で指定します。',
       },
       {
         title: '再配布可能な同梱フォント',
-        body: '既定で OS フォントに依存しません。ホストフォントの利用は明示的なオプトインです。',
+        body: '同梱テンプレートは既定で同梱フォントを使います。--host-fonts を指定すると、OS のフォントも検索対象に加わります。',
       },
       {
-        title: '管理されたレンダリング',
-        body: '同梱 Vivliostyle CLI と標準のブラウザー管理を使い、必要ならブラウザーのパスを明示できます。',
+        title: 'ブラウザーの自動取得',
+        body: '既定では、同梱の Vivliostyle CLI が Chromium を取得・管理します。--browser-path で既存の互換ブラウザーも指定できます。',
       },
       {
-        title: '4環境で実ブラウザ CI 済み',
-        body: 'macOS・Linux・Windows の4環境で実ブラウザによる PDF 生成を CI で検証しています。',
+        title: '4環境で PDF 生成を検証',
+        body: 'macOS（Arm64）・Linux（x64 / Arm64）・Windows（x64）の4環境で、実際のブラウザーによる PDF 生成を CI で検証しています。',
       },
     ],
   },
   teaser: {
     title: '7つのテンプレート、コマンド1つで',
-    body: 'すべてのテンプレートが同じサンプル文書をレンダリングするので、組版・表紙・密度を並べて比較できます。',
+    body: '同じサンプル文書を各テンプレートで PDF に変換しているので、レイアウトや表紙、1ページあたりの情報量を並べて比較できます。',
     cta: 'テンプレートギャラリーを見る',
   },
   quickStart: {
     title: 'クイックスタート',
     steps: [
-      { title: 'Markdown を書く', body: '普通の .md ファイルに、必要なら front matter でタイトル・著者・テンプレートを指定します。' },
-      { title: 'npx @pfnet-research/pfpdf を実行', body: 'インストール不要。ディレクトリを渡すと直下の Markdown を1つの PDF に結合します。' },
-      { title: '印刷品質の PDF が完成', body: '表紙・目次・ページ番号つきの組版済み PDF がそのまま得られます。' },
+      { title: 'Markdown を書く', body: 'Markdown を .md ファイルに書き、必要に応じて先頭のフロントマターにタイトル・著者・テンプレートを指定します。' },
+      { title: 'npx @pfnet-research/pfpdf を実行', body: '--input に .md ファイル、--output に PDF の保存先を指定して実行します。' },
+      { title: '印刷品質の PDF が完成', body: '既定では表紙・目次・ページ番号付きの PDF が生成されます。--output で指定した保存先を確認してください。' },
     ],
-    directoryNote: 'ディレクトリの一括変換や、CI でのバージョン固定も可能です:',
+    directoryNote: 'ディレクトリーを --input に渡すと、直下の .md ファイルをファイル名順に1つの PDF にまとめます。CI 用にバージョンを固定する例も示します:',
     chromiumNote:
-      '初回実行時に PDF 描画用の Chromium (数百MB) をダウンロードします。以後はキャッシュを使い、同梱機能のみの文書はオフラインでも変換できます。',
+      '初回実行にはインターネット接続が必要で、PDF 描画用の Chromium の取得で数百 MB の通信が発生することがあります。npm パッケージとブラウザーのキャッシュが揃えば、同梱機能だけを使う文書はオフラインでも変換できます。Linux では Chromium に必要な OS の共有ライブラリーも用意してください。',
   },
   footer: {
     docs: 'ドキュメント',
@@ -87,10 +87,10 @@ export const ja: typeof en = {
   gallery: {
     title: 'テンプレートギャラリー',
     intro:
-      '7つの同梱テンプレートはすべて同一のサンプル文書 (日本語・英語) から生成されており、組版・表紙・密度の違いをそのまま比較できます。--template NAME で切り替えます。',
+      '日本語・英語それぞれで同じサンプル文書を使っているので、7つの同梱テンプレートのレイアウトや表紙、1ページあたりの情報量を比較できます。--template NAME で切り替えます。',
     pages: (n: number) => `全${n}ページ`,
     sampleTabs: { en: '英語サンプル', ja: '日本語サンプル' },
-    jaShowcase: '日本語サンプルは pfpdf の日本語組版のショーケースを兼ねています。',
+    jaShowcase: '日本語サンプルでは、日本語と英語が混じる文章や強調表示の組版例を確認できます。',
     downloadEn: 'サンプル PDF (英語)',
     downloadJa: 'サンプル PDF (日本語)',
     cliLabel: 'このテンプレートで文書を変換:',
@@ -99,7 +99,7 @@ export const ja: typeof en = {
     tutorialLink: 'チュートリアルで詳しく: テンプレート・ロゴ・アセット・フォント',
     lightbox: { close: '閉じる', prev: '前のページ', next: '次のページ' },
     pageAlt: (template: string, lang: string, page: number) =>
-      `${template} テンプレート (${lang} サンプル) — ${page} ページ目`,
+      `${template} テンプレート（${lang === 'ja' ? '日本語' : '英語'}サンプル）の${page}ページ目`,
   },
   templateDescriptions: {
     academic: '論文・研究レポート向け',
@@ -107,8 +107,8 @@ export const ja: typeof en = {
     compact: '省スペース',
     default: '標準',
     notebook: 'カジュアル・ノート風',
-    pfn: 'コーポレート',
-    technical: 'コード主体・高密度',
+    pfn: '企業文書向け',
+    technical: 'コード中心・高密度',
   },
   docs: {
     title: 'ドキュメント',
@@ -120,7 +120,7 @@ export const ja: typeof en = {
   },
   notFound: {
     title: 'ページが見つかりません',
-    body: 'お探しのページは存在しません。',
+    body: 'トップページやテンプレートギャラリーからお探しください。',
     home: 'トップページへ',
     gallery: 'テンプレートギャラリーへ',
   },

@@ -1,16 +1,16 @@
 # 3. Writing GFM
 
-pfpdf uses GitHub Flavored Markdown (GFM). Standard GFM syntax works as written, and every construct in this chapter is rendered directly in this PDF.
+pfpdf uses GitHub Flavored Markdown (GFM). Standard GFM syntax works as written. When you convert this tutorial to PDF, the headings, lists, and tables in this chapter also serve as display examples.
 
 ## 3.1 Headings and paragraphs
 
-Markdown headings from `#` to `######` are supported. Each heading gets an anchor that is unique in source order, and all six levels appear in the table of contents. Headings with the same text get `-2`, `-3` suffixes. `h1` through `h6` elements written directly in raw HTML are not included in the automatic table of contents; give them an explicit `id` if you want to use them as link targets.
+Markdown headings from `#` to `######` are supported. Headings receive unique anchors in the order they appear in Markdown, and all six levels appear in the table of contents. For headings with the same text, suffixes such as `-2` and `-3` are added to the anchors. `h1` through `h6` elements written directly in raw HTML are not included in the automatic table of contents; give them an explicit `id` if you want to use them as link targets.
 
-For Japanese document language (`lang: ja`, or Japanese inferred when omitted), source wrapping between Han/kana/Japanese punctuation does not add a visible space inside a paragraph, including across emphasis and links. Blank-line paragraph boundaries, English word boundaries, explicit spaces, and Markdown hard breaks are preserved. Code, math and their boundaries, and paragraphs containing raw HTML are unchanged.
+When the document language is Japanese (`lang: ja`, or inferred as Japanese when omitted), source line breaks between kanji, kana, or Japanese punctuation do not add visible spaces within a paragraph. This also applies across emphasis and links. Blank-line paragraph boundaries, English word boundaries, explicit spaces, and Markdown hard breaks are preserved. Code and math content, and the line breaks before and after them, are unchanged. Paragraphs containing raw HTML are also excluded.
 
 ## 3.2 Emphasis
 
-*Emphasis*, **strong emphasis**, ~~strikethrough~~, and valid nesting (***strong + emphasis***) are all supported.
+*Emphasis*, **strong emphasis**, ~~strikethrough~~, and nested emphasis (***strong + emphasis***) are all supported.
 
 ### Japanese emphasis
 
@@ -21,11 +21,15 @@ You can use `**` directly in Japanese prose. It converts correctly even when adj
 - これは**重要な点。**続きのテキストも書けます。
 - ここは**（重要事項）**です。
 
-You rarely need to write `<strong>` tags; use `**` whenever GFM can express the emphasis you need.
+You do not need to write `<strong>` tags. Start with `**`.
 
 ### Japanese/Latin spacing
 
-Japanese documents automatically add visual CSS spacing between Japanese text and Latin letters/digits. Authored spaces and punctuation are preserved; code and math are excluded. No whitespace is inserted into URLs or copied DOM text. PDF text extractors may reconstruct visual gaps as whitespace. This default does not apply to non-Japanese languages such as `lang: en`. Override it with `text-autospace: no-autospace` in custom CSS; unsupported browsers display the text without added spacing.
+Japanese documents automatically add visual CSS spacing between Japanese text and Latin letters or digits. Authored spaces and punctuation are preserved; code and math are excluded.
+
+This spacing is visual: no whitespace is inserted into URLs or copied DOM text. PDF text extractors may reconstruct visual gaps as whitespace.
+
+This default does not apply to non-Japanese languages such as `lang: en`. Override it with `text-autospace: no-autospace` in custom CSS. Browsers that do not support `text-autospace` display the text without added spacing.
 
 ## 3.3 Lists
 
@@ -60,7 +64,7 @@ For tables, prefer GFM table syntax over raw HTML. Column alignment can also be 
 
 ### Long URLs and identifiers
 
-pfpdf automatically adds display-only line-break opportunities to URLs, email addresses, paths, and snake_case, kebab-case, or camelCase identifiers that contain at least 16 graphemes. It prefers breaks at `/` and `?` in URLs, `.` in hostnames, and separators in identifiers. It does not add whitespace or zero-width characters to link targets or copied text.
+pfpdf automatically adds display-only line-break opportunities to URLs, email addresses, paths, and snake_case, kebab-case, or camelCase identifiers that contain at least 16 characters. Characters are counted as grapheme clusters, so a base character with combining marks, for example, counts as one visible character. It prefers breaks at `/` and `?` in URLs, `.` in hostnames, and separators in identifiers. It does not add whitespace or zero-width characters to link targets or copied text.
 
 https://example.invalid/reports/2026/very-long-document-name?format=print&language=en
 
@@ -71,7 +75,7 @@ Inline code, code blocks, math, and the contents of `kbd` and `samp` are exclude
 > This is a blockquote.
 > It can span multiple lines.
 
-Wrap inline code in `` `backticks` ``. See Chapter 05 for code blocks.
+Wrap inline code in backticks, as in `` `backticks` ``. See Chapter 05 for code blocks.
 
 ## 3.7 Horizontal rules
 
@@ -79,7 +83,7 @@ Wrap inline code in `` `backticks` ``. See Chapter 05 for code blocks.
 
 ---
 
-An unindented, standalone line of three or more consecutive underscores (`___`, `____`, etc.) is reserved for page breaks in pfpdf (see Chapter 02), so it cannot be used as a horizontal rule. It is not treated as page-break syntax when it appears inside a blockquote or list, when it has surrounding or intervening whitespace.
+An unindented line consisting only of three or more consecutive underscores (`___`, `____`, etc.) is reserved for page breaks in pfpdf (see Chapter 02), so it cannot be used as a horizontal rule. Underscores inside a blockquote or list, or with whitespace before, after, or between them, do not trigger a page break.
 
 ## 3.8 GitHub features not part of GFM
 
@@ -93,7 +97,7 @@ Mermaid is supported as a dedicated pfpdf extension; see the `mermaid` fenced co
 
 ## 3.9 BibTeX bibliographies
 
-Specify `.bib` files with `bibliography` in Markdown front matter. Relative paths are resolved against the parent directory of the Markdown file that first supplies that key. Multiple `.bib` files can be given as a list, and that whole list is selected as one value.
+Specify `.bib` files with `bibliography` in Markdown front matter. Relative paths are resolved against the parent directory of the Markdown file that first supplies `bibliography`. Multiple `.bib` files can be given as a list. When several Markdown files set `bibliography`, pfpdf uses the first value and does not merge lists.
 
 ```yaml
 ---
@@ -103,7 +107,7 @@ bibliography:
 ---
 ```
 
-In the body, cite BibTeX keys with the same `\cite` command as in TeX. Separate multiple keys with commas.
+In the body, cite works by specifying their BibTeX keys with the same `\cite` command as in TeX. Separate multiple keys with commas.
 
 ```md
 See the prior work\cite{smith2024} and the comparative studies\cite{smith2024,tanaka2025}.
@@ -123,7 +127,7 @@ The initial version supports BibTeX / BibLaTeX `.bib` files with a numeric style
 
 ## 3.10 Footnotes
 
-Write each reference and its definition in the same source file.
+Write each footnote reference and its definition in the same Markdown file.
 
 ```md
 Body text[^memo]. The same note can be referenced again[^memo].
@@ -131,6 +135,8 @@ Body text[^memo]. The same note can be referenced again[^memo].
 [^memo]: Additional information.
 ```
 
-Each note appears at the bottom of its first-reference page. No additional configuration is required.
+Each footnote's body appears at the bottom of the page where it is first referenced. No additional configuration is required.
 
-Page footnotes are numbered in first-reference order across the document. The same definition identifier may be reused in another file, where it denotes a separate note. Repeating a reference on a later page links to the note's first appearance without printing another copy. Long footnotes continue onto following pages; multiple paragraphs, code, and links are supported. Japanese documents also receive Japanese accessible reference and back-link labels.
+Footnotes are numbered in the order they are first referenced across the document. The same definition identifier may be reused in another file, where it denotes a separate note.
+
+Repeating a reference on a later page links to the note's first appearance without printing another copy. Long footnotes continue onto following pages; multiple paragraphs, code, and links are supported. Japanese documents also use Japanese accessibility labels for references and backlinks.

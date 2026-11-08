@@ -1,18 +1,26 @@
 # 6. Templates, Logos, Assets, and Fonts
 
+<style>
+@media print {
+  h2[id="61-bundled-templates"] + p + table :is(th, td):first-child { min-width: 8em; }
+}
+</style>
+
 ## 6.1 Bundled templates
 
-pfpdf ships with seven bundled templates.
+pfpdf ships with seven bundled templates. Choose one based on its uses and features.
 
-| template | Description |
-|---|---|
-| `academic` | A restrained design for papers and research reports, with a Noto Serif JP serif body and an emphasis on tables, math, and figure captions |
-| `book` | A calm design for tutorials, textbooks, and long manuals meant to be read chapter by chapter |
-| `compact` | A design for meeting materials, internal memos, and short reports that keeps page counts low, with no standalone cover page, narrow margins, and a two-column table of contents |
-| `default` | A neutral, general-purpose design and the default choice |
-| `notebook` | A warm, casual design for notes, planners, and booklets |
-| `pfn` | A design for corporate documents. No logo is bundled; you supply one yourself |
-| `technical` | A dense design for technical documents that lays out code, tables, and long identifiers for readability |
+| Template | Main uses | Features |
+|---|---|---|
+| `academic` | Papers, research reports, survey reports | A restrained design with serif body text in Noto Serif JP and an emphasis on tables, math, and figure captions |
+| `book` | Tutorials, textbooks, long manuals | A calm design for reading chapter by chapter |
+| `compact` | Meeting materials, internal memos, short reports and handouts, reference memos | A design that keeps page counts low with no standalone cover page, narrow margins, and a two-column table of contents |
+| `default` | General-purpose documents | A neutral design and the default template |
+| `notebook` | Notes, planners, booklets, approachable teaching materials | A warm, casual design |
+| `pfn` | Corporate documents, branded official documents | No logo image is bundled; you supply one yourself |
+| `technical` | Technical documents, design documents, API specifications | A dense design that lays out code, tables, and long identifiers for readability |
+
+To make chapter boundaries clear, `book` is designed to start each H1 on a new page, even for short chapters. In the current version, displaying the table of contents disables this automatic page break for H1s in the first Markdown file. To reduce the page count, use `default` or `compact`.
 
 Normally, select a template by writing `template` in Markdown front matter. With multiple files, the first supplied value is used.
 
@@ -25,29 +33,27 @@ template: pfn
 
 Pass `--template` when you temporarily want a different appearance. The CLI selection overrides front matter.
 
-If you are unsure which template to choose, use `default` for general-purpose documents. Choose `compact` for short handouts or reference memos, `book` for long documents read chapter by chapter, `notebook` for approachable teaching materials, and `pfn` for branded official documents. The `academic` template suits papers and survey reports, while `technical` suits design documents and API specifications.
-
-To make chapter boundaries clear, `book` starts a new page at every H1, even for short chapters. If you want to keep the page count down, use `default` or `compact`.
-
-Bundled templates never add strings you did not specify, such as publication names, document types, brand names, or table-of-contents titles. To display a series name across all templates, set `series` in the front matter. Its position and typeface vary by template, and when it is omitted the display area itself is removed.
-
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
 ```
 
-Front matter can select bundled templates only. CLI `--template SOURCE` uses a bundled preset on an exact preset-name match and otherwise treats the value as a local directory or Git locator. Use `--template-preset` to explicitly require a preset. The complete template precedence is the built-in `default`, front matter, then CLI arguments.
+Front matter can select bundled templates only. CLI `--template SOURCE` treats an exact match for a bundled preset name as that preset, and any other value as a local directory or Git locator. Use `--template-preset` to explicitly select a bundled preset. The built-in `default` is overridden by front matter, which is overridden by CLI arguments.
 
-To omit the cover, use front matter `cover: false` or CLI `--no-cover`. `--cover` overrides a hidden cover in front matter. This is independent of `toc` / `--no-toc`. With `compact`, the leading document header is omitted. Cover author, date, series, and logo displays are omitted, while PDF metadata and template-provided Confidential / series running information remain.
+Bundled templates never add strings you did not specify, such as publication names, document types, brand names, or table-of-contents titles. To display a series name across all bundled templates, set `series` in the front matter. Its position and typeface vary by template. If `series` is omitted, its display area is removed.
+
+To omit the cover, use front matter `cover: false` or CLI `--no-cover`. `--cover` overrides a front-matter setting that hides the cover. Cover visibility is independent of the table-of-contents settings `toc` / `--no-toc`.
 
 ```bash
 pfpdf --input report.md --output report.pdf --no-cover --no-toc
 ```
 
-For a custom template, put the entire cover in an element marked `data-pfpdf-slot="cover"`. Keep content / toc slots and custom running elements outside it. The toggle does not change the display of a custom template without a cover slot.
+When the cover is hidden, `compact` omits the leading document header. The author, date, series name, and logo on the cover are hidden, while PDF metadata and the template's Confidential and series text in running headers and footers are preserved.
 
-## 6.2 Injecting a logo
+To control cover visibility in a custom template, put the entire cover in an element marked `data-pfpdf-slot="cover"`. Keep the `content` / `toc` slots and custom running elements outside `cover`. This setting does not change the display of a custom template without a `cover` slot.
 
-Bundled templates include no logo image. Normally select a local file you have the rights to use in Markdown front matter. Relative paths are based on the parent directory of the Markdown file that first supplies `logo`. A custom template can have a default logo by putting a template-relative path in the `src` of its `logo` slot.
+## 6.2 Specifying a logo
+
+Bundled templates include no logo image. Normally, select a local file you have the rights to use in Markdown front matter. Relative paths are based on the parent directory of the Markdown file that first supplies `logo`.
 
 ```md
 ---
@@ -57,27 +63,27 @@ logo: assets/logo.png
 ---
 ```
 
-A relative front matter path is resolved from the directory containing that Markdown file. `logo: false` displays no logo, including a template default. Use `--logo` / `--no-logo` for a Git locator or a temporary override.
+`logo: false` hides the logo, including any template default. Use CLI `--logo` to retrieve a logo from a Git locator or to temporarily override the selection.
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --template pfn --logo assets/logo.png
 ```
 
-- A relative logo path is resolved against the current directory
+- A relative logo path specified on the CLI is resolved against the current directory
 - Without an explicit logo, the template's default `src` is used. If it has none, the logo area itself is removed, leaving no broken-image placeholder
-- If a repository logo is used consistently, record `--logo` in a Makefile or CI workflow
 - To temporarily skip a front matter or template default logo, pass `--no-logo`
+- If you consistently use a logo managed in a repository, record `--logo` in a Makefile or CI workflow
 
 ```make
 docs.pdf: $(wildcard docs/*.md)
-	npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output $@ \
+	npx --yes @pfnet-research/pfpdf@0.4.0 --input docs --output $@ \
 	  --template pfn --logo assets/logo.png
 ```
 
 ## 6.3 Custom templates
 
-If the bundled templates do not meet your needs, point `--template` to a directory containing these three files:
+If the bundled templates do not meet your needs, use `--template` to specify your own template directory. Put these three files in it:
 
 ```text
 my-template/
@@ -93,9 +99,9 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template ./my-
 - Custom templates are treated as trusted local code and can run raw HTML and scripts
 - The template format carries no compatibility guarantee across versions. To preserve a document's appearance, pin the pfpdf version
 - `template.html` must be an HTML document and must specify exactly one insertion point for the body via `data-pfpdf-slot="content"`
-- You may also place zero or one of each of the optional slots `title`, `author`, `series`, `date`, `confidential`, `toc`, and `logo`. Unknown slots, duplicate slots, and a missing required `content` slot are errors
-- When the table of contents spans multiple pages, a continuation label appropriate to the document language is shown in the running header. To change where it appears in a custom template, reference the `pfpdf-toc-continuation` named string, set by `.pfpdf-toc-continuation-marker` inside the table of contents, from a paged media margin box
-- Processed `data-pfpdf-slot` attributes are removed from the assembled HTML. Other trusted attributes are preserved
+- You may also place zero or one of each optional slot: `cover`, `title`, `author`, `series`, `date`, `confidential`, `toc`, and `logo`. Unknown slots, duplicate slots, and a missing required `content` slot are errors
+- When the table of contents spans multiple pages, a continuation label in the document's language is shown in the running header. To change its position in a custom template, reference the named string `pfpdf-toc-continuation` from a paged media margin box. The string is set by `.pfpdf-toc-continuation-marker` inside the table of contents
+- Processed `data-pfpdf-slot` attributes are removed from the assembled HTML. Other attributes in the trusted input are preserved
 
 A minimal `template.html` looks like this. Metadata is inserted safely as child nodes of the slot elements, not by string substitution.
 
@@ -115,11 +121,16 @@ A minimal `template.html` looks like this. Metadata is inserted safely as child 
 </html>
 ```
 
-To provide a default logo, set the `logo` slot to something such as `src="assets/brand/logo.svg"`. `--logo` overrides that `src` with either a local path or Git locator. If an explicit logo is selected for a template that has no `logo` slot, pfpdf raises an error rather than silently ignoring it. When neither a default `src` nor an explicit logo exists, the `logo` slot itself is removed; the same applies to the `author` and `series` slots when those values are not specified. If there is no `toc` slot, the table of contents is inserted at the beginning of `content`.
+To provide a default logo, add a `src` attribute to the `logo` slot, such as `src="assets/brand/logo.svg"`. This path is relative to the template directory. `--logo` overrides that `src` with either a local path or Git locator.
+
+- If an explicit logo is selected for a template that has no `logo` slot, pfpdf raises an error rather than silently ignoring it
+- When neither a default `src` nor an explicit logo exists, the `logo` slot itself is removed from the output
+- If `author` or `series` is not specified, its corresponding slot is removed as well
+- If there is no `toc` slot, the table of contents is inserted at the beginning of `content`
 
 ## 6.4 Git repository sources
 
-A template or logo can be retrieved directly from a subdirectory or file in a Git repository. `//` separates the repository URL from its internal path, and `ref` selects the revision.
+A template can be retrieved directly from a subdirectory in a Git repository, and a logo from a file. `//` separates the repository URL from its internal path, and `ref` selects the revision.
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
@@ -134,7 +145,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --logo 'git::ssh://git@example.com/pdf-assets.git//logos/brand/main.svg?ref=v2.0.0'
 ```
 
-- `PATH` is relative to the repository root, so nested paths such as `templates/brand/print` and `logos/brand/main.svg` work
+- The path within the repository is relative to its root. It can specify a subdirectory such as `templates/brand/print` or a file such as `logos/brand/main.svg`
 - A revision can be a branch, tag, or commit. Omitting it fetches remote `HEAD` with a warning. Pin a full commit hash in CI
 - Private repositories authenticate through a Git credential helper or SSH agent. Do not embed a token or password in the URL
 - Submodules are not fetched. A repository template remains trusted code that can run raw HTML and scripts
@@ -142,15 +153,17 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
 
 ## 6.5 Local assets
 
-Reference local files such as images and stylesheets with paths relative to the Markdown file (see Chapter 02). Paths may contain spaces and non-ASCII characters. Conversion also works with a read-only input directory.
+Reference local files such as images and stylesheets with paths relative to the Markdown file's parent directory (see Chapter 2). Paths may contain spaces and Japanese characters. Conversion also works with a read-only input directory.
 
 ## 6.6 Fonts
 
-pfpdf includes redistributable Japanese fonts, including Noto Sans CJK JP, and its templates use those fonts by default. Ordinary documents therefore do not depend on system font discovery. Custom or raw CSS can still request an OS-specific family, however, and pfpdf cannot prevent Chromium from discovering it. Documents that require reproducibility should not request OS-specific families from custom or raw CSS.
+pfpdf includes redistributable Japanese fonts, including Noto Sans JP, and its bundled templates explicitly select those fonts by default. Ordinary documents therefore do not depend on system font discovery.
+
+If custom CSS or CSS written directly in the document requests an OS-specific font family, pfpdf cannot prevent Chromium from discovering it. For documents that require reproducibility, do not request these families.
 
 ### Using host fonts
 
-To use fonts installed on the OS, opt in explicitly.
+To use fonts installed on the OS, enable them explicitly through the CLI.
 
 ```bash
 # Search the OS standard font directories
@@ -161,11 +174,12 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --font-dir ~/my-
 ```
 
 - `--font-dir` can be specified multiple times
-- Specifying font directories only adds available `@font-face` declarations. To actually use a family, request it via `font-family` in a custom template or in the document's CSS. Merely adding a directory never changes the body font automatically
+- Specifying font directories adds available `@font-face` declarations. Select the family you want to use with `font-family` in a custom template or in the document's CSS. Adding a directory does not automatically change the body font
 
 ### Caveats for host fonts
 
 - Being technically able to reference a font and being allowed to embed it in a distributed PDF are separate matters. You are responsible for checking each font's license terms
-- Fonts determined to prohibit embedding are excluded from the candidates, and if CSS requests such a font and no fallback is possible, that is an input error. Unused candidates and fonts whose restrictions cannot be determined from the file format produce warnings
-- The same inspection applies to local and `data:` fonts referenced directly via CSS URLs. `local()` produces a warning because the actual file cannot be identified in advance, so you must verify the usage and embedding rights yourself. For strict builds, use URLs of font files that can be inspected
+- When scanning font directories, pfpdf excludes fonts whose metadata indicates that embedding is prohibited and issues a warning. During these scans, it currently also excludes WOFF2 files and warns that it cannot inspect their metadata
+- Chapter 4 of the design document requires an input error when CSS requests a font for which embedding is prohibited and no fallback is possible. It also requires inspection of local and `data:` fonts referenced directly through CSS URLs, and a warning for `local()` because the actual file cannot be identified in advance. The current implementation does not perform these checks or issue these warnings
+- For fonts referenced directly from CSS, you must also verify the usage and embedding rights yourself. For strict builds, use URLs to font files you have inspected beforehand
 - Output that uses host fonts depends on the OS and on font updates, so identical appearance across environments is not guaranteed

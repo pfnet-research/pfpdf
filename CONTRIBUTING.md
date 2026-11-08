@@ -25,14 +25,14 @@ npm run lint
 - `make docs` must succeed on a clean checkout. It is an alias for the
   `docs-release` target, which builds the public documents with the `default`
   template.
-- `make list-templates` lists bundled templates, and `make docs-templates`
-  builds the compact sample plus `design.ja.pdf` and `tutorial.ja.pdf` with
-  every bundled template. A single template can be checked with a target such
-  as `make docs-template-pfn`. Outputs are written below
+- `make list-templates` lists bundled templates.
+- `make docs-templates` builds the compact sample plus `design.ja.pdf` and
+  `tutorial.ja.pdf` with every bundled template. A single template can be checked
+  with a target such as `make docs-template-pfn`. Outputs are written below
   `build/docs/templates/<template>/`.
-  `make docs-template-samples` builds only each template's `sample.pdf`, which
+- `make docs-template-samples` builds only each template's `sample.pdf`, which
   is the reduced target used by pull request CI.
-  `make docs-template-images` uses Poppler tools to validate the page count and
+- `make docs-template-images` uses Poppler tools to validate the page count and
   contents, then renders every page as a sequentially named PNG for visual
   review.
 
@@ -46,12 +46,12 @@ discussion can assess it. Treat proposed changes as potentially malicious.
 Maintainers normally make necessary corrections and limit the final diff
 against `main` to what the PR's purpose requires.
 
-## Release notes
+## Releases
 
 - Use a Conventional Commit title for the squash commit of a user-visible pull
   request. `feat:` proposes a minor release, `fix:` proposes a patch release,
-  and `!` marks a breaking change. The release pull request remains the place
-  where maintainers make the final version decision.
+  and `!` marks a breaking change. Maintainers make the final version decision
+  in the release pull request.
 - Release Please maintains `CHANGELOG.md`, the package version, and both lock
   files in one release pull request. Do not publish from a development checkout
   or create a release tag manually.

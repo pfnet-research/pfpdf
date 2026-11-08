@@ -4,8 +4,8 @@
 
 pfpdf is a build tool for **trusted local documents**. It is not a sandbox:
 
-- Raw HTML, `<style>`, and `<script>` in the input are executed as-is by the
-  rendering browser. There is no sanitization.
+- The rendering browser processes raw HTML and `<style>` elements and executes
+  `<script>` elements in the input as-is. There is no sanitization.
 - Input documents can reference any local file readable by the pfpdf process
   (images, CSS, fonts) and may fetch remote HTTP(S) resources.
 - The loopback asset server is an implementation detail, not a security

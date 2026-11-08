@@ -389,8 +389,8 @@ Options:
   --host-fonts             search OS standard font directories
   --font-dir PATH          extra font directory (repeatable)
   --browser-path PATH      browser used by the renderer
-  --render-timeout-ms N    absolute deadline in ms (default: 300000)
-  --keep-work-dir          keep the temporary workspace
+  --render-timeout-ms N    overall renderer time limit in ms (default: 300000)
+  --keep-work-dir          keep the temporary working directory
   --strict-front-matter    reject unknown front matter keys (default: warn and ignore)
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config print resolved configuration as JSON and exit

@@ -1,20 +1,28 @@
-# 6. template、ロゴ、アセット、フォント
+# 6. テンプレート、ロゴ、アセット、フォント
 
-## 6.1 bundled template
+<style>
+@media print {
+  h2[id="61-同梱テンプレート"] + p + table :is(th, td):first-child { min-width: 8em; }
+}
+</style>
 
-pfpdf には 7 つの template が同梱されています。
+## 6.1 同梱テンプレート
 
-| template | 説明 |
-|---|---|
-| `academic` | 論文や研究報告に適した、Noto Serif JP の明朝本文と、表、数式、図注を重視する抑制したデザイン |
-| `book` | tutorial、教科書、長文 manual に適した、章単位で読み進めるための落ち着いたデザイン |
-| `compact` | 会議資料、社内メモ、短い report に適した、独立した表紙を置かず狭い余白と2段組み目次でページ数を抑えるデザイン |
-| `default` | 中立なデザイン。既定値 |
-| `notebook` | ノートや計画表、小冊子に適した、温かくカジュアルなデザイン |
-| `pfn` | 企業文書向けのデザイン。ロゴは同梱されず、外部から注入します |
-| `technical` | コード、表、長い識別子を読みやすく配置する高密度な技術文書向けデザイン |
+pfpdf には 7 つのテンプレートが同梱されています。用途と特徴を目安に選んでください。
 
-通常は Markdown の front matter に `template` を書いて選択します。複数ファイルでは最初に指定された値を使います。
+| テンプレート | 主な用途 | 特徴 |
+|---|---|---|
+| `academic` | 論文、研究報告、調査報告 | 本文は Noto Serif JP の明朝体。表、数式、図注を重視し、装飾を抑えたデザイン |
+| `book` | チュートリアル、教科書、長文マニュアル | 章単位で読み進めるための落ち着いたデザイン |
+| `compact` | 会議資料、社内メモ、短い報告書や配布資料、参照用メモ | 独立した表紙を置かず、狭い余白と 2 段組み目次でページ数を抑えるデザイン |
+| `default` | 汎用文書 | 中立的なデザイン。既定のテンプレート |
+| `notebook` | ノート、計画表、小冊子、親しみやすさを重視する教材 | 温かくカジュアルなデザイン |
+| `pfn` | 企業文書、ブランド性を重視する公式文書 | ロゴ画像は同梱せず、外部から指定 |
+| `technical` | 技術文書、設計書、API 仕様 | コード、表、長い識別子を読みやすく配置する高密度なデザイン |
+
+`book` は章の区切りを明確にするため、短い章でも H1 の前で改ページするデザインです。ただし現在は、目次を表示すると、先頭の Markdown ファイル内の H1 にこの自動改ページが適用されません。ページ数を抑えたい文書には `default` または `compact` を使用してください。
+
+通常は Markdown のフロントマターに `template` を書いて選択します。複数ファイルでは最初に指定された値を使います。
 
 ```md
 ---
@@ -23,31 +31,29 @@ template: pfn
 ---
 ```
 
-一時的に別の見た目で出力する場合は `--template` を指定します。CLI は front matter の選択を上書きします。
-
-用途に迷う場合は、短い配布資料や参照用メモには `compact`、章単位で読み進める長文には `book`、親しみやすさを重視する教材には `notebook`、ブランド性を重視する公式文書には `pfn` を選ぶのが目安です。中立的な汎用文書には `default`、論文や調査報告には `academic`、設計書や API 仕様には `technical` が適します。
-
-`book` は章の区切りを明確にするため、短い章でも H1 ごとに新しいページを開始します。ページ数を抑えたい文書には `default` または `compact` を使用してください。
-
-bundled template は利用者が指定していない出版名、文書種別、ブランド名、目次名などの文字列を追加しません。全 template で共通のシリーズ名を表示したい場合は front matter の `series` を使います。表示位置と書体は template ごとに異なり、省略時は表示領域自体が削除されます。
+一時的に別の見た目で出力する場合は `--template` を指定します。CLI はフロントマターの選択を上書きします。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
 ```
 
-front matter から選べるのは bundled template だけです。CLI の `--template SOURCE` は、bundled preset 名との完全一致ならpreset、それ以外はlocal directoryまたはGit locatorとして扱います。presetであることを明示する場合は`--template-preset`を使います。template選択全体の優先順は、組み込みの`default`、front matter、CLIです。
+フロントマターから選べるのは同梱テンプレートだけです。CLI の `--template SOURCE` は、同梱プリセット名と完全に一致する値をプリセット名として扱い、それ以外はローカルディレクトリーまたは Git ロケーターとして扱います。同梱プリセットであることを明示する場合は `--template-preset` を使います。テンプレートは `default` を既定値とし、フロントマター、CLI の順に上書きされます。
 
-表紙を省略する場合は front matter の `cover: false` または CLI の `--no-cover` を使います。`--cover` で front matter の非表示を上書きできます。目次の `toc` / `--no-toc` とは独立して指定できます。`compact` では先頭の文書 header を省略します。表紙上の著者・日付・シリーズ・ロゴは表示しませんが、PDF metadata と、テンプレートが持つ本文の Confidential / シリーズの柱は維持します。
+同梱テンプレートは利用者が指定していない出版名、文書種別、ブランド名、目次名などの文字列を追加しません。すべての同梱テンプレートで共通のシリーズ名を表示したい場合は、フロントマターの `series` を使います。表示位置と書体はテンプレートごとに異なり、`series` を省略すると表示領域自体が削除されます。
+
+表紙を省略する場合は、フロントマターの `cover: false` または CLI の `--no-cover` を使います。`--cover` でフロントマターの非表示指定を上書きできます。表紙の表示は、目次の `toc` / `--no-toc` とは独立して指定できます。
 
 ```bash
 pfpdf --input report.md --output report.pdf --no-cover --no-toc
 ```
 
-custom template で表紙を切り替える場合は、その全体を `data-pfpdf-slot="cover"` の element にします。`content` / `toc` slot と独自の running element は cover の外へ置いてください。cover slot がない custom template の表示は、この切替では変わりません。
+表紙を非表示にすると、`compact` では先頭の文書ヘッダーが省略されます。表紙上の著者・日付・シリーズ名・ロゴは表示しませんが、PDF のメタデータと、テンプレートが持つ本文の Confidential やシリーズ名の柱は維持します。
 
-## 6.2 ロゴの注入
+カスタムテンプレートで表紙を切り替える場合は、表紙全体を `data-pfpdf-slot="cover"` を持つ要素にします。`content` / `toc` スロットと独自の柱要素（running element）は、`cover` の外へ置いてください。`cover` スロットがないカスタムテンプレートの表示は、この切替では変わりません。
 
-bundled template にはロゴ画像を含めていません。通常はMarkdownのfront matterに、利用者が権利を持つlocal fileを指定します。相対pathは`logo`を最初に指定したMarkdownの親directory基準です。custom templateは`logo` slotの`src`にtemplate相対pathを書くことで既定ロゴを持てます。
+## 6.2 ロゴの指定
+
+同梱テンプレートにはロゴ画像を含めていません。通常は Markdown のフロントマターに、利用者が権利を持つローカルファイルを指定します。相対パスは、`logo` を最初に指定した Markdown の親ディレクトリーを基準にします。
 
 ```md
 ---
@@ -57,27 +63,27 @@ logo: assets/logo.png
 ---
 ```
 
-front matterの相対pathは、そのMarkdownの親directory基準です。`logo: false`ならtemplate既定値を含めてロゴを表示しません。Git locatorや一時的な上書きには`--logo` / `--no-logo`を使います。
+`logo: false` を指定すると、テンプレートの既定値を含めてロゴを表示しません。Git ロケーターから取得する場合や一時的に上書きする場合は、CLI の `--logo` を使います。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --template pfn --logo assets/logo.png
 ```
 
-- ロゴの相対パスはカレントディレクトリ基準で解決されます
-- 明示ロゴがなければ template の既定 `src` を使います。それもなければロゴ領域自体を削除し、壊れた画像 placeholder を残しません
-- repository logoを継続的に使う場合は、MakefileやCI workflowに`--logo`を記録してください
-- front matterまたはtemplate既定ロゴを一時的に使わない場合は`--no-logo`を指定します
+- CLI で指定するロゴの相対パスは、カレントディレクトリーを基準に解決されます
+- ロゴを明示しない場合は、テンプレートの既定の `src` を使います。それもなければロゴの表示領域自体を削除し、壊れた画像を示す代替表示を残しません
+- フロントマターまたはテンプレートの既定ロゴを一時的に使わない場合は、`--no-logo` を指定します
+- リポジトリーで管理するロゴを継続的に使う場合は、Makefile や CI ワークフローに `--logo` を記録してください
 
 ```make
 docs.pdf: $(wildcard docs/*.md)
-	npx --yes @pfnet-research/pfpdf@0.1.0 --input docs --output $@ \
+	npx --yes @pfnet-research/pfpdf@0.4.0 --input docs --output $@ \
 	  --template pfn --logo assets/logo.png
 ```
 
-## 6.3 custom template
+## 6.3 カスタムテンプレート
 
-bundled template で足りない場合は、`--template` で独自の template directory を指定できます。directory には次の 3 ファイルを置きます。
+同梱テンプレートで足りない場合は、`--template` で独自のテンプレートディレクトリーを指定できます。ディレクトリーには次の 3 ファイルを置きます。
 
 ```text
 my-template/
@@ -90,14 +96,14 @@ my-template/
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template ./my-template
 ```
 
-- custom template は信頼できるローカルコードとして扱われ、raw HTML や script を実行できます
-- template format に version 間の互換性保証はありません。見た目を維持したい場合は pfpdf の version を固定してください
-- `template.html` は HTML document とし、本文の挿入先を `data-pfpdf-slot="content"` で 1 個だけ指定します
-- `title`、`author`、`series`、`date`、`confidential`、`toc`、`logo` の optional slot も 0 または 1 個置けます。未知 slot、重複 slot、必須 `content` の欠落はエラーです
-- 目次が複数ページに続く場合、文書言語に応じた継続ラベルが柱に表示されます。custom template で表示位置を変更する場合は、目次内の `.pfpdf-toc-continuation-marker` が設定する `pfpdf-toc-continuation` named string を paged media の margin box から参照します
-- 処理された `data-pfpdf-slot` attribute は組立て後の HTML から除去されます。その他の trusted attribute は保持されます
+- カスタムテンプレートは信頼できるローカルコードとして扱われ、生の HTML やスクリプトを実行できます
+- テンプレートの形式にバージョン間の互換性保証はありません。見た目を維持したい場合は pfpdf のバージョンを固定してください
+- `template.html` は HTML 文書とし、本文の挿入先を `data-pfpdf-slot="content"` で 1 個だけ指定します
+- 省略可能なスロットとして、`cover`、`title`、`author`、`series`、`date`、`confidential`、`toc`、`logo` をそれぞれ 0 または 1 個置けます。未知のスロット、スロットの重複、必須の `content` の欠落はエラーです
+- 目次が複数ページに続く場合、文書言語に応じた継続ラベルが柱に表示されます。カスタムテンプレートで表示位置を変更する場合は、目次内の `.pfpdf-toc-continuation-marker` が設定する名前付き文字列 `pfpdf-toc-continuation` を、ページメディアのマージンボックスから参照します
+- 処理済みの `data-pfpdf-slot` 属性は、HTML を組み立てた後に削除されます。信頼済みの入力に含まれるその他の属性は保持されます
 
-最小の `template.html` は次のようになります。metadata は文字列置換ではなく、slot element の child node として安全に挿入されます。
+最小の `template.html` は次のようになります。メタデータは文字列置換ではなく、スロット要素の子ノードとして安全に挿入されます。
 
 ```html
 <!doctype html>
@@ -115,18 +121,23 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template ./my-
 </html>
 ```
 
-既定ロゴを持たせる場合は、例えば `src="assets/brand/logo.svg"` を `logo` slot に設定します。`--logo` はlocal pathでもGit locatorでもこの`src`を上書きします。明示ロゴを指定したtemplateに`logo` slotがない場合は、指定を黙って無視せずエラーになります。既定`src`も明示ロゴもなければ`logo` slot自体が出力から削除されます。authorまたはseries未指定時も対応するslotが削除されます。`toc` slotがない場合、目次は`content`の先頭に挿入されます。
+既定のロゴを持たせる場合は、例えば `src="assets/brand/logo.svg"` を `logo` スロットに設定します。このパスはテンプレートディレクトリーを基準にした相対パスです。`--logo` は、ローカルパスでも Git ロケーターでも、この `src` を上書きします。
 
-## 6.4 Git repository source
+- ロゴを明示してもテンプレートに `logo` スロットがなければ、指定を黙って無視せずエラーになります
+- 既定の `src` も明示指定のロゴもなければ、`logo` スロット自体が出力から削除されます
+- `author` または `series` が未指定の場合も、対応するスロットが削除されます
+- `toc` スロットがない場合、目次は `content` の先頭に挿入されます
 
-template または logo は Git repository 内のサブディレクトリ／file から直接取得できます。repository URL と repository 内 path の境界は `//`、revision は `ref` で指定します。
+## 6.4 Git リポジトリーからの取得
+
+テンプレートは Git リポジトリー内のサブディレクトリーから、ロゴはファイルから直接取得できます。リポジトリー URL とリポジトリー内のパスを `//` で区切り、リビジョンを `ref` で指定します。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --template 'git::https://github.com/example/pdf-assets.git//templates/corporate?ref=0123456789abcdef0123456789abcdef01234567'
 ```
 
-別の repository logo で既定ロゴを上書きする例です。
+別のリポジトリーのロゴで、既定のロゴを上書きする例です。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
@@ -134,38 +145,41 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --logo 'git::ssh://git@example.com/pdf-assets.git//logos/brand/main.svg?ref=v2.0.0'
 ```
 
-- `PATH` は repository root からの相対 path で、`templates/brand/print` や `logos/brand/main.svg` のようなサブディレクトリを指定できます
-- revision には branch、tag、commit を使えます。省略時は remote `HEAD` を取得して warning を出します。CI では完全な commit hash に固定してください
-- private repository は Git credential helper または SSH agent で認証します。token や password を URL へ埋め込まないでください
-- submodule は取得しません。repository template も raw HTML や script を実行できる trusted code です
-- repository source を繰り返し使う offline build では、あらかじめ clone し、`--template` や `--logo` で local path を渡せます
+- リポジトリー内のパスはルートからの相対パスで、`templates/brand/print` のようなサブディレクトリーや `logos/brand/main.svg` のようなファイルを指定できます
+- リビジョンにはブランチ、タグ、コミットを使えます。省略時はリモートの `HEAD` を取得して警告を出します。CI では完全なコミットハッシュに固定してください
+- 非公開リポジトリーは Git の認証情報ヘルパーまたは SSH エージェントで認証します。トークンやパスワードを URL へ埋め込まないでください
+- サブモジュールは取得しません。リポジトリーから取得するテンプレートも、生の HTML やスクリプトを実行できる信頼済みコードです
+- オフラインでビルドを繰り返す場合は、あらかじめリポジトリーをクローンし、`--template` や `--logo` でローカルパスを渡せます
 
 ## 6.5 ローカルアセット
 
-画像や CSS などのローカルファイルは、Markdown からの相対パスで参照します(02 章参照)。空白や日本語を含むパスも使えます。入力ディレクトリが読み取り専用でも変換できます。
+画像や CSS などのローカルファイルは、Markdown の親ディレクトリーを基準にした相対パスで参照します（第2章参照）。空白や日本語を含むパスも使えます。入力ディレクトリーが読み取り専用でも変換できます。
 
 ## 6.6 フォント
 
-pfpdf には再配布可能な日本語フォント(Noto Sans CJK JP など)が同梱されており、bundled template は既定でこの同梱フォントを明示します。通常の文書は OS の font 探索結果に依存しません。ただし custom / raw CSS が OS 固有の family を直接要求した場合、Chromium 自体の font discovery まで pfpdf が隔離することはできません。再現性が必要な文書では、custom / raw CSS から OS 固有の family を要求しないでください。
+pfpdf には Noto Sans JP などの再配布可能な日本語フォントが同梱されており、同梱テンプレートは既定でこのフォントを明示的に指定します。通常の文書は OS のフォント探索結果に依存しません。
 
-### host font の利用
+ただし、カスタム CSS や直接記述した CSS が OS 固有のフォントファミリーを要求した場合、Chromium 自体のフォント探索まで pfpdf が隔離することはできません。再現性が必要な文書では、このようなファミリーを要求しないでください。
 
-OS にインストールされたフォントを使いたい場合は、明示的に opt-in します。
+### ホストフォントの利用
+
+OS にインストールされたフォントを使うには、CLI で明示的に有効化します。
 
 ```bash
-# OS 標準の font directory を探索する
+# OS 標準のフォントディレクトリーを探索する
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --host-fonts
 
-# 特定の directory だけを追加する(--host-fonts なしでも可)
+# 特定のディレクトリーだけを追加する（--host-fonts なしでも可）
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --font-dir ~/my-fonts
 ```
 
 - `--font-dir` は複数回指定できます
-- font directory の指定は利用可能な `@font-face` を追加します。実際に使う family は custom template や文書の CSS で `font-family` に指定してください。directory を追加しただけで本文 font が自動変更されることはありません
+- フォントディレクトリーを指定すると、利用できる `@font-face` 定義が追加されます。実際に使うフォントファミリーは、カスタムテンプレートや文書の CSS で `font-family` に指定してください。ディレクトリーを追加しただけで本文のフォントが自動変更されることはありません
 
-### host font の注意点
+### ホストフォントの注意点
 
 - フォントを技術的に参照できることと、そのフォントを PDF へ埋め込んで配布できることは別問題です。各フォントのライセンス条件は利用者自身が確認してください
-- 埋め込み禁止を判定できたフォントは候補から除外され、CSS がその font を要求して fallback できない場合は入力エラーになります。未使用候補や format 上で制限を判定できない場合は warning が出ます
-- CSS の URL で直接指定した local / `data:` font にも同じ検査が行われます。`local()` は実ファイルを事前特定できないため warning になり、利用権と埋め込み権は利用者が確認します。厳密な build では検査可能な font file の URL を使ってください
-- host font を使った出力は OS とフォントの更新に依存し、環境をまたいだ同一の見た目は保証されません
+- フォントディレクトリーの探索では、埋め込みが禁止されていると判定できたフォントを候補から除外し、警告を出します。現在はメタデータを検査できない WOFF2 も、警告して候補から除外します
+- 設計書第4章では、CSS が埋め込み禁止のフォントを要求し、フォールバックもできない場合を入力エラーにし、CSS の URL で直接指定するローカルフォントや `data:` フォントも検査することを求めています。実ファイルを事前に特定できない `local()` への警告も要件です。これらの検査・警告は、現在の実装では行われていません
+- CSS から直接指定するフォントも、利用者自身で利用権と埋め込み権を確認してください。厳密なビルドでは、事前に検査したフォントファイルを URL で指定してください
+- ホストフォントを使った出力は OS とフォントの更新に依存し、環境をまたいだ同一の見た目は保証されません
