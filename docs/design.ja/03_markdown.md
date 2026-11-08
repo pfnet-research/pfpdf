@@ -2,71 +2,75 @@
 
 ## 3.1 基準は GFM
 
-pfpdf の Markdown 基準は [GitHub Flavored Markdown Spec 0.29-gfm](https://github.github.com/gfm/)です。独自 parser は実装せず、保守されている CommonMark / GFM 対応の JavaScript / TypeScript library を source lockfile と公開用 shrinkwrap で固定して利用します。spec version の変更は単なる dependency update とせず、全 conformance example と expected deviation を review する仕様変更として扱います。
+pfpdf の Markdown は [GitHub Flavored Markdown Spec 0.29-gfm](https://github.github.com/gfm/) を基準とします。独自のパーサーは実装せず、保守されている CommonMark / GFM 対応の JavaScript / TypeScript ライブラリーを、ソース側のロックファイルと公開用 shrinkwrap でバージョンを固定して利用します。仕様のバージョンを変える場合は、すべての準拠検査用の例と意図的な仕様差をレビューする仕様変更として扱います。通常の依存関係の更新としては扱いません。
 
 少なくとも次を GFM / CommonMark の規則どおり処理します。
 
-- ATX / setext 見出し、paragraph、soft / hard line break、thematic break
-- unordered / ordered / nested list、loose / tight list、task list
-- blockquote、indented / fenced code block、inline code
-- inline / reference link、image、autolink、backslash escape、HTML entity
+- ATX / setext 形式の見出し、段落、ソフト改行 / ハード改行、水平線（thematic break）
+- 順序なし / 順序付き / 入れ子のリスト、loose / tight リスト、タスクリスト
+- 引用、字下げ / フェンスによるコードブロック、インラインコード
+- インライン / 参照形式のリンク、画像、自動リンク、バックスラッシュによるエスケープ、HTML 文字参照
 - `*emphasis*`、`**strong emphasis**`、`~~strikethrough~~` と妥当な入れ子
-- table と alignment
-- inline / block raw HTML
+- 表と列揃え
+- インライン / ブロックとして直接記述した HTML（raw HTML）
 
-## 3.2 parser pipeline
+## 3.2 解析の流れ
 
-GFM に対する pfpdf extension は parser pipeline 上で分離します。
+GFM の処理と pfpdf 独自の拡張処理は、解析工程内で分けて扱います。
 
-1. UTF-8 と front matter を検証し、入力 file の順序を確定する
-2. 各 Markdown file を独立した document とし、GFM、CJK-friendly delimiter、数式、pfpdf directive の tokenizer extension を同じ parse に組み込んで AST を生成する。code / raw HTML を最優先で保護し、その外側では数式 / directive が内部 token を確保してから emphasis / strong を処理する
-3. 各 file AST の先頭へ file anchor を付け、AST の配列として 1 文書へ結合する
-4. 見出し ID、目次、file 間 link、resource URL を AST / HTML / CSS parser 上で処理する
-5. context-aware escape と DOM API を使って HTML を生成する
+1. UTF-8 とフロントマターを検証し、入力ファイルの順序を確定する
+2. 各 Markdown ファイルを独立した文書として解析する。GFM、CJK 向けの区切り規則、数式、pfpdf の指示記法を同じトークナイザーの拡張機能として組み込み、AST を生成する。コード / 生の HTML を最優先で保護し、その外側では数式 / 指示記法が内部のトークンを確保してから、強調 / 強い強調を処理する
+3. 各ファイルの AST の先頭にファイルアンカーを付け、AST の配列として 1 文書に結合する
+4. 見出し ID、目次、ファイル間のリンク、リソース URL を AST / HTML / CSS のパーサー上で処理する
+5. 文脈に応じたエスケープと DOM API を使って HTML を生成する
 
-Markdown source の文字列を separator だけで連結してから parse してはいけません。その方法では、未閉鎖の code fence / HTML block、list、setext heading、link reference definition が次の file へ漏れ、file 単体と異なる構文木になるためです。各 file を独立 parse するため、link reference definition と footnote 相当の extension scope も file 内に限定します。file 境界自体は空 paragraph を生成せず、block が隣接しても互いの構文を変えません。
+Markdown のソース文字列を区切り文字だけで連結してから解析してはいけません。閉じていないコードフェンス / HTML ブロック、リスト、setext 形式の見出し、リンク参照定義が次のファイルに影響し、ファイル単体の場合と異なる構文木になるためです。各ファイルを独立して解析するので、リンク参照定義と脚注に相当する拡張機能の有効範囲もファイル内に限定します。ファイル境界には空の段落を生成せず、隣接するブロック同士の構文も変えません。
 
-表の描画では、4 grapheme以下の非空セルに `.pfpdf-table-cell-compact`、それより長いセルに `.pfpdf-table-cell-min-4` を付けます。短い状態語などを一行に保ちながら、長文セルは折り返せるようにするためです。8列以上の表には `.pfpdf-table-many-columns` を付け、templateが列の意味や位置を推測せず、表全体の文字サイズと余白を調整できるようにします。
+表を描画するときは、空でなく 4 書記素クラスター（grapheme cluster）以下のセルに `.pfpdf-table-cell-compact`、それより長いセルに `.pfpdf-table-cell-min-4` を付けます。短い状態語などを 1 行に保ちながら、長文のセルは折り返せるようにするためです。8 列以上の表には `.pfpdf-table-many-columns` を付けます。テンプレート側で列の意味や位置を推測せずに、表全体の文字サイズと余白を調整できます。
 
-全 bundled template は、GFM の列揃え指定を見出しセルと本文セルの両方で維持します。`left` / `right` は文書の `dir` にかかわらず物理的な左右、`center` は中央揃えです。未指定セルの既定値は論理方向の `start` とし、LTR では左、RTL では右に揃えます。長文の折り返しによって揃え指定は変えません。
+同梱するすべてのテンプレートは、GFM の列揃え指定を見出しセルと本文セルの両方で維持します。`left` / `right` は文書の `dir` にかかわらず物理的な左右、`center` は中央揃えです。未指定セルの既定値は論理方向の `start` とし、LTR では左、RTL では右に揃えます。長文の折り返しによって揃え指定は変えません。
 
-## 3.3 pfpdf extension
+## 3.3 pfpdf の拡張機能
 
 ### 3.3.1 数式
 
-`$...$`(inline)と `$$...$$`(display)の数式は pfpdf extension とします。bundled MathJax で typeset します。
+`$...$` による行内数式と `$$...$$` による別行立ての数式は、pfpdf の拡張機能とします。同梱する MathJax で組版します。
 
-- inline delimiter は backslash escape されていない単一 `$` とし、開始直後と終了直前を whitespace にしない。改行をまたがず、対応する終了 delimiter がない `$` は text のままにする
-- display delimiter は block の先頭から末尾までを占める単独行 `$$` の組だけとし、開始と終了の delimiter 行の間を TeX source とする
-- 対応する終了 delimiter がない `$$` は開始扱いせず GFM の text のままにする。delimiter と式を同じ行に置く記法も display math にしない
-- code、raw HTML、autolink、link destination 内では数式 delimiter を認識しない。`\$` は literal `$` とする
-- GFM parser と同じ tokenizer の構文 extension として認識し、code / raw HTML の context を文字列から再推測しない。token 化は入力長に対して線形時間で行い、開始 delimiter ごとに残り全文を探索する実装や、catastrophic backtracking を起こし得る正規表現を使わない
+- 行内数式の区切りは、バックスラッシュでエスケープされていない単一の `$` とする。開始直後と終了直前には空白文字を置かない。改行をまたがず、対応する終了の区切りがない `$` はテキストのままにする
+- 別行立ての数式の区切りは、ブロックの先頭と末尾でそれぞれ単独行を占める `$$` の組だけとする。開始行と終了行の間を TeX ソースとする
+- 対応する終了の区切りがない `$$` は開始扱いせず、GFM のテキストのままにする。区切りと式を同じ行に置く記法も、別行立ての数式としては扱わない
+- コード、生の HTML、自動リンク、リンク先の URL 内では数式の区切りを認識しない。`\$` は文字どおりの `$` とする
+- GFM パーサーと同じトークナイザーの構文拡張として認識し、コード / 生の HTML の文脈を文字列から再推測しない。トークン化は入力長に対して線形時間で行う。開始の区切りごとに残り全文を探索する実装や、破滅的なバックトラッキングを起こし得る正規表現は使わない
 
-MathJax が source 数式の TeX error を報告した場合は、赤い error 表示を含む PDF を成功させず、元の source file / line を付けた code `2` にします。bundled MathJax 自体の load / initialization failure は配布物または runtime の問題として code `1` にします。
+MathJax が入力数式の TeX エラーを報告した場合は、赤いエラー表示を含む PDF を成功扱いにせず、元のソースファイル名と行番号を付けて終了コード `2` とします。同梱する MathJax 自体の読込み / 初期化の失敗は、配布物または実行環境の問題として終了コード `1` とします。
 
 ### 3.3.2 改ページ
 
-block container の外側で、indent なしの行全体が ASCII underscore 3 個以上の連続だけである行（`___`、`____` など） は、GFM では thematic break ですが pfpdf では改ページとして予約します。前後または途中の空白、blockquote / list item 内の `___` は予約記法に含めず GFM として処理します。通常の thematic break には `---` または `***` を利用できます。この差分は GFM conformance suite 上の明示的な expected deviation として記録します。
+引用やリストなどのブロックコンテナーの外側で、字下げも空白もなく、ASCII のアンダースコアが 3 個以上連続するだけの行（`___`、`____` など）を改ページ用に予約します。GFM では水平線になる記法です。前後または途中に空白がある行や、引用 / リスト項目内の `___` は予約記法に含めず、GFM として処理します。通常の水平線には `---` または `***` を利用できます。この差分は GFM 準拠検査で意図的な仕様差として明示します。
 
-directive は「次の描画対象 block を新しい page の先頭から始める」という意味に正規化し、次の block に予約済み `data-pfpdf-page-break` attribute を付けて paged CSS の `break-before: page` で実装します。文書先頭 / 末尾の directive と連続する directive は空白 page を作らず、1 個の break へ畳みます。空白 page 自体を挿入する機能は `v0.1.0` では提供しません。
+改ページの指示は「次の描画対象ブロックを新しいページの先頭から始める」という意味に正規化します。次のブロックに予約済みの `data-pfpdf-page-break` 属性を付け、ページ組版用 CSS の `break-before: page` で実装します。文書の先頭 / 末尾にある指示は無視し、連続する指示は 1 回の改ページにまとめ、空白ページは作りません。空白ページ自体を挿入する機能は `v0.1.0` では提供しません。
 
-### 3.3.3 見出し anchor と目次
+### 3.3.3 見出しアンカーと目次
 
-各 source file の先頭に `pfpdf-file-0001` 形式の連番 anchor を割り当てます。template と raw HTML の明示 ID は生成する見出し ID の衝突回避に利用しますが、trusted HTML の ID 自体の形式・重複は検査しません。見出し ID は次の手順により一意化します。
+各ソースファイルの先頭に、`pfpdf-file-0001` 形式の連番アンカーを割り当てます。テンプレートと生の HTML に明示した ID は、生成する見出し ID の衝突を避けるために使います。ただし、信頼して扱う HTML の ID 自体の形式や重複は検査しません。見出し ID は次の手順で一意にします。
 
-1. AST から見出しの plain text を得る。code span は内容、image は alt text を使い、raw HTML tag 自体は除く
-2. release で固定した Unicode data により NFC に正規化し、locale に依存しない default lowercase へ変換する。host ICU や locale によって slug を変えない
-3. control character と、`_` / `-` を除く ASCII punctuation を除き、whitespace の連続を `-` 1 個へ変換して両端の `-` を除く。Unicode の文字・数字・結合文字は保持する
+1. AST から見出しのプレーンテキストを得る。コードスパンは内容、画像は代替テキストを使い、生の HTML のタグ自体は除く
+2. リリースで固定した Unicode データに基づいて NFC に正規化し、ロケールに依存しない既定の小文字変換を行う。ホストの ICU やロケールによってスラッグを変えない
+3. 制御文字と、`_` / `-` を除く ASCII の約物を除く。連続する空白文字を 1 個の `-` に変換し、両端の `-` を除く。Unicode の文字・数字・結合文字は保持する
 4. 空になった場合は `section` とする
-5. 既使用 ID と衝突する場合は `-2`、`-3` の順に、未使用になるまで suffix を増やす。元から suffix を持つ見出しとの衝突も同じ global set で確認する。base ごとの次 suffix cursor を保存し、重複のたびに `-2` から走査し直さない
+5. 既に使われた ID と衝突する場合は、未使用になるまで `-2`、`-3` の順に接尾辞を増やす。元から接尾辞を持つ見出しとの衝突も、文書全体で共通の集合を使って確認する。接尾辞を付ける前の文字列ごとに次の番号を保存し、重複のたびに `-2` から走査し直さない
 
-目次には Markdown AST の heading node(`h1` から `h6`)を source 順にすべて含め、raw HTML / template 自身の見出しと表紙の metadata title は含めません。raw HTML の見出しへ自動 ID は付けず、link target にする場合は明示 `id` を指定します。同一文書へ結合される `chapter.md` への link は file anchor へ変換します。`chapter.md#fragment` は対象 file 内、`#fragment` は link を書いた source file 内で、percent encoding を 1 回 decode した fragment と最終的な明示 / 見出し ID を Unicode code point 単位で完全一致させます。基本 slug から suffix を推測し直さず、重複見出しの 2 個目へは実際の `-2` 付き ID を使います。相対 Markdown link の query component は意味を定義せず終了 code `2` とします。存在しない target も code `2` とし、case-insensitive な推測や basename だけの曖昧な照合は行いません。
+目次には Markdown AST の見出しノード（`h1` から `h6`）をソース順にすべて含めます。生の HTML / テンプレート自身の見出しと、表紙のメタデータにあるタイトルは含めません。生の HTML の見出しには自動 ID を付けないので、リンク先にする場合は `id` を明示します。
 
-PDF の栞(outline)は、目次と同じ見出しから作ります。Vivliostyle は文書の目次 navigation にある `li` / `ol` の入れ子から栞の階層を作りますが、表示用の目次は depth class で字下げした平らな list です。そのため builder は、同じ見出しを見出しレベルで入れ子にした `nav.pfpdf-outline` を content の末尾に追加します。レベルを飛ばした見出しは、直前の浅い見出しの子にします。この nav は `epub:type="toc"` により表示用の `role="doc-toc"` より優先され、`hidden` により本文には表示されません。template に `nav { display: block; }` などの指定があっても印字されないよう、生成 CSS でも `nav.pfpdf-outline[hidden]` を非表示にします。Vivliostyle の TOC view は文書の stylesheet を使わず、`[hidden]` を表示に戻して読むため、栞には反映されます。栞は PDF viewer の navigation なので、`toc: false` で表示用の目次を省いた場合も出力します。content の末尾に置くのは、template の先頭要素向けの rule に影響させないためです。
+同一文書に結合する `chapter.md` へのリンクはファイルアンカーに変換し、`chapter.md#fragment` は `#fragment` に変換します。対象ファイルは、パーセントエンコーディングを一度復号して正規化したパスと、入力ファイル名を完全一致で照合します。大文字・小文字を無視した推測や、ベース名だけの曖昧な照合は行いません。フラグメントと明示 ID / 見出し ID の整合性は検査しません。`#fragment`、結合対象にない Markdown ファイルへのリンク、クエリーを持つ相対リンク、その他の移動用リンクは保持し、レンダラーに解釈を任せます。重複見出しの 2 個目へリンクする場合は、実際に生成された `-2` 付き ID を使います。
 
-### 3.3.4 日本語 strong emphasis(CJK-friendly)
+PDF の栞は、目次と同じ見出しから作ります。Vivliostyle は目次ナビゲーションにある `li` / `ol` の入れ子から栞の階層を作りますが、表示用の目次は深さ別のクラスで字下げした平らなリストです。そのため、文書の組立て時に、同じ見出しを見出しレベルに応じて入れ子にした `nav.pfpdf-outline` を本文の末尾に追加します。レベルを飛ばした見出しは、直前の浅い見出しの子にします。
 
-CommonMark の flanking delimiter rule には、`**` の内側が全角約物・括弧で、外側に空白を置かない CJK 文字が続くと strong emphasis として認識されない問題があります。pfpdf は日本語文書で自然な記法を使えることを優先し、少なくとも次を `<strong>` へ変換します。
+この `nav` は `epub:type="toc"` により表示用の `role="doc-toc"` より優先され、`hidden` により本文には表示されません。テンプレートに `nav { display: block; }` などの指定があっても印字されないよう、生成 CSS でも `nav.pfpdf-outline[hidden]` を非表示にします。Vivliostyle の TOC ビューは文書のスタイルシートを使わず、`[hidden]` を表示に戻して読むため、栞には反映されます。栞は PDF ビューアーのナビゲーションなので、`toc: false` で表示用の目次を省いた場合も出力します。本文の末尾に置くのは、テンプレートの先頭要素向けの規則に影響させないためです。
+
+### 3.3.4 日本語の強い強調（CJK-friendly）
+
+CommonMark の区切り文字の前後を判定する規則（flanking delimiter rule）には、`**` の内側が全角約物・括弧で、外側に空白を置かず CJK 文字が続くと、強い強調として認識されない問題があります。pfpdf は日本語文書で自然な記法を使えることを優先し、少なくとも次を `<strong>` に変換します。
 
 ```md
 これは**重要**です。
@@ -75,12 +79,12 @@ CommonMark の flanking delimiter rule には、`**` の内側が全角約物・
 ここは**（重要事項）**です。
 ```
 
-- 選定 parser に対応する保守済みの CJK-friendly delimiter extension を version 固定して利用する。remark / micromark 系なら `remark-cjk-friendly` などを第一候補とし、GFM strikethrough との組合せも確認する
-- parser の標準機能または既存 extension で満たせない場合だけ同等の delimiter rule を最小実装する
-- parse 後の正規表現や HTML 置換では補正しない
-- code span、fenced code、raw HTML、link destination、数式、escape 済み `\**`、対応しない片側だけの `**` は書き換えない
-- 日本語句読点、全角括弧、ASCII / CJK の隣接、nested emphasis、3 個以上の `*` を fixture 化し、CommonMark / GFM からの意図的な差分として記録する
-- delimiter 処理は token 数に対して線形時間となる実装を選び、長い `*` の列や閉じ delimiter のない入力で二次時間にならないことを stress test する
+- CJK 向けに区切り規則を補う拡張機能を使う。選定したパーサーに対応し、保守されているものを選び、バージョンを固定する。remark / micromark 系なら `remark-cjk-friendly` などを第一候補とし、GFM の取り消し線との組合せも確認する
+- パーサーの標準機能または既存の拡張機能で満たせない場合だけ、同等の区切り規則を最小限の実装で補う
+- 解析後の正規表現や HTML 置換では補正しない
+- コードスパン、フェンスによるコードブロック、生の HTML、リンク先の URL、数式、エスケープ済みの `\**`、対応しない片側だけの `**` は書き換えない
+- 日本語句読点、全角括弧、ASCII / CJK の隣接、入れ子の強調、3 個以上の `*` をテスト用データにし、CommonMark / GFM からの意図的な差分として記録する
+- 区切りの処理はトークン数に対して線形時間となる実装を選ぶ。長い `*` の列や閉じる区切りのない入力で二次時間にならないことを、ストレステストで確認する
 
 背景資料:
 
@@ -89,93 +93,99 @@ CommonMark の flanking delimiter rule には、`**` の内側が全角約物・
 
 ### 3.3.5 長い連続文字列の改行候補
 
-Markdown と raw HTML を HAST に変換し、見出し ID・目次・resource URL を確定し、数式と code highlight を描画した後、通常の可視 text node に `<wbr>` を挿入します。これは Markdown 構文ではなく出力 decoration です。入力、link destination、`href`、`src`、`id`、class、style、その他の property は変更しません。
+Markdown と生の HTML を HAST に変換し、見出し ID・目次・リソース URL を確定し、数式の描画とコードハイライトの適用を終えた後、通常の可視テキストノードに `<wbr>` を挿入します。これは Markdown 構文ではなく、出力への装飾です。入力、リンク先の URL、`href`、`src`、`id`、クラス、スタイル、その他のプロパティーは変更しません。
 
-空白や既存の改行候補を含まない run は `Intl.Segmenter` の grapheme cluster 単位で数えます。15 grapheme以下は変更せず、16 grapheme以上は少なくとも1個の候補を持ち、各区間を原則16 grapheme以下にします。URL / path の `/`、`?`、`&`、`#`、`;`、`=`、host・file・識別子の `.`, `@`, `:`, `-`, `_` など、camelCaseや文字・数字の遷移、固定長 fallback の順に優先します。`://`、percent encoding の `%HH`、IPv6 の `::`、結合文字、variation selector、emoji ZWJ sequenceの途中では分割しません。候補数、priority、短い端片、区間長の偏り、source位置の順に決定的に評価します。
+空白や既存の改行候補を含まない連続文字列は、`Intl.Segmenter` の書記素クラスター単位で数えます。15 書記素クラスター以下は変更せず、16 以上では少なくとも 1 個の候補を設け、各区間を原則 16 以下にします。改行位置は、URL / パスの `/`、`?`、`&`、`#`、`;`、`=`、ホスト名・ファイル名・識別子の `.`、`@`、`:`、`-`、`_` など、camelCase や文字・数字の切替わり、固定長での分割の順に優先します。`://`、パーセントエンコーディングの `%HH`、IPv6 の `::`、結合文字、異体字セレクター、絵文字の ZWJ シーケンスの途中では分割しません。
 
-inline element の境界では run を継続するため、link、`strong`、`em` をまたぐ表示文字列にも対応します。block、`br`、既存の `wbr`、zero-width space、soft hyphen、通常の CJK 組版で文字間改行できる文字では run を終了します。既存の `wbr` を尊重し、同じ transform を二度実行しても候補は増えません。
+各区間を原則として最小 4 書記素クラスターとし、各候補の優先度の合計、候補数、区間長の二乗和、連続文字列内の候補位置の和の順に、小さい値を優先して改行位置を決めます。区間長の二乗和は長さの偏りを抑えるために使います。同じ入力では常に同じ位置が選ばれます。
 
-`pre`、`code`、`kbd`、`samp`、`script`、`style`、`textarea`、`svg`、`math`、`.pfpdf-math-src`、`.pfpdf-math-inline`、`.pfpdf-math-display`、`contenteditable` subtree、replaced elementは対象外です。codeと数式のDOM、実行内容、form value、accessible text、利用者が管理するDOMを完全に保持します。処理は source section にだけ適用し、template 固定UIには適用しません。run長を `n` として bounded dynamic programming は時間 `O(n * 16)`、memory `O(n)` です。
+インライン要素の境界でも連続文字列として扱うため、リンク、`strong`、`em` をまたぐ表示文字列にも対応します。ブロック、`br`、既存の `wbr`、ゼロ幅スペース、ソフトハイフン、通常の CJK 組版で文字間改行できる文字では、連続文字列を区切ります。既存の `wbr` を尊重し、同じ変換を二度実行しても候補は増えません。
+
+`pre`、`code`、`kbd`、`samp`、`script`、`style`、`textarea`、`svg`、`math`、`.pfpdf-math-src`、`.pfpdf-math-inline`、`.pfpdf-math-display`、`contenteditable` の部分木、置換要素は対象外です。コードと数式の DOM、実行内容、フォームの値、アクセシビリティー用のテキスト、利用者が管理する DOM を完全に保持します。処理はソースファイルに対応するセクションだけに適用し、テンプレートの固定 UI には適用しません。連続文字列の長さを `n` とすると、範囲を制限した動的計画法の計算量は時間 `O(n * 16)`、メモリー `O(n)` です。
 
 ### 3.3.6 Mermaid
 
-info string が小文字の `mermaid` である fenced code block は pfpdf extension として図へ変換します。package に固定した Mermaid と server-side DOM adapter を使い、Markdown pipeline 内で静的 SVG を生成します。SVG は `generated/mermaid-NNNN.svg` として build workspace に置き、`.pfpdf-mermaid` container 内の `img` から参照します。CDN、host にインストールされた Mermaid、追加の headless browser process は使用しません。
+フェンスによるコードブロックのうち、言語指定（info string）が小文字の `mermaid` であるものは、pfpdf の拡張機能として図に変換します。パッケージでバージョンを固定した Mermaid とサーバー側の DOM アダプターを使い、Markdown の処理工程で静的 SVG を生成します。SVG は `generated/mermaid-NNNN.svg` としてビルド作業用ディレクトリーに置き、`.pfpdf-mermaid` コンテナー内の `img` から参照します。CDN、ホストにインストールされた Mermaid、追加のヘッドレスブラウザープロセスは使用しません。
 
-Mermaid は `startOnLoad: false`、`securityLevel: strict`、HTML label 無効、error rendering 抑止を固定します。図ごとに決定的な ID を割り当て、SVG を HAST として parse し、通常の resource URL 書換えを完了してから外部 SVG として serialize します。inline SVG にしないのは、Vivliostyle の pagination 用 DOM では SVG marker の fragment 参照が失われ、矢印だけが消えるためです。外部 SVG は同じ renderer と browser で marker を保持し、raster image へ変換しないため vector と SVG 内 text を維持します。
+Mermaid の設定は `startOnLoad: false`、`securityLevel: strict`、HTML ラベル無効、エラー描画抑止に固定します。各図の ID は一定の規則で決め、SVG を HAST として解析します。通常のリソース URL 書換えを終えてから、外部 SVG としてシリアライズします。インライン SVG にしないのは、Vivliostyle のページ分割用 DOM では SVG マーカーのフラグメント参照が失われ、矢印だけが消えるためです。外部 SVG は同じレンダラーとブラウザーでマーカーを保持します。ラスター画像に変換しないため、ベクターと SVG 内のテキストも維持できます。
 
-layout の既定は ELK(`@mermaid-js/layout-elk`)です。図の front matter の `config.layout` や init directive で layout を指定した図は、Mermaid の site config と diagram config の優先順位どおりその指定に従います(例：`layout: dagre`)。ELK も pure JavaScript で、追加の browser process を使いません。
+レイアウトの既定は ELK（`@mermaid-js/layout-elk`）です。図のフロントマターの `config.layout` や初期化指示でレイアウトを指定した場合は、Mermaid のサイト設定と図ごとの設定の優先順位に従い、その指定を使います（例：`layout: dagre`）。ELK も JavaScript だけで動作し、追加のブラウザープロセスを使いません。
 
-Gantt も同じ SVG 生成経路で描画します。server-side DOM に `Node.parentElement` がなければ、親が element のときはその親を、それ以外は `null` を返す getter を補います。`offsetWidth` は擬似的に実装せず、container の幅が得られない場合は Mermaid 自身の既定幅 1200px を使います。図の `config.gantt.useWidth` 指定を優先し、生成した SVG は通常の画像と同じく本文幅に合わせて配置します。
+ガントチャートも同じ SVG 生成経路で描画します。サーバー側 DOM に `Node.parentElement` がなければ、親が要素のときはその親を、それ以外は `null` を返すゲッターを補います。`offsetWidth` は擬似的に実装せず、コンテナーの幅が得られない場合は Mermaid 自身の既定幅 1200px を使います。図の `config.gantt.useWidth` 指定を優先し、生成した SVG は通常の画像と同じく本文幅に合わせて配置します。
 
-図はページをまたいで分割できないため、生成した SVG は本文幅と 1 ページの版面の高さの両方に収まるよう縮小します。画像に `max-width: 100%` と `max-height: calc(100vh - 2.5em)` を指定し、図のコンテナーが持つ上下各 `1.25em` の余白を確保します。画像は中央寄せの block として配置し、inline 画像のベースライン下に生じる空きをなくします。Vivliostyle の viewport 単位はページの版面を基準にするため、テンプレートごとの余白に追従します。縦に長い flowchart や sequence diagram が版面に収まりますが、縮小した分だけ文字は小さくなります。
+図はページをまたいで分割できないため、生成した SVG は本文幅と 1 ページの版面の高さの両方に収まるよう縮小します。画像に `max-width: 100%` と `max-height: calc(100vh - 2.5em)` を指定し、図のコンテナーが持つ上下各 `1.25em` の余白を確保します。画像は中央寄せのブロックとして配置し、インライン画像のベースライン下に生じる空きをなくします。Vivliostyle のビューポート単位はページの版面を基準にするため、テンプレートごとの余白に追従します。縦に長いフローチャートやシーケンス図が版面に収まりますが、縮小した分だけ文字は小さくなります。
 
-server-side DOM の text 測定は、実 browser と同じ寸法になるよう次の点をそろえます。測定に使う font は同梱の Noto Sans JP で、unicode-range ごとの subset を code point ごとに引き、`Noto Sans JP` と既定の `sans-serif` の両方に割り当てます。`text` / `tspan` の位置属性の em は px に換算し、Mermaid 自身の stylesheet にある `.node .label text` の `text-anchor: middle` を反映し、`getBBox()` は SVGRect と同じ `x` / `y` / `width` / `height` だけを返します。これらは Mermaid が layout のために読む値だけを変え、生成 SVG の属性は変えません。em の誤読で生じていた flowchart の edge label の背景ずれも解消するため、`-->|label|` などの label 付き edge を使用できます。
+サーバー側 DOM のテキスト測定では、実ブラウザーと同じ寸法を得るため、次の処理を行います。
 
-Mermaid source の構文・描画 error は source file / line 付き code `2`、同梱 runtime の load / initialization failure は code `1` とします。いずれも未描画 code や error diagram を PDF へ残しません。
+- 測定用フォントとして同梱の Noto Sans JP を使う。`unicode-range` ごとのサブセットをコードポイントごとに引き、`Noto Sans JP` と既定の `sans-serif` の両方に割り当てる
+- `text` / `tspan` の位置属性にある em を px に換算し、Mermaid 自身のスタイルシートにある `.node .label text` の `text-anchor: middle` を反映する
+- `getBBox()` は SVGRect と同じ `x` / `y` / `width` / `height` だけを返す
 
-### 3.3.7 BibTeX citation
+これらは Mermaid がレイアウトのために読む値だけを変え、生成 SVG の属性は変えません。em の誤読で生じていたフローチャートの辺ラベルの背景ずれも解消するため、`-->|label|` などのラベル付きの辺を使用できます。
 
-参考文献引用は pfpdf extension として `\cite{key}`、複数 key の `\cite{key1,key2}` を認識します。TeX で文献を引用する command は `\cite` であり、`\ref` は一般の label 参照なので、後者は将来の図表・数式・節参照用に予約します。CommonMark は英字の前の backslash を保持するため、`\c` 自体を Markdown escape として失いません。
+Mermaid ソースの構文・描画エラーは、ソースファイル名と行番号を付けて終了コード `2` とします。同梱する実行環境の読込み / 初期化の失敗は終了コード `1` とします。いずれも、未描画のコードやエラーを示す図を PDF に残しません。
 
-- citation key は ASCII letter / digit から始まり、以降は letter / digit と `_:.#$%&+?<>~/-` を許可する。comma は cluster の区切りなので key には含めない
-- key 前後の ASCII whitespace は除き、空 key、同一 cluster 内の重複、brace の不足や入れ子を file / line 付き code `2` とする
-- `\\cite{key}` は literal `\cite{key}` とする。inline / fenced / indented code、raw HTML、数式内では citation syntax を認識しない
-- link と heading 内の citation は、nested anchor と style 依存の slug を避けるため初期版では code `2` とする
-- source file ごとに独立 parse した後、全 file の cluster を文書順に集め、一つの citeproc session で番号と bibliography 順を決める
-- citation は `role="doc-biblioref"` の内部 link、entry は一意な encoded ID と全引用位置への `role="doc-backlink"` を持つ。BibTeX key を検証せず生の HTML ID にしない
+### 3.3.7 BibTeX による文献引用
 
-参考文献一覧の明示位置は top-level の独立行 `\printbibliography` とします。文書全体で 0 または 1 個とし、省略時は最終 source section の末尾へ追加します。見出しは自動生成せず、目次へ載せる場合は通常の Markdown heading を marker の直前に書きます。引用がない marker、2 個以上の marker、bibliography 未指定の citation は code `2` です。
+参考文献引用は pfpdf の拡張機能として `\cite{key}`、複数のキーを指定する `\cite{key1,key2}` を認識します。TeX で文献を引用するコマンドは `\cite` です。`\ref` は一般のラベル参照なので、将来の図表・数式・節参照用に予約します。CommonMark は英字の前のバックスラッシュを保持するため、`\c` 自体が Markdown のエスケープとして失われることはありません。
 
-初期版の書式は version 固定した numeric CSL style 1 種です。CSL processor の bibliography 順を番号の正本とし、entry 本文を独自 formatter で再構築しません。custom CSL、locator、prenote、author-only、year-only、`\nocite`、Pandoc の `[@key]` は初期 scope 外です。
+- 引用キーは ASCII の英字 / 数字から始まり、以降も ASCII の英字 / 数字と `_:.#$%&+?<>~/-` を許可する。コンマは引用のまとまり（クラスター）内のキーを区切るので、キーには含めない
+- キーの前後の ASCII 空白文字は除く。空のキー、同一クラスター内の重複、波括弧の不足や入れ子は、ファイル名と行番号を付けて終了コード `2` とする
+- `\\cite{key}` は文字どおりの `\cite{key}` とする。インラインコード、フェンス / 字下げによるコードブロック、生の HTML、数式内では引用記法を認識しない
+- リンクと見出し内の引用は、アンカーの入れ子とスタイルに依存するスラッグを避けるため、初期版では終了コード `2` とする
+- ソースファイルごとに独立して解析した後、すべてのファイルのクラスターを文書順に集め、1 つの citeproc セッションで番号と参考文献一覧の順序を決める
+- 引用は `role="doc-biblioref"` を持つ内部リンクとする。参考文献の各項目は、一意なエンコード済み ID と、すべての引用位置への `role="doc-backlink"` を持つ。BibTeX キーを検証せずに生の HTML ID として使わない
+
+参考文献一覧の位置を指定するには、最上位の独立した行に `\printbibliography` を記述します。文書全体で 0 個または 1 個とし、省略時は最後のソースファイルに対応するセクションの末尾に追加します。見出しは自動生成しないので、目次に載せる場合は通常の Markdown 見出しをこのマーカーの直前に書きます。引用がない場合のマーカー、2 個以上のマーカー、参考文献データを指定していない場合の引用は終了コード `2` とします。
+
+初期版の書式は、引用を番号で示す CSL スタイル 1 種とし、バージョンを固定します。CSL プロセッサーが決める参考文献一覧の順序を番号の基準とし、各項目の本文を独自のフォーマッターで再構築しません。独自の CSL、引用箇所の指定（locator）、引用前の注記（prenote）、著者名だけ / 年だけの引用、`\nocite`、Pandoc の `[@key]` は初期版の対象外です。
 
 ### 3.3.8 日本語段落内のソース改行
 
-解決済みの文書言語が `ja` またはその派生 tag の場合、Markdown paragraph 内の soft line break の直前・直後が漢字・かな・和文約物・全角約物なら、ソースの改行だけを除いて表示します。strong / emphasis / link などの inline 要素をまたぐ場合も同じ規則です。リスト・blockquote・脚注中の paragraph にも適用し、LF / CRLF に対応します。
+最終的に決まった文書言語が `ja` またはその派生タグの場合、Markdown の段落内でソフト改行の直前・直後が漢字・かな・和文約物・全角約物なら、ソースの改行だけを除いて表示します。強い強調 / 強調 / リンクなどのインライン要素をまたぐ場合も同じ規則です。リスト・引用・脚注中の段落にも適用し、LF / CRLF に対応します。
 
-英字同士と和欧の境界、明示空白、行末に空白を記述した soft break、hard break、paragraph 境界は保持します。code・数式・画像・脚注参照を境界とし、raw HTML を含む paragraph と raw HTML block は変更しません。文字参照で明示した改行（`&#10;` / `&NewLine;` など）も保持します。見出し・ID・URL・source position は変更しません。日本語以外の言語では GFM の soft break を維持します。
+英字同士と和欧の境界、明示した空白、行末に空白を記述したソフト改行、ハード改行、段落境界は保持します。コード・数式・画像・脚注参照を境界とし、生の HTML を含む段落と生の HTML ブロックは変更しません。文字参照で明示した改行（`&#10;` / `&NewLine;` など）も保持します。見出し・ID・URL・ソース位置は変更しません。日本語以外の言語では GFM のソフト改行を維持します。
 
-## 3.4 raw HTML の扱い
+## 3.4 直接記述した HTML の扱い
 
-raw HTML は表現の自由度を保つため inline / block とも passthrough します。GFM の構文解析は採用しますが、GitHub.com が変換後に行う sanitization と GFM の「Disallowed Raw HTML」tag filter は適用しません。`table`、`div`、`section`、`figure`、`style`、必要な `script` などを扱えます。入力を trusted code とみなし、local file access を sandbox 化しません(08 章参照)。
+生の HTML は表現の自由度を保つため、インライン / ブロックともそのまま通します。GFM の構文解析は採用しますが、GitHub.com が変換後に行うサニタイズと、GFM の「Disallowed Raw HTML」タグフィルターは適用しません。`table`、`div`、`section`、`figure`、`style`、必要な `script` などを扱えます。入力を信頼できるコードとみなし、ローカルファイルへのアクセスをサンドボックスで制限しません（08 章参照）。
 
-ただし URL 書き換えと template 組立てのため、raw HTML は HTML parser で fragment として読み、serialize し直します。tag や attribute を allowlist で削除する処理ではありませんが、quote、attribute 順、tag の閉じ方など byte 表現は入力と一致しない場合があります。source file をまたぐ HTML block は構築できません。static URL は 02 章の resource graph へ登録し、script が後から生成する local URL は保証対象外です。
+URL の書換えとテンプレートの組立てのため、生の HTML は HTML パーサーで断片として読み、シリアライズし直します。タグや属性を許可リストで削除する処理ではありませんが、引用符、属性の順序、タグの閉じ方など、バイト単位の表現は入力と一致しない場合があります。ソースファイルをまたぐ HTML ブロックは構築できません。静的 URL は 02 章のリソースグラフに登録し、スクリプトが後から生成するローカル URL は保証対象外とします。
 
-`<base>`、`meta[http-equiv=refresh]`、独自の `data-pfpdf-*` attribute も trusted HTML として保持します。これらは resource 解決や描画対象を変え得るため、使用した結果は利用者の責任です。
+`<base>`、`meta[http-equiv=refresh]`、独自の `data-pfpdf-*` 属性も、信頼して扱う HTML として保持します。これらはリソースの解決や描画対象を変え得るため、使用した結果は利用者の責任です。
 
-利用者 script の同期 error と readiness 前の unhandled rejection は変換失敗です。pagination に影響する非同期処理は `window.pfpdf.registerReady(promise)` へ登録します。登録されない timer、event、worker の完了を自動推測しません。
+利用者のスクリプトで同期エラーが起きた場合と、文書の準備が完了する前に Promise の拒否が未処理のまま検出された場合は、変換失敗とします。ページ分割に影響する非同期処理は `window.pfpdf.registerReady(promise)` に登録します。登録されないタイマー、イベント、ワーカーの完了は自動推測しません。
 
 ## 3.5 GFM と GitHub.com 固有機能の区別
 
-footnote、alert、mention、issue reference、emoji shortcode、Mermaid など GitHub.com の追加機能は、正式な GFM Spec の範囲か、repository context を必要とする post-processing かを区別します。
+脚注、アラート、メンション、issue 参照、絵文字のショートコード、Mermaid など GitHub.com の追加機能は、正式な GFM Spec の範囲か、リポジトリーの情報を必要とする後処理かを区別します。
 
-- 正式 GFM の機能(table、task list、strikethrough、autolink など)は `v0.1.0` 必須とする
-- repository context を必要とする mention / issue reference と、alert / emoji shortcode / Mermaid など spec 外の表記は個別 extension として扱い、この章の対応表で管理する。`v0.1.0` では Mermaid の fenced code block に対応し、その他は未対応
-- raw HTML で代替できることを理由に GFM 構文自体を省略しない
+- 正式な GFM の機能（表、タスクリスト、取り消し線、自動リンクなど）は `v0.1.0` 必須とする
+- リポジトリーの情報を必要とするメンション / issue 参照と、アラート / 絵文字のショートコード / Mermaid など仕様外の表記は、個別の拡張機能として扱い、この章の対応表で管理する。`v0.1.0` では Mermaid のフェンスによるコードブロックに対応し、その他は未対応
+- 生の HTML で代替できることを理由に、GFM 構文自体を省略しない
 - 対応していない GitHub.com 固有機能を「GFM 非対応」とは表現しない
 
-脚注記法 `本文[^note]` と `[^note]: 補足説明` は、各脚注を最初に参照したページの下部へ一度だけ表示します。参照 link を DPUB-ARIA の `doc-noteref`、脚注本文を `aside[role="doc-footnote"]` として Vivliostyle のページ脚注へ渡します。後続の繰返し参照は同じ本文へ link します。番号は文書全体の初出順とし、識別子の scope は source file 内です。同じ識別子を別 file で再利用しても別の脚注になり、ID と参照・戻り link は文書全体で衝突しないよう割り当てます。利用者の脚注本文・複数段落・code・link は保持します。長い本文は後続ページへ分割されます。
+脚注記法 `本文[^note]` と `[^note]: 補足説明` は、各脚注を最初に参照したページの下部に一度だけ表示します。参照リンクを DPUB-ARIA の `doc-noteref`、脚注本文を `aside[role="doc-footnote"]` として Vivliostyle のページ脚注に渡します。後続の繰返し参照は同じ本文にリンクします。番号は文書全体の初出順とし、識別子の有効範囲はソースファイル内とします。同じ識別子を別ファイルで再利用しても別の脚注になり、ID と参照・戻りリンクは文書全体で衝突しないよう割り当てます。利用者の脚注本文・複数段落・コード・リンクは保持します。長い本文は後続ページに分割されます。
 
-解決済み文書言語の primary language が `ja` なら、参照と本文のアクセシビリティ label は「脚注 1」、戻り link は「参照 1 に戻る」（繰返し参照は「参照 1（2 回目） に戻る」）とします。英語とその他の言語では `Footnote 1` / `Back to reference 1` を使います。脚注には目次対象の見出しを生成しません。
+最終的に決まった文書言語の先頭のサブタグが `ja` なら、参照と本文のアクセシビリティーラベルは「脚注 1」、戻りリンクは「参照 1 に戻る」（繰返し参照は「参照 1（2 回目） に戻る」）とします。英語とその他の言語では `Footnote 1` / `Back to reference 1` を使います。脚注には目次対象の見出しを生成しません。
 
-## 3.6 conformance の検査方法
+## 3.6 GFM 準拠の検査方法
 
-GFM Spec の example は、template wrapper、見出し ID、目次、resource URL 書き換えなど pfpdf 固有の後処理を加える前の `GfmAdapter` に対して実行します。これにより pfpdf の付加属性を GFM 違反と誤判定せず、parser 自体の conformance を検査できます。
+GFM Spec の例は、テンプレートでの囲み、見出し ID、目次、リソース URL 書換えなど pfpdf 固有の後処理を加える前の `GfmAdapter` に対して実行します。これにより、pfpdf が付加した属性を GFM 違反と誤判定せず、パーサー自体が仕様に準拠しているか検査できます。
 
-- runtime と同じ raw HTML 設定で比較し、Disallowed Raw HTML tag filter の例だけを理由付きの expected deviation とする
-- `___`、数式、日本語 strong は adapter 単体から除き、それぞれの extension を含む full-pipeline test で固定する
-- spec version、対応表、pfpdf extension、expected deviation はこの章にまとめ、parser library または spec fixture の更新時に差分を review する
-- conformance fixture は upstream の example number、input、expected HTML、license、spec checksum を repository に固定し、network から test 時に取得しない
+- 実行時と同じ生の HTML 設定で比較し、Disallowed Raw HTML タグフィルターの例だけを理由付きの意図的な仕様差とする
+- `___`、数式、日本語の強い強調はアダプター単体の検査から除き、それぞれの拡張機能を含む全工程のテストで挙動を固定する
+- 仕様のバージョン、対応表、pfpdf の拡張機能、意図的な仕様差はこの章にまとめ、パーサーライブラリーまたは仕様のテスト用データを更新するときに差分をレビューする
+- 準拠検査のテスト用データは、上流の例の番号、入力、期待する HTML、ライセンス、仕様のチェックサムとともにリポジトリーに固定し、テスト時にネットワークから取得しない
 
-### expected deviation 一覧
+### 意図的な仕様差の一覧
 
 | 項目 | GFM の挙動 | pfpdf の挙動 | 理由 |
 |---|---|---|---|
-| Disallowed Raw HTML tag filter | `<script>` などを filter する | filter せず保持する | trusted document 向けに表現の自由度を優先 |
-| 単独行の連続する `_` 3 個以上 | thematic break | 改ページ | pfpdf directive として予約。`---` / `***` で代替可能 |
-| CJK 隣接の `**...**` | strong にならない場合がある | `<strong>` へ変換する | 日本語文書での自然な記法を優先 |
-| `$...$` / `$$...$$` | plain text | 数式として typeset する | pfpdf extension |
-| `mermaid` fenced code block | code block | 静的 SVG の図へ変換する | pfpdf extension |
-| `\cite{key}` / `\printbibliography` | plain text | 引用 link / 参考文献一覧 | pfpdf extension |
-| `<base>` | raw HTML として保持する | 入力エラー | logical resource URL と内部 link の基準を固定するため |
-| `meta[http-equiv=refresh]` | raw HTML として保持する | 入力エラー | 描画中の document navigation を禁止するため |
-| 日本語 paragraph の CJK 間 soft break | 改行を保持 | `lang: ja` ではソース改行だけを除く | 編集時の折り返しで空白を増やさない。明示空白・code / HTML は保持 |
+| Disallowed Raw HTML タグフィルター | `<script>` などをフィルターする | フィルターせず保持する | 信頼する文書を対象に、表現の自由度を優先 |
+| 単独行の連続する `_` 3 個以上 | 水平線 | 改ページ | pfpdf の指示記法として予約。`---` / `***` で代替可能 |
+| CJK に隣接する `**...**` | 強い強調にならない場合がある | `<strong>` に変換する | 日本語文書での自然な記法を優先 |
+| `$...$` / `$$...$$` | プレーンテキスト | 数式として組版する | pfpdf の拡張機能 |
+| `mermaid` のフェンスによるコードブロック | コードブロック | 静的 SVG の図に変換する | pfpdf の拡張機能 |
+| `\cite{key}` / `\printbibliography` | プレーンテキスト | 引用リンク / 参考文献一覧 | pfpdf の拡張機能 |
+| 日本語段落の CJK 間のソフト改行 | 改行を保持 | `lang: ja` ではソース改行だけを除く | 編集時の折り返しで空白を増やさない。明示空白・コード / HTML は保持 |

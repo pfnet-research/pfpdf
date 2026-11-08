@@ -8,7 +8,13 @@ dir: ltr
 
 # pfpdf Tutorial
 
-This tutorial takes you from initial setup to generating PDFs from Markdown with pfpdf. Each chapter is also a working pfpdf input example: pass the entire directory to pfpdf to produce the PDF you are reading now.
+<style>
+@media print {
+  p:has(code), li:has(code), dd:has(code) { text-align: start; }
+}
+</style>
+
+This tutorial takes you from initial setup to generating PDFs from Markdown with pfpdf. Each chapter's Markdown file is also a pfpdf input example. Pass the entire `docs/tutorial.en/` directory to pfpdf to generate a PDF of this tutorial.
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs/tutorial.en --output tutorial.en.pdf
@@ -22,7 +28,7 @@ npx @pfnet-research/pfpdf@latest --input docs/tutorial.en --output tutorial.en.p
 | 02 | Document structure: front matter and multiple files |
 | 03 | Writing GFM |
 | 04 | Raw HTML |
-| 05 | Math and code highlighting |
+| 05 | Math, code highlighting, and Mermaid diagrams |
 | 06 | Templates, logos, assets, and fonts |
 | 07 | CLI and renderers |
 | 08 | Troubleshooting |

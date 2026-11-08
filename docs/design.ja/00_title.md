@@ -8,10 +8,16 @@ dir: ltr
 
 # pfpdf 設計書
 
-この文書は pfpdf の実装方針、architecture、Markdown 処理、resource と template、renderer、配布、互換性、security、および主要な設計判断を記録する詳細設計書です。
+<style>
+@media print {
+  p:has(code), li:has(code), dd:has(code) { text-align: start; }
+}
+</style>
 
-- 対象バージョン: `v0.1.0`
-- 言語上の位置付け: 日本語版(`docs/design.ja/`)が正典であり、英語版(`docs/design.en/`)は同じ構成の翻訳です。仕様解釈が日英で衝突した場合は日本語版を正とします。
+この設計書は、Markdown 文書を HTML 経由で PDF に変換する pfpdf の実装要件と設計判断を記録します。GFM と日本語組版への対応、フロントマターと CLI による設定、信頼済み文書の扱い、エラー時に部分出力を成功扱いしない方針を定めます。
+
+- 対象範囲: `v0.1.0` を目標とした初期設計と、その後の設計変更を扱います。各設計判断の状態と決定日は 09 章に記載しています。
+- 言語上の位置付け: 日本語版（`docs/design.ja/`）を正本とし、英語版（`docs/design.en/`）は同じ構成の翻訳です。仕様解釈が日英で異なる場合は日本語版を基準にします。
 
 ## 読者と目的
 
@@ -19,20 +25,20 @@ dir: ltr
 
 - pfpdf 本体を変更・保守する実装者
 - pfpdf の挙動を正確に知る必要がある利用者
-- 依存関係の更新や release を行う maintainer
+- 依存関係の更新やリリースを行うメンテナー
 
-利用者向けの導入手順と実例は `docs/tutorial.ja/` を参照してください。README は導入用の短い入口であり、詳細仕様はこの設計書に集約します。
+導入手順と実例は `docs/tutorial.ja/` を参照してください。README は導入用の短い案内とし、詳細仕様はこの設計書にまとめます。
 
 ## 章構成
 
 | 章 | 内容 |
 |---|---|
-| 01 | scope と基本方針 |
-| 02 | 内部 architecture |
+| 01 | 対象範囲と基本方針 |
+| 02 | 内部構成 |
 | 03 | Markdown 処理と GFM |
-| 04 | resource、font、template |
-| 05 | renderer |
-| 06 | 配布と release |
+| 04 | リソース、フォント、テンプレート |
+| 05 | レンダラー |
+| 06 | 配布とリリース |
 | 07 | 互換性とテスト |
-| 08 | security model |
+| 08 | セキュリティーモデル |
 | 09 | 設計判断の記録 |

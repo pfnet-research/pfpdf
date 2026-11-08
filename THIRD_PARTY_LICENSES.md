@@ -24,7 +24,7 @@ pinned in `package-lock.json`.
 | remark-cjk-friendly | CJK-friendly emphasis delimiters | MIT | https://github.com/tats-u/markdown-cjk-friendly |
 | pdf-lib | PDF structural validation and metadata | MIT | https://github.com/Hopding/pdf-lib |
 | Citation.js (`@citation-js/core`, `@citation-js/plugin-bibtex`, `@citation-js/plugin-csl`) | BibTeX / BibLaTeX parsing and CSL integration | MIT | https://github.com/citation-js/citation-js |
-| citeproc-js (`citeproc`) | CSL citation and bibliography formatting | CPAL-1.0 OR AGPL-1.0 | https://github.com/Juris-M/citeproc-js |
+| citeproc-js (`citeproc`) | CSL citation and bibliography formatting | CPAL 1 or later OR GNU AGPL 3 or later (see note) | https://github.com/Juris-M/citeproc-js |
 | NLM/Vancouver CSL style (bundled by Citation.js) | Numeric bibliography style | CC BY-SA 3.0 | https://github.com/citation-style-language/styles |
 
 Notes:
@@ -33,3 +33,7 @@ Notes:
 - The bundled fonts are redistributed unmodified under the SIL Open Font
   License 1.1. The OFL permits embedding in documents.
 - No logos or non-redistributable assets are bundled.
+- The `citeproc` 2.4.63 license entry follows its
+  [LICENSE](https://github.com/Juris-M/citeproc-js/blob/73bc1b44bc7d54d0bfec4e070fd27f5efe024ff9/LICENSE).
+  The package metadata instead declares `CPAL-1.0 OR AGPL-1.0`; the two sources
+  disagree.

@@ -17,6 +17,8 @@ design docs, not here.
 
 ## Documentation rules
 
+- When writing or translating documentation, consult
+  [AGENTS.glossary.md](AGENTS.glossary.md) as needed for terminology.
 - Any pull request that changes a file under `docs/design.ja/` or
   `docs/tutorial.ja/` must update the corresponding English file in the same
   pull request. CI checks file-set parity and change synchronization.

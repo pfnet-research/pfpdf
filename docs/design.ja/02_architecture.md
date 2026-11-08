@@ -1,4 +1,4 @@
-# 2. 内部 architecture
+# 2. 内部構成
 
 ## 2.1 構成要素
 
@@ -21,65 +21,69 @@ pfpdf CLI
               └── Chromium
 ```
 
-CLI と変換処理は TypeScript で実装し、npm package の compiled JavaScript を実行します。
+CLI と変換処理は TypeScript で実装し、npm パッケージに含まれるコンパイル済みの JavaScript を実行します。
 
 ## 2.2 `ConfigResolver`
 
-- 組み込み既定値、front matter、CLI 引数を定義済みの優先順位で解決する
-- boolean、enum、数値、path を検証し、不正値を拒否する
-- path ごとに基準 directory を適用し、renderer へ渡す前に絶対 path へ正規化する
-- CLI の値をfront matterより常に優先し、effective config と各値の設定元を `--print-effective-config` と `--doctor` から再利用する
-- `InputResolver` が返した front matter の `template` / `toc` / `cover` / `logo` は、対応するCLI指定がない場合だけ組み込み既定値を置き換える。したがって優先順は組み込み既定値、front matter、CLI とする
-- template は1つの論理設定として解決する。`--template SOURCE` は bundled preset 名との完全一致、`git::` locator、local path の順に分類する。明示 preset の `--template-preset NAME` は source 指定と排他的とする
-- 同じ論理設定の正 / 負指定、たとえば `--toc` と `--no-toc`、`--logo` と `--no-logo` を同じ CLI invocation で併用した場合は、引数順に依存させず終了 code `2` とする
-- `--font-dir` 以外の値付き / boolean option を同じ invocation で繰り返した場合は、同じ値でも code `2` とする。unknown option、未定義の positional argument、option value の欠落も code `2` とし、「最後の値が勝つ」引数順依存を作らない
-- conversion、`--doctor`、`--print-effective-config`、`--help`、`--version` は排他的な command mode とする。mode flag を複数指定した場合は code `2` とし、help / version を理由に他の不正引数を暗黙に無視しない
-- path は NUL を拒否し、空文字列を「未指定」として扱わない。解決後も表示用の元表現と実行用の絶対 path を分離する
+- 組み込み既定値、フロントマター、CLI 引数を定義済みの優先順位で解決する
+- 真偽値、列挙値、数値、パスを検証し、不正値を拒否する
+- パスごとに基準ディレクトリーを適用し、レンダラーへ渡す前に絶対パスへ正規化する
+- CLI の値をフロントマターより常に優先し、適用後の設定と各値の設定元を `--print-effective-config` と `--doctor` から再利用する
+- `InputResolver` が返したフロントマターの `template` / `toc` / `cover` / `logo` は、対応する CLI 指定がない場合だけ組み込み既定値を置き換える。したがって、優先順位は組み込み既定値、フロントマター、CLI の順に高くなる
+- テンプレートは 1 つの論理設定として解決する。`--template SOURCE` は組み込みプリセット名との完全一致、`git::` ロケーター、ローカルパスの順に分類する。プリセットを明示する `--template-preset NAME` は、ソース指定と排他的とする
+- 同じ論理設定の有効・無効の指定、たとえば `--toc` と `--no-toc`、`--logo` と `--no-logo` を同じ CLI 呼び出しで併用した場合は、引数順に依存させず終了コード `2` とする
+- 値を取るオプションや真偽値オプションを同じ呼び出しで繰り返した場合は、`--font-dir` を除き、同じ値でもコード `2` とする。未知のオプション、未定義の位置引数、オプション値の欠落もコード `2` とし、「最後の値が勝つ」という引数順への依存を作らない
+- 通常変換、`--doctor`、`--print-effective-config`、`--help`、`--version` は排他的なコマンドモードとする。モード指定のフラグを複数指定した場合はコード `2` とし、ヘルプやバージョン表示を理由に他の不正引数を暗黙に無視しない
+- パスに含まれる NUL は拒否し、空文字列を「未指定」として扱わない。解決後も表示用の元表現と実行用の絶対パスを分離する
 
 ## 2.3 `InputResolver`
 
 - CLI のパスを絶対パスへ変換する
-- locale に依存しない規則で Markdown 一覧を決定し、case-insensitive filesystem で衝突する名前も検出する
-- 各 Markdown の先頭の front matter を解析・除去し、文書全体の metadata は key ごとに最初に現れた値を選ぶ。後続 file は未設定の key を補う
-- title、author、series、date、page size、confidential、document language / direction、および `template` / `toc` / `cover` / `logo` の型と値を検証する。CLIがfront matterを上書きする場合も、不正な値を無視しない
-- metadata の許可済み HTML と plain text 表現を分離し、template placeholder ごとの escape 漏れを防ぐ
-- file input ではその親 directory、directory input では input directory を resource base として保持する
-- 検証に使った Markdown byte 列をそのまま parser へ渡し、検証後に path から読み直して別内容を処理しない
-- 複数ファイルのうち 1 ファイルでも失敗したら文書全体を失敗させる(fail-fast)
+- ロケールに依存しない規則で Markdown 一覧を決定する
+- 各 Markdown の先頭のフロントマターを解析・除去し、文書全体のメタデータはキーごとに最初に現れた値を選ぶ。後続ファイルは未設定のキーを補う
+- タイトル、著者、シリーズ、日付、ページサイズ、機密表示、文書の言語・文字方向、および `template` / `toc` / `cover` / `logo` の型と値を検証する。CLI がフロントマターを上書きする場合も、不正な値を無視しない
+- メタデータで許可する HTML とプレーンテキスト表現を分離し、テンプレートのプレースホルダーごとのエスケープ漏れを防ぐ
+- ファイル入力ではその親ディレクトリー、ディレクトリー入力では入力ディレクトリーをリソースの基準ディレクトリーとして保持する
+- 検証に使った Markdown のバイト列をそのままパーサーへ渡し、検証後にパスから読み直して別内容を処理しない
+- 複数ファイルのうち 1 ファイルでも失敗したら、文書全体を失敗させる（fail-fast）
 
 エラーを含む Markdown だけを読み飛ばして残りを出力する挙動は採用しません。部分的な成果物を成功扱いすると、欠落に気付かないまま配布される危険があるためです。
 
-front matter は既存 YAML library の JSON schema で 1 document の mapping として読みます。pfpdf が利用する metadata key と型だけを検査し、入力を防御するための独自 YAML parser や size / nesting 制限は持ちません。先頭の BOM を除いた最初の行が `---` なら front matter delimiter として予約します。各 source file 内の単独行 `---` または `...` で閉じることを必須とし、閉じ delimiter がない場合や mapping が不正な場合は thematic break として読み替えず入力エラーにします。各 file の front matter は本文から除去し、入力順で key ごとに最初の値を採用します。後続 file は未設定 key を補い、CLI が選択済みの値を上書きします。選択値ごとに source file を保持し、未知 key の warning / strict 検証と既知 key の型・値・path 構文の検証は採否にかかわらず全 file に適用します。選択しない logo / bibliography の file は存在確認・読込をしません。
+フロントマターは既存の YAML ライブラリーの JSON スキーマで、1 文書のマッピングとして読みます。pfpdf が利用するメタデータのキーと型だけを検査し、入力を防御するための独自 YAML パーサーや、サイズ・入れ子の深さの制限は持ちません。
+
+先頭の BOM を除いた最初の行が `---` なら、フロントマターの区切りとして予約します。各入力ファイル内の単独行 `---` または `...` で閉じることを必須とします。閉じる区切りがない場合やマッピングが不正な場合は、水平線として読み替えず入力エラーにします。
+
+各ファイルのフロントマターは本文から除去し、入力順でキーごとに最初の値を採用します。後続ファイルは未設定のキーを補い、CLI が選択済みの値を上書きします。選択した値ごとに、その値が記述されたファイルを保持します。未知キーへの警告・厳格検証と、既知キーの型・値・パス構文の検証は、採否にかかわらず全ファイルに適用します。選択しないロゴ・参考文献ファイルは、存在確認や読み込みをしません。
 
 ### 2.3.1 `BibliographyFormatter`
 
-`bibliography` front matter は string または非空 string list とし、その key を最初に指定した Markdown の親 directory を基準に `.bib` path を解決します。list は一つの値として選び、後続 file の list と連結しません。重複 path は選択されない block も含めて検証します。`.bib` は browser が描画時に取得する resource ではなく build input です。`InputResolver` が選択した file の UTF-8 byte 列を一度だけ読み、その content を `BibliographyFormatter` へ渡します。
+フロントマターの `bibliography` は文字列または空でない文字列リストとし、そのキーを最初に指定した Markdown の親ディレクトリーを基準に `.bib` のパスを解決します。リストは一つの値として選び、後続ファイルのリストと連結しません。パスの重複は、選択されないブロックも含めて検証します。`.bib` はブラウザーが描画時に取得するリソースではなく、ビルドの入力です。選択したファイルは `InputResolver` が UTF-8 バイト列として一度だけ読み、その内容を `BibliographyFormatter` へ渡します。
 
-`BibliographyFormatter` は Citation.js で BibTeX / BibLaTeX を CSL-JSON へ変換し、citeproc-js の一つの session で文書全体の citation cluster と参考文献一覧を処理します。source file ごとに processor を分けると番号と並びが変わるため禁止します。library 固有 object と生成 HTML は adapter 内に閉じ、Markdown 層へは citation key、entry 順、HAST fragment だけを返します。不正 database、重複 key、存在しない引用 key は renderer 起動前の code `2` とします。
+`BibliographyFormatter` は Citation.js で BibTeX / BibLaTeX を CSL-JSON へ変換し、citeproc-js の一つのセッションで文書全体の引用クラスターと参考文献一覧を処理します。入力ファイルごとにプロセッサーを分けると番号と並びが変わるため禁止します。ライブラリー固有のオブジェクトと生成 HTML はアダプター内に閉じ、Markdown 層へは引用キー、項目順、HAST 断片だけを返します。不正なデータベース、重複キー、存在しない引用キーは、レンダラー起動前にコード `2` とします。
 
 ## 2.4 `ResourceResolver`
 
-`ResourceResolver` は、静的に記述された local resource を renderer-neutral な logical URL へ変換します。
+`ResourceResolver` は、静的に記述されたローカルリソースを、レンダラーに依存しない論理 URL へ変換します。
 
-- Markdown とその inline raw HTML は input の resource base、template HTML は template directory、各外部 CSS はその file の親 directory を基準にする。CLI で指定した logo / font は ConfigResolver が解決した絶対 path を起点にし、異なる基準を暗黙に混ぜない
-- Markdown AST の link / image、raw HTML の URL 属性と `srcset`、inline style、`<style>`、template、外部 CSS の `url()` / `@import` を、それぞれ HTML / CSS parser の token 上で処理する。正規表現だけで HTML や CSS を書き換えない
-- local CSS の `@import` を queue で反復的にたどり、canonical path の visited set で循環を止める。同じ file を path 表現の違いで複数回解析しない
-- 各 fetch resource に探索順で決定的な logical ID を割り当て、fetch 属性には `assets/<id>/<encoded-basename>` のような相対 URL を出力する。pfpdf が解決した asset の absolute path、一時 directory、random token を fetch URL へ新たに埋め込まない。画像の診断用 `data-pfpdf-image-*` 属性には参照元 path・行番号・記述した参照先を保持する。利用者が navigation link として明示した absolute `file:` URL は portable でないことを承知した入力として保持する
-- seed の順序は bundled resource の固定 list、template DOM の source order、Markdown file / AST node の source order、effective font の優先順とする。CSS の参照は queue から取り出した file 内の token 順で追加し、非同期 I/O の完了順や hash map の偶然の列挙順で ID を変えない
-- query と fragment は resource path と分離して保持し、percent decode は URL component ごとに 1 回だけ行う。NUL、不正な percent encoding、URL として不正な値は入力エラーにする
-- Markdown / HTML / CSS の URL は `/` を separator とする。Windows absolute path は `file:///C:/path/to/file`、UNC は妥当な `file://server/share/...` URL で表し、backslash を URL path separator として推測しない。CLI の path は OS native path として別に扱う
-- URL は element / AST node の役割で分類する。画像、script、stylesheet、font など browser が取得する URL だけを resource graph に入れ、`a[href]` の navigation target を asset 配信用 URL へ変えない。fetch role では relative / absolute `file:` を local、HTTP(S) / network-path reference と `data:` を remote / embedded として扱い、それ以外の scheme は静的に再現できないため code `2` とする。特に source に直書きされた `blob:` は別 browser session で有効でないため拒否する
-- navigation role の文書内 fragment、HTTP(S)、`mailto:`、`tel:`、absolute `file:`、raw HTML に明示された `javascript:` / custom scheme は local resource graph へ入れず、trusted link として保持する。scheme のない relative navigation は後述の document link 規則で処理する。URL parser が scheme と判断した値を local path として再解釈しない
-- symlink は許可するが、canonical path で重複排除と循環検出を行う。build 中の file 内容変更を snapshot として固定することまでは保証しない
-- local resource は regular file または regular file への symlink だけを許可する。directory、FIFO、socket、device は描画前に code `2` で拒否し、resource discovery や response で特殊 file を開いて停止しない
-- script が実行時に組み立てる path、runtime に追加される DOM、network response 内の参照は静的 resource graph の対象外とし、動的な local path を参照できることを保証しない
-- JavaScript module graph と nested HTML document 内の resource graph は解析しない。inline module、`iframe[srcdoc]` などの trusted HTML は保持するが、その内部で参照される relative local resource の解決は保証しない。必要なら利用者が bundle または absolute / remote URL を使う
+- Markdown とそのインラインの生の HTML は入力のリソースの基準ディレクトリー、テンプレート HTML はテンプレートディレクトリー、各外部 CSS はそのファイルの親ディレクトリーを基準にする。CLI で指定したロゴ・フォントは `ConfigResolver` が解決した絶対パスを起点にし、異なる基準を暗黙に混ぜない
+- Markdown AST のリンク・画像、生の HTML の URL 属性と `srcset`、インラインスタイル、`<style>`、テンプレート、外部 CSS の `url()` / `@import` を、それぞれ HTML / CSS パーサーのトークン上で処理する。正規表現だけで HTML や CSS を書き換えない
+- ローカル CSS の `@import` をキューで反復的にたどり、実体パスの訪問済み集合で循環を止める。同じファイルをパス表現の違いで複数回解析しない
+- 取得対象の各リソースに探索順で決定的な論理 ID を割り当て、取得用の属性には `assets/<id>/<encoded-basename>` のような相対 URL を出力する。pfpdf が解決したアセットの絶対パス、一時ディレクトリー、ランダムなトークンを取得用 URL へ新たに埋め込まない。画像の診断用 `data-pfpdf-image-*` 属性には、参照元のパス・行番号・記述された参照先を保持する。利用者が移動用リンクとして明示した絶対 `file:` URL は、可搬性のないことを承知した入力として保持する
+- 探索の起点は、組み込みリソースの固定リスト、テンプレート DOM の記述順、Markdown ファイル・AST ノードの記述順、適用するフォントの優先順に並べる。CSS の参照は、キューから取り出したファイル内のトークン順で追加する。非同期 I/O の完了順やハッシュマップの偶然の列挙順で ID を変えない
+- クエリーとフラグメントはリソースのパスと分離して保持し、パーセントデコードは URL の構成要素ごとに 1 回だけ行う。NUL、不正なパーセントエンコーディング、URL として不正な値は入力エラーにする
+- Markdown / HTML / CSS の URL は `/` を区切り文字とする。Windows の絶対パスは `file:///C:/path/to/file`、UNC は妥当な `file://server/share/...` URL で表し、バックスラッシュを URL パスの区切り文字として推測しない。CLI のパスは OS 固有のパスとして別に扱う
+- URL は要素・AST ノードの役割で分類する。画像、スクリプト、スタイルシート、フォントなど、ブラウザーが取得する URL だけをリソースグラフに入れ、`a[href]` の移動先をアセット配信用 URL へ変えない。取得用 URL では、相対 URL と絶対 `file:` URL をローカル、HTTP(S) URL とネットワークパス参照をリモート、`data:` を埋め込みとして扱う。それ以外のスキームは静的に再現できないためコード `2` とする。特に、入力に直書きされた `blob:` は別のブラウザーセッションで有効でないため拒否する
+- 移動用 URL の文書内フラグメント、HTTP(S)、`mailto:`、`tel:`、絶対 `file:`、生の HTML に明示された `javascript:` / 独自スキームは、ローカルリソースグラフへ入れず信頼済みのリンクとして保持する。スキームのない相対移動先は、後述の文書リンク規則で処理する。URL パーサーがスキームと判断した値をローカルパスとして再解釈しない
+- シンボリックリンクは許可するが、実体パスで重複排除と循環検出を行う。ビルド中のファイル内容変更をスナップショットとして固定することまでは保証しない
+- ローカルリソースは通常ファイル、または通常ファイルへのシンボリックリンクだけを許可する。ディレクトリー、FIFO、ソケット、デバイスは描画前にコード `2` で拒否し、リソースの探索や応答で特殊ファイルを開いて停止しない
+- スクリプトが実行時に組み立てるパス、実行時に追加される DOM、ネットワーク応答内の参照は静的リソースグラフの対象外とし、動的なローカルパスを参照できることを保証しない
+- JavaScript モジュールグラフと入れ子になった HTML 文書内のリソースグラフは解析しない。インラインモジュール、`iframe[srcdoc]` などの信頼済み HTML は保持するが、その内部で参照される相対ローカルリソースの解決は保証しない。必要なら利用者がバンドルするか、絶対 URL・リモート URL を使う
 
-この graph は local file を単一 HTML へ埋め込むためではなく、URL 書き換えと request routing を一貫させるために使います。元 asset の byte 列は workspace へ複製せず、書き換えが必要な CSS だけを generated asset として出力します。
+このグラフは、URL 書き換えとリクエストの振り分けを一貫させるために使います。ローカルファイルを単一 HTML へ埋め込むためのものではありません。元のアセットのバイト列は作業ディレクトリーへ複製せず、書き換えが必要な CSS だけを生成アセットとして出力します。
 
 ## 2.5 `Workspace`
 
-入力ディレクトリを変更しないため、システムの一時ディレクトリに build workspace を作ります。
+入力ディレクトリーを変更しないため、システムの一時ディレクトリーにビルド用の作業ディレクトリーを作ります。
 
 ```text
 <temporary>/
@@ -98,56 +102,56 @@ front matter は既存 YAML library の JSON schema で 1 document の mapping �
   .pfpdf-<random>.tmp
 ```
 
-- original input、template、logo、host font は workspace へ複製せず、manifest が original file と logical URL の対応を保持する
-- generated asset は workspace 直下の乱数を含む directory に配置して利用者ファイルと衝突させず、`document.html` と生成 CSS へ pfpdf 自身が original input の absolute path を追加しない。利用者が明示した absolute `file:` navigation link は例外とする。path 対応を含む `manifest.json` は workspace 外へ公開しない
-- browser binary と cache は Vivliostyle CLI に管理させ、実行ごとの browser profile だけを workspace に置く
-- `--keep-work-dir` がない限り `finally` 相当の処理で削除し、正常終了、通常の validation / renderer error、捕捉可能な中断を代表 test する
-- `--keep-work-dir` で表示する path に入力由来の秘密情報が残り得ることを warning にし、directory permission を利用者だけが読める値にする
-- `--keep-work-dir` では manifest、生成 HTML / CSS、readiness / page error を含む renderer diagnostics を残す。diagnostic は trusted input として sanitize / redact しない。logical asset URL は AssetServer 停止後に解決できないため、`document.html` を `file:` で直接開いて同じ描画になるとは案内しない
-- crash 後の stale workspace の列挙・自動回収は実装せず、OS の temporary directory cleanup に任せる
-- workspace 作成は OS の secure temporary API を使い、POSIX では permission `0700` を要求する。既存 path の再利用、予測可能な固定名、symlink をたどった作成は行わない
+- 元の入力、テンプレート、ロゴ、ホストのフォントは作業ディレクトリーへ複製せず、マニフェストが元ファイルと論理 URL の対応を保持する
+- 生成アセットは作業ディレクトリー直下の乱数を含むディレクトリーに配置して、利用者ファイルと衝突させない。`document.html` と生成 CSS へ、pfpdf 自身が元入力の絶対パスを追加しない。利用者が明示した絶対 `file:` の移動用リンクは例外とする。パスの対応を含む `manifest.json` は作業ディレクトリー外へ公開しない
+- ブラウザーの実行ファイルとキャッシュは Vivliostyle CLI に管理させ、実行ごとのブラウザープロファイルだけを作業ディレクトリーに置く
+- `--keep-work-dir` がない限り `finally` 相当の処理で削除し、正常終了、通常の検証・レンダラーエラー、捕捉可能な中断を代表例としてテストする
+- `--keep-work-dir` で保持した場所に入力由来の秘密情報が残り得ることを警告し、ディレクトリーのアクセス権を利用者だけが読める値にする
+- `--keep-work-dir` ではマニフェスト、生成 HTML / CSS、描画開始の準備に関する情報やページエラーを含むレンダラーの診断情報を残す。診断情報は信頼済み入力として扱い、無害化や秘密情報の削除をしない。論理アセット URL は `AssetServer` 停止後に解決できないため、`document.html` を `file:` で直接開いて同じ描画になるとは案内しない
+- 異常終了後の残存作業ディレクトリーの列挙・自動回収は実装せず、OS の一時ディレクトリー削除機能に任せる
+- 作業ディレクトリーの作成には OS の安全な一時ディレクトリー作成 API を使い、POSIX ではアクセス権 `0700` を要求する。既存パスの再利用、予測可能な固定名、シンボリックリンクをたどった作成は行わない
 
 ## 2.6 `AssetServer`
 
-- renderer と同じ host process で `AssetServer` を起動し、Vivliostyle CLI には file path ではなく document URL を渡す。browser と同じ host の `127.0.0.1` にある OS 割当 port だけへ bind し、IPv4 loopback 以外の interface へ bind しない
-- logical asset path は決定的だが、画像の参照元診断を含む HTML byte 列は入力の path 表現に依存し、browser から見える port も build ごとに異なる。利用者 script が `location.href` / `origin`、時刻、乱数から描画内容を作る場合の再現性は保証しない
-- `ResourceResolver` の manifest が公開対象として列挙した exact file と generated file だけを logical ID で配信し、manifest 自体、browser profile、renderer output は配信しない。任意 path の静的 file server や directory listing にもしない
-- request ごとに manifest の target を open し、regular file であることを確認して配信する。build 中の file 変更は trust model 上の非保証とする
-- method は renderer が使う `GET` / `HEAD` だけを扱う。Host / Origin / CORS policy は security boundary にならないため実装しない
-- MIME type、`Content-Length`、single range request、`HEAD` を扱う。multi-range、圧縮、cache validation、upload は扱わず、無効な range は `416` とする
-- response に `Cache-Control: no-store` を付ける
-- path segment は decode 前後で検証し、`..`、separator、NUL、二重 encoding によって logical ID の対応先を変えられないようにする
-- remote HTTP(S) resource は proxy せず browser から直接取得させる。AssetServer 自体は外部取得を監視せず、最終的な `img` の load / decode は後述の readiness coordinator が検査する
-- renderer 終了と捕捉可能な中断で新規 request の受付を止め、2 秒後に残る socket を破棄して listener と port を解放する
-- manifest は renderer-neutral な resource 解決のためのものであり、この server を sandbox や security boundary とはみなさない
+- レンダラーと同じホストプロセスで `AssetServer` を起動し、Vivliostyle CLI にはファイルパスではなく文書 URL を渡す。ブラウザーと同じホストの `127.0.0.1` にある、OS が割り当てたポートだけへバインドし、IPv4 ループバック以外のインターフェースへバインドしない
+- 論理アセットパスは決定的だが、画像の参照元診断を含む HTML バイト列は入力のパス表現に依存し、ブラウザーから見えるポートもビルドごとに異なる。利用者のスクリプトが `location.href` / `origin`、時刻、乱数から描画内容を作る場合の再現性は保証しない
+- `ResourceResolver` のマニフェストが公開対象として列挙したファイルと生成ファイルだけを、論理 ID で配信する。マニフェスト自体、ブラウザープロファイル、レンダラー出力は配信しない。任意のパスを扱う静的ファイルサーバーや、ディレクトリーの一覧表示機能にもしない
+- リクエストごとにマニフェストの参照先を開き、通常ファイルであることを確認して配信する。ビルド中にファイルが変更された場合、配信内容の一貫性は保証しない
+- メソッドはレンダラーが使う `GET` / `HEAD` だけを扱う。Host / Origin / CORS ポリシーはセキュリティー境界にならないため実装しない
+- MIME タイプ、`Content-Length`、単一範囲のリクエスト、`HEAD` を扱う。複数範囲、圧縮、キャッシュの検証、アップロードは扱わず、無効な範囲指定は `416` とする
+- 応答に `Cache-Control: no-store` を付ける
+- パスの各セグメントをデコード前後で検証し、`..`、区切り文字、NUL、二重エンコーディングによって論理 ID の対応先を変えられないようにする
+- リモート HTTP(S) リソースはプロキシーせず、ブラウザーから直接取得させる。`AssetServer` 自体は外部取得を監視せず、最終的な `img` の読み込み・デコードは、後述の `ReadinessCoordinator` が検査する
+- レンダラーの終了と捕捉可能な中断で新規リクエストの受付を止め、2 秒後に残るソケットを破棄して、リスナーとポートを解放する
+- マニフェストはレンダラーに依存しないリソース解決のためのものであり、このサーバーをサンドボックスやセキュリティー境界とはみなさない
 
 ## 2.7 生成 HTML と `document.html`
 
-pfpdf は信頼済みのローカル文書を処理する tool とし、local resource を sandbox 化しません。
+pfpdf は信頼済みのローカル文書を処理するツールとし、ローカルリソースをサンドボックス化しません。
 
-- Markdown と raw HTML に静的に記述された相対 URL は resource base を基準に解決し、`ResourceResolver` が renderer-neutral な logical URL へ書き換える
-- local stylesheet、script、CSS の `url()` / `@import` も各 resource 自身の URL を基準に再帰解決する
-- `..`、absolute path、`file:` URL、symlink target を入力 root だけに制限しない。静的に解決でき、pfpdf process の実行権限で読める file は trusted input の resource として扱う
-- Markdown AST の link と raw HTML の `a[href]` が同一文書へ結合される Markdown file を相対指定した場合は、file anchor または指定 fragment へ書き換える。それ以外の navigation link は trusted input として保持し、存在確認や可搬性の判定は行わない
-- remote image、stylesheet、script は browser に直接取得させる。登録 promise と font の待機後に存在する `img` は remote / data / local を問わず readiness で load / decode を検査し、失敗を参照元・参照先の文脈付きで build error にする。browser が公開しない画像の HTTP status、DNS / TLS などの詳細原因の分類や、remote stylesheet / script の取得結果を網羅的に監視して build 成否へ反映することまでは保証しない
+- Markdown と生の HTML に静的に記述された相対 URL は、リソースの基準ディレクトリーを基に解決し、`ResourceResolver` がレンダラーに依存しない論理 URL へ書き換える
+- ローカルのスタイルシート、スクリプト、CSS の `url()` / `@import` も、各リソース自身の URL を基準に再帰的に解決する
+- `..`、絶対パス、`file:` URL、シンボリックリンクの参照先を入力ルートだけに制限しない。静的に解決でき、pfpdf プロセスの実行権限で読めるファイルは、信頼済み入力のリソースとして扱う
+- Markdown AST のリンクと生の HTML の `a[href]` が、同一文書へ結合される Markdown ファイルを相対指定した場合は、ファイルのアンカーまたは指定フラグメントへ書き換える。それ以外の移動用リンクは信頼済み入力として保持し、存在確認や可搬性の判定は行わない
+- リモートの画像、スタイルシート、スクリプトはブラウザーに直接取得させる。登録した Promise とフォントの待機後に存在する `img` は、リモート URL・データ URL・ローカルファイルのいずれを参照していても、描画開始前に読み込み・デコードを検査する。失敗は参照元・参照先の情報を付けてビルドエラーにする。ブラウザーが公開しない画像の HTTP ステータス、DNS / TLS などの詳細原因を分類することや、リモートのスタイルシート・スクリプトの取得結果を網羅的に監視してビルド成否へ反映することまでは保証しない
 
-`HtmlDocumentBuilder` は workspace に `document.html` を 1 つ生成し、`AssetServer` がその byte 列を変更せず配信した URL を Vivliostyle CLI へ渡します。HTML を公開出力形式にはせず、asset の data URL 化、font subset、単一 file 化を行いません。HTML の integration test は別の出力 pipeline を作らず、renderer が実際に URL から消費する `document.html` と同じ builder 出力を保存・比較します。host path や port は manifest / 起動引数側で解決し、HTML byte 列を作り直しません。
+`HtmlDocumentBuilder` は作業ディレクトリーに `document.html` を 1 つ生成します。Vivliostyle CLI には、`AssetServer` がそのバイト列を変更せず配信する URL を渡します。HTML は公開出力形式とせず、アセットのデータ URL 化、フォントのサブセット化、単一ファイル化は行いません。HTML の統合テストでは別の出力経路を作らず、レンダラーが実際に URL から読み込む `document.html` と同じビルダー出力を保存・比較します。ホストのパスやポートはマニフェスト・起動引数側で解決し、HTML バイト列を作り直しません。
 
-`pfpdf-file-` で始まる ID、`data-pfpdf-*` attribute、`window.pfpdf` は内部 contract でも利用しますが、trusted HTML との衝突を事前検査して拒否しません。builder は処理した `data-pfpdf-slot` を除去します。利用者 script による `window.pfpdf` の上書きを防止・検出する専用処理は持ちません。登録 API を利用する script はその名前を保持する必要があります。
+`pfpdf-file-` で始まる ID、`data-pfpdf-*` 属性、`window.pfpdf` は内部の契約としても利用しますが、信頼済み HTML との衝突を事前検査して拒否しません。ビルダーは処理した `data-pfpdf-slot` を除去します。利用者のスクリプトによる `window.pfpdf` の上書きを防止・検出する専用処理は持ちません。登録 API を利用するスクリプトは、その名前を保持する必要があります。
 
 ## 2.8 `ReadinessCoordinator`
 
-document の `<head>` で最初に readiness coordinator を初期化し、font、local / data / remote の HTML 画像、および利用者が明示登録した非同期処理を 1 つの promise に集約します。MathJax と highlight.js は HTML assembly 前に完了する build-time transform であり、browser 内の readiness 状態には含めません。
+文書の `<head>` の最初で `ReadinessCoordinator` を初期化し、フォント、ローカルファイル・データ URL・リモート URL を参照する HTML 画像、利用者が明示登録した非同期処理を 1 つの Promise に集約します。MathJax と highlight.js は HTML の組み立て前に完了するビルド時の変換処理であり、ブラウザー内で完了を待つ処理には含めません。
 
-- coordinator は DOM parse と登録 promise の完了、`document.fonts.ready` を待ってから、その時点の全 `img`（内部の readiness gate を除く）を `decode()` する。script による `src` 設定と `picture` / `srcset` による有効な参照先も扱い、空・未指定・load / decode 失敗は元の位置と参照先を含む build error にする。stylesheet / classic script など実際に読み込まれる local resource の load error は capture phase の `error` で build error にする
-- manifest はURL解決と配信対象の正確な対応表として使うが、描画に利用されない項目を含む全件の事前`fetch`は行わない。browserが実際にload / decodeする経路を二重実行せず、その完了を待つ
-- 利用者 script は `window.pfpdf.registerReady(promise)` で pagination 前に待つ処理を登録できる。登録は document の parse 完了までに行い、それ以降の登録は error にする
-- coordinator は `window.pfpdf` に frozen API object を公開し、`registerReady` の引数を `Promise.resolve` 相当で同化する。trusted scriptによるnamespaceの改変を防ぐproperty descriptorや改変検出は設けない
-- `error` と `unhandledrejection` は readiness 完了までは build error とする。完了後に timer や event handler が起こす処理までは PDF の成否へ反映できない
-- renderer は readiness の成功を確認してから pagination を開始し、`--render-timeout-ms` の deadline を renderer が最初の外部 process を起動する直前から browser の確認と取得、readiness、PDF 生成・後処理・構造検査の全体へ適用する
-- child process として呼ぶ pinned Vivliostyle CLI との readiness 接続方法を release 前に固定する。上流に pagination 前の hook がある場合はその正式 API を使う。ない場合は、document load を保留する専用 gate resource と、coordinator から loopback serverへの単一完了通知を使う。通知は成功・失敗と短い診断を伝え、gateは成功時だけ解放する。host側のcoordinatorがrejection、resource error、timeoutを記録し、上流childがcode `0`を返してもbuildを失敗させる。この接続をpinned browserで実証できない限りreleaseしない
+- `ReadinessCoordinator` は DOM の解析と登録した Promise の完了を待ち、続いて `document.fonts.ready` を待ってから、その時点の全 `img`（内部で文書の読み込みを保留するための画像を除く）を `decode()` する。スクリプトによる `src` 設定と `picture` / `srcset` による有効な参照先も扱い、空・未指定・読み込みやデコードの失敗は、元の位置と参照先を含むビルドエラーにする。スタイルシート・クラシックスクリプトなど、実際に読み込まれるローカルリソースの読み込みエラーは、キャプチャーフェーズの `error` でビルドエラーにする
+- マニフェストは URL 解決と配信対象の正確な対応表として使うが、描画に利用されない項目を含む全件の事前 `fetch` は行わない。ブラウザーが実際に読み込み・デコードする経路を二重実行せず、その完了を待つ
+- 利用者のスクリプトは `window.pfpdf.registerReady(promise)` で、ページ分割前に待つ処理を登録できる。登録は文書の解析完了までに行い、それ以降の登録はエラーにする
+- `ReadinessCoordinator` は `window.pfpdf` に凍結済みの API オブジェクトを公開し、`registerReady` の引数を `Promise.resolve` 相当で同化する。信頼済みスクリプトによる名前空間の改変を防ぐプロパティーディスクリプターや、改変検出は設けない
+- `error` と `unhandledrejection` は描画開始の準備完了まではビルドエラーとする。完了後にタイマーやイベントハンドラーが起こす処理までは、PDF の成否へ反映できない
+- レンダラーは描画開始の準備が成功したことを確認してから、ページ分割を開始する。`--render-timeout-ms` の期限は、レンダラーが最初の外部プロセスを起動する直前から、ブラウザーの確認と取得、描画開始の準備、PDF の生成・後処理・構造検査の全体へ適用する
+- バージョン固定済みの Vivliostyle CLI を子プロセスとして呼ぶ際に、準備完了を伝える方法をリリース前に固定する。上流にページ分割前のフックがある場合は、その正式 API を使う。ない場合は、文書の読み込み完了を保留する専用リソースと、`ReadinessCoordinator` からループバックサーバーへの単一の完了通知を使う。通知は成功・失敗と短い診断を伝え、読み込みの保留は成功時だけ解除する。ホスト側の `ReadinessCoordinator` が Promise の拒否、リソースエラー、タイムアウトを記録し、上流の子プロセスがコード `0` を返してもビルドを失敗させる。この接続をバージョン固定済みのブラウザーで実証できない限り、リリースしない
 
-HTML の `img` 以外の remote resource、CSS 背景画像や nested document 内の画像、利用者 script が登録しなかった非同期処理まで完全に検出する契約ではありません。画像の検査後に追加・変更された参照先も検査対象の保証外です。再現可能な文書では local resource を使い、pagination に影響する非同期処理を必ず登録します。
+HTML の `img` 以外のリモートリソース、CSS 背景画像や入れ子になった文書内の画像、利用者のスクリプトが登録しなかった非同期処理まで完全に検出する契約ではありません。画像の検査後に追加・変更された参照先も、検査を保証する対象には含めません。再現可能な文書ではローカルリソースを使い、ページ分割に影響する非同期処理を必ず登録します。
 
 ## 2.9 CLI 設計
 
@@ -157,116 +161,120 @@ HTML の `img` 以外の remote resource、CSS 背景画像や nested document �
 Usage: pfpdf --input INPUT --output OUTPUT [OPTIONS]
 
 Required:
-  --input PATH       Markdown ファイルまたは Markdown を含むディレクトリ
+  --input PATH       Markdown ファイルまたは Markdown を含むディレクトリー
   --output PATH      .pdf の出力先
 
 Options:
-  --title TEXT             front matter と自動補完より優先する title
-  --cover / --no-cover     表紙または先頭 header を有効 / 無効化する。既定は有効
+  --title TEXT             フロントマターと自動補完より優先するタイトル
+  --cover / --no-cover     表紙または先頭の文書ヘッダーを有効 / 無効化する。既定は有効
   --toc / --no-toc         目次生成を有効 / 無効化する。既定は有効
-  --template SOURCE        preset 名、local directory、または git::URL//PATH?ref=REVISION
-  --template-preset NAME   bundled template preset を明示選択
-  --logo SOURCE            local file または git::URL//PATH?ref=REVISION。template 既定値を上書き
-  --no-logo                local / repository / template 既定 logo を無効化
-  --host-fonts             OS 標準の font directory を使用する
-  --font-dir PATH          追加 font directory。複数回指定可能
-  --browser-path PATH      renderer が使う browser
-  --render-timeout-ms N    renderer 準備から PDF 検査完了まで。既定は 300000
-  --keep-work-dir          一時 workspace を保持する
-  --strict-front-matter    未知の front matter key をエラーにする。既定は警告して無視
+  --template SOURCE        プリセット名、ローカルディレクトリー、または git::URL//PATH?ref=REVISION
+  --template-preset NAME   同梱テンプレートのプリセットを明示的に選択
+  --logo SOURCE            ローカルファイルまたは git::URL//PATH?ref=REVISION。テンプレートの既定値を上書き
+  --no-logo                ローカル・リポジトリー・テンプレート既定のロゴを無効化
+  --host-fonts             OS 標準のフォントディレクトリーを使用する
+  --font-dir PATH          追加のフォントディレクトリー。複数回指定可能
+  --browser-path PATH      レンダラーが使うブラウザー
+  --render-timeout-ms N    レンダラーの準備から PDF 検査完了まで。既定は 300000
+  --keep-work-dir          一時的な作業ディレクトリーを保持する
+  --strict-front-matter    未知のフロントマターキーをエラーにする。既定は警告して無視
   --log-level LEVEL        error / warn / info / debug
   --print-effective-config 適用後の設定と設定元を表示して終了する
-  --doctor                 renderer、browser、asset を診断する
+  --doctor                 レンダラー、ブラウザー、アセットを診断する
   --version                バージョンを表示する
   -h, --help               ヘルプを表示する
 ```
 
 ### 2.9.1 パス規則
 
-- 相対パスは `pfpdf` を呼び出したカレントディレクトリ基準で解決する
-- `--input -` / `--output -` を stdin / stdout の意味では受け付けず code `2` とする。入力順・resource base・atomic output を維持するため、`v0.1.0` は named path だけを扱う
-- `--input` がディレクトリなら、直下の小文字拡張子 `*.md` を持つ regular file と regular file への symlink だけを対象にし、file 名の UTF-8 byte 列の昇順で処理する。POSIX では directory entry を byte 列として読み、不正 UTF-8 の file 名を replacement character にせず入力エラーにする。再帰探索と locale 依存 sort は使わず、可搬性のため `00_`、`01_` の番号 prefix を推奨する。対象が 0 件の場合は入力エラーにする
+- 相対パスは `pfpdf` を呼び出したカレントディレクトリーを基準に解決する
+- `--input -` / `--output -` を標準入力・標準出力の意味では受け付けず、コード `2` とする。入力順・リソースの基準ディレクトリー・アトミックな出力を維持するため、`v0.1.0` はパスによる入出力だけを扱う
+- `--input` がディレクトリーなら、直下の小文字拡張子 `*.md` を持つ通常ファイルと、通常ファイルへのシンボリックリンクだけを対象にし、ファイル名の UTF-8 バイト列の昇順で処理する。POSIX ではディレクトリーエントリーをバイト列として読み、不正な UTF-8 のファイル名は置換文字に変えず入力エラーにする。再帰探索とロケール依存のソートは使わず、可搬性のため `00_`、`01_` のような番号付きの接頭辞を推奨する。対象が 0 件の場合は入力エラーにする
 - `--input` がファイルなら、その 1 ファイルだけを処理する。小文字 `.md` 以外の拡張子は入力エラーにする
-- input は UTF-8 とし、先頭の UTF-8 BOM と CRLF を受け付ける。不正な byte 列は replacement character にせずエラーにする
-- directory input の各 Markdown の先頭に front matter を置ける。文書全体の metadata は並び順で key ごとに最初に現れた値を選び、後続 file は未設定 key を補う。先頭 file に front matter がなくても後続 file の title を使える。各 file の front matter は採否にかかわらず検証して本文から除去し、元の行番号との差を `SourceFile.lineOffset` に保持する。どの source file でも冒頭の thematic break には `***` を使う
-- file 名の異なる入力は現在の filesystem が列挙した別 entry として扱う。別 OS 向けの normalization / case-folding 衝突を先回りして拒否しない
-- output 拡張子は ASCII case-insensitive に `.pdf` だけを受け付け、利用者が指定した file 名を保持する
-- 既存 output path は regular file または symlink だけを置換対象とし、directory、FIFO、socket、device は入力エラーとして拒否する。symlink の target へ書き込まず、最終 commit で directory entry としての symlink を置換する
-- 出力先の親ディレクトリがない場合は、入力と設定の検証完了後に作成する。親 path に regular file がある場合や作成後の親が directory でない場合は入力エラーにする
-- `OutputCommitter` は最終出力と同じ directory に、exclusive create した予測不能な短い名前の sibling 一時 file を作る。POSIX の初期 permission は `0600` とし、新規出力は `0666 & ~umask`、既存 regular file の置換はその mode を引き継いでから commit する。既存 symlink の target mode は引き継がず、symlink 自体を新しい regular file で置換する。renderer と AssetServer の停止、PDF 検査、file flush、`--keep-work-dir` でない場合の workspace cleanup がすべて完了した後、同一 filesystem 上の rename / replace を最後の commit point とする
-- atomic replace と directory flush は対象 OS / filesystem が提供する保証の範囲とする。atomic replace を提供しない filesystem へ copy-delete で fallback せず code `1` にし、network / distributed filesystem 固有の visibility や durability を local filesystem と同等とは表現しない
-- renderer、検査、rename のいずれかに失敗した場合は sibling 一時 file を削除し、既存出力を維持する。Windows で既存 file が他 process に開かれて置換できない場合は終了 code `1` とし、先に既存 file を削除して retry しない
-- 捕捉不能な `SIGKILL` / 電源断では `.pfpdf-<random>.tmp` が出力 directory に残り得る。次回実行で同 prefix の file を所有物と推測して自動削除せず、最終 output としても扱わない。利用者は動作中 process がないことを確認した後に手動削除できる
-- rename 成功後は完全な新出力が visible であり、既存出力へ安全に rollback できない。可能な POSIX platform では親 directory を flush し、その flush だけが失敗した場合は durability warning と終了 code `0` を返す。出力内容の成功と crash 後の directory entry 永続化を混同しない
-- 捕捉可能な中断 signal と commit を state machine で直列化する。commit critical section に入る前に受けた signal は rename せず中断扱いにし、critical section 開始後の signal は rename と可能な directory flush が終わるまで遅延する。rename が成功した後は rollback せず build 成功 code `0` として signal を再送しない。これにより「捕捉可能な中断の非 0」と「新 output の commit」を同時に発生させない
-- 同じ最終出力を対象にした同時 build の lock は実装しない。各 build の一時 file は衝突せず、複数が成功した場合は最後に commit した完全な PDF が残る。どの build を優先するかの調停と crash recovery は行わない
+- 入力は UTF-8 とし、先頭の UTF-8 BOM と CRLF を受け付ける。不正なバイト列は置換文字に変えずエラーにする
+- ディレクトリー入力では、各 Markdown の先頭にフロントマターを置ける。文書全体のメタデータは並び順でキーごとに最初に現れた値を選び、後続ファイルは未設定のキーを補う。先頭ファイルにフロントマターがなくても、後続ファイルのタイトルを使える。各ファイルのフロントマターは採否にかかわらず検証して本文から除去し、元の行番号との差を `SourceFile.lineOffset` に保持する。どの入力ファイルでも、冒頭の水平線には `***` を使う
+- ファイル名の異なる入力は、現在のファイルシステムが列挙した別のエントリーとして扱う。別 OS 向けの正規化・大文字小文字の同一視による衝突を先回りして拒否しない
+- 出力拡張子は ASCII の大文字小文字を区別せず `.pdf` だけを受け付け、利用者が指定したファイル名を保持する
+- 既存の出力パスは通常ファイルまたはシンボリックリンクだけを置換対象とし、ディレクトリー、FIFO、ソケット、デバイスは入力エラーとして拒否する。シンボリックリンクの参照先へ書き込まず、最後の出力確定でディレクトリーエントリーとしてのシンボリックリンクを置換する
+- 出力先の親ディレクトリーがない場合は、入力と設定の検証完了後に作成する。親パスに通常ファイルがある場合や、作成後の親がディレクトリーでない場合は入力エラーにする
+- `OutputCommitter` は最終出力と同じディレクトリーに、予測不能な短い名前の一時ファイルを排他的に作成する。POSIX の初期アクセス権は `0600` とする。新規出力には `0666 & ~umask` を設定し、既存の通常ファイルを置換する場合はそのモードを引き継いでから出力を確定する。既存シンボリックリンクの参照先のモードは引き継がず、シンボリックリンク自体を新しい通常ファイルで置換する。レンダラーと `AssetServer` の停止、PDF 検査、ファイルの同期、`--keep-work-dir` でない場合の作業ディレクトリー削除がすべて完了した後、最後に同一ファイルシステム上で名前変更・置換を行って出力を確定する
+- アトミックな置換とディレクトリーの同期は、対象 OS・ファイルシステムが提供する保証の範囲とする。アトミックな置換を提供しないファイルシステムでは、コピー後に削除する方法へ切り替えずコード `1` にする。ネットワーク・分散ファイルシステム固有の可視性や永続性を、ローカルファイルシステムと同等とは表現しない
+- レンダラー、検査、名前変更のいずれかに失敗した場合は一時ファイルを削除し、既存出力を維持する。Windows で既存ファイルが他のプロセスに開かれて置換できない場合は終了コード `1` とし、先に既存ファイルを削除して再試行しない
+- 捕捉不能な `SIGKILL` や電源断では、`.pfpdf-<random>.tmp` が出力ディレクトリーに残り得る。次回実行で同じ接頭辞のファイルを所有物と推測して自動削除せず、最終出力としても扱わない。利用者は動作中のプロセスがないことを確認した後に手動削除できる
+- 名前変更の成功後は完全な新出力が見える状態となり、既存出力へ安全にロールバックできない。対応可能な POSIX プラットフォームでは親ディレクトリーを同期し、その同期だけが失敗した場合は永続性に関する警告と終了コード `0` を返す。出力内容の成功と、異常終了後のディレクトリーエントリーの永続化を混同しない
+- 捕捉可能な中断シグナルと出力確定を状態機械で直列化する。確定処理のクリティカルセクションに入る前に受けたシグナルは、名前変更せず中断扱いにする。クリティカルセクション開始後のシグナルは、名前変更と、可能な場合のディレクトリー同期が終わるまで遅延する。名前変更の成功後はロールバックせず、ビルド成功のコード `0` としてシグナルを再送しない。これにより「捕捉可能な中断による非 0 の終了」と「新出力の確定」を同時に発生させない
+- 同じ最終出力を対象にした同時ビルドのロックは実装しない。各ビルドの一時ファイルは衝突せず、複数が成功した場合は最後に出力を確定した完全な PDF が残る。どのビルドを優先するかの調停と、異常終了からの復旧は行わない
 - 入力と出力が同じファイル、または出力が入力 Markdown を上書きする指定は拒否する
 
-### 2.9.2 metadata と再現可能な日付
+### 2.9.2 メタデータと再現可能な日付
 
-- title の優先順位は `--title`、入力順で最初の front matter `title`、全入力 file を入力順に調べて最初に見つかる空でないトップレベルの Markdown H1、入力名とする。後続 file の明示 title も、先行 file の H1 より優先する。H1 は ATX / Setext の両方を対象とし、blockquote・list・code・raw HTML block・脚注定義の内側は対象外とする
-- H1 からは装飾を外し、link の label、code と数式の source text、画像の alt を文字列として採用する。脚注参照と HTML comment は除外し、`br` は空白、script / style / template の内容は除外する。CSS や script は評価しない。文字参照は Markdown として一度解決し、空白・改行は一つの空白へ畳む。本文・見出し・anchor・元行番号は変更しない
-- H1 がなければ、file input は末尾の `.md` を除いた file 名、directory input は directory 名を使う。入力名の空白・改行も一つの空白へ畳み、空なら `document` とする。補完値は `<br>` や文字参照を再解釈しない literal text の 1 行とし、表紙・HTML title・PDF Info / XMP で同じ解決値を使う。以下の制限は明示 title に適用し、補完で不正な明示値を隠さない
-- `title` は空でない string とし、HTML tokenizer で text / character reference と、大小文字を区別しない attribute なしの `<br>` / `<br/>` / `<br />` token だけを許可する。その他の comment、tag、attribute は除去せずエラーにする。plain な `x < y` は text として扱う。plain text 表現では許可した改行 tag を U+000A へ変換し、HTML `<title>` では空白へ畳んでから DOM API で設定する
-- `author`、`series`、`date` は string、`confidential` は YAML boolean、`page_size` は allowlist keyword または寸法 2 個だけを受け付け、省略時は `A4` とする。`author` / `series` / `date` には HTML を許可せず DOM の text として挿入する
-- title の視覚的な改行は YAML block scalar や literal newline ではなく、許可した `<br>` を使う
-- `lang` は well-formed な BCP 47 language tag の string とし、Node.js の `Intl.getCanonicalLocales` で canonical form へ正規化する。省略時は全入力 file の Markdown 本文から `ja` / `en` を推定する。明示した値は推定より優先し、生成 HTML root の `lang` attribute、hyphenation、font 選択、自動日付と生成 label に共通して使う
-- `dir` は `ltr` / `rtl` / `auto` の ASCII case-sensitive enum とし、省略時は `auto` とする。生成 HTML root の `dir` attribute へ設定し、host locale や `lang` だけから text direction を推測しない。upstream の reading progression は固定値で上書きせず、computed `writing-mode` / direction から自動判定させ、horizontal RTL と vertical writing の PDF direction を compatibility test で確認する
-- page size keyword は ASCII case-insensitive の `A3`、`A4`、`A5`、`JIS-B4`、`JIS-B5`、`ISO-B4`、`ISO-B5`、`Letter`、`Legal` とする。曖昧な `B4` / `B5` は受け付けない。寸法は `<number><unit><ASCII-whitespace+><number><unit>` の幅・高さ順とし、unit は `mm` / `cm` / `in` / `pt`、各辺は正の有限 decimal とする。renderer が扱える寸法へ pfpdf 独自の上限を設けない
-- metadata key は `title`、`author`、`series`、`date`、`page_size`、`confidential`、`lang`、`dir` とする。文書設定と `bibliography` を含む既知 key 以外は、既定では source file と key 名を含む warning を key ごとに stderr へ出し、値を無視する。未知 key の値は metadata、effective config、生成文書へ渡さない。`--strict-front-matter` を指定した場合は未知 key を入力誤り (code `2`) とする。重複 key、不正 YAML、既知 key の不正な型・値はモードにかかわらず入力誤りとする
-- 文書設定の`template`はbundled template名、`toc` / `cover`はYAML boolean、`logo`はlocal path stringまたは`false`とする。`cover`は既定trueで、表紙と目次は独立に切り替える。`logo`の相対pathはfront matter sourceの親directory基準で解決し、Git repository sourceはfront matterでは拒否して`--logo`だけから受け付ける
-- `--title` は有効な front matter title または補完値を上書きする。CLI override や補完があっても全 file の front matter の syntax、key、型を先に検証し、不正値を隠さない
+- タイトルの優先順位は `--title`、入力順で最初に指定されたフロントマターの `title`、全入力ファイルを入力順に調べて最初に見つかる空でないトップレベルの Markdown H1、入力名の順とする。後続ファイルの明示タイトルも、先行ファイルの H1 より優先する。H1 は ATX / Setext の両方を対象とし、引用ブロック・リスト・コード・生の HTML ブロック・脚注定義の内側は対象外とする
+- H1 からは装飾を外し、リンクのラベル、コードと数式のソーステキスト、画像の代替テキストを文字列として採用する。脚注参照と HTML コメントは除外し、`br` は空白に変え、`script` / `style` / `template` の内容は除外する。CSS やスクリプトは評価しない。文字参照は Markdown として一度解決し、空白・改行は一つの空白へ畳む。本文・見出し・アンカー・元の行番号は変更しない
+- H1 がなければ、ファイル入力では末尾の `.md` を除いたファイル名、ディレクトリー入力ではディレクトリー名を使う。入力名の空白・改行も一つの空白へ畳み、空なら `document` とする。補完値は `<br>` や文字参照を再解釈しない 1 行のリテラルテキストとし、表紙・HTML タイトル・PDF Info / XMP で同じ解決値を使う。以下の制限は明示タイトルに適用し、補完で不正な明示値を隠さない
+- `title` は空でない文字列とし、HTML トークナイザーで、テキスト・文字参照と、大小文字を区別しない属性なしの `<br>` / `<br/>` / `<br />` トークンだけを許可する。その他のコメント、タグ、属性は除去せずエラーにする。通常の `x < y` はテキストとして扱う。プレーンテキスト表現では許可した改行タグを U+000A へ変換し、HTML の `<title>` では空白へ畳んでから DOM API で設定する
+- `author`、`series`、`date` は文字列、`confidential` は YAML の真偽値とする。`page_size` は許可されたキーワードまたは寸法 2 個だけを受け付け、省略時は `A4` とする。`author` / `series` / `date` には HTML を許可せず、DOM のテキストとして挿入する
+- タイトルの視覚的な改行には、YAML ブロックスカラーや文字列内の改行ではなく、許可した `<br>` を使う
+- `lang` は整形式の BCP 47 言語タグの文字列とし、Node.js の `Intl.getCanonicalLocales` で正規形へ正規化する。省略時は全入力ファイルの Markdown 本文から `ja` / `en` を推定する。明示した値は推定より優先し、生成 HTML のルート要素の `lang` 属性、ハイフネーション、フォント選択、自動日付と生成ラベルに共通して使う
+- `dir` は ASCII の大文字小文字を区別する `ltr` / `rtl` / `auto` の列挙値とし、省略時は `auto` とする。生成 HTML のルート要素の `dir` 属性へ設定し、ホストのロケールや `lang` だけから文字方向を推測しない。上流のページ進行方向は固定値で上書きせず、計算済みの `writing-mode` / `direction` から自動判定させる。横書き RTL と縦書きでの PDF のページ進行方向を互換性テストで確認する
+- ページサイズのキーワードは、ASCII の大文字小文字を区別しない `A3`、`A4`、`A5`、`JIS-B4`、`JIS-B5`、`ISO-B4`、`ISO-B5`、`Letter`、`Legal` とする。曖昧な `B4` / `B5` は受け付けない。寸法は `<number><unit><ASCII-whitespace+><number><unit>` の幅・高さ順とし、単位は `mm` / `cm` / `in` / `pt`、各辺は正の有限な十進数とする。レンダラーが扱える寸法へ pfpdf 独自の上限を設けない
+- メタデータのキーは `title`、`author`、`series`、`date`、`page_size`、`confidential`、`lang`、`dir` とする。文書設定と `bibliography` を含む既知キー以外は、既定では記述元ファイルとキー名を含む警告をキーごとに標準エラーへ出し、値を無視する。未知キーの値はメタデータ、適用後の設定、生成文書へ渡さない。`--strict-front-matter` を指定した場合は未知キーを入力誤り（コード `2`）とする。重複キー、不正な YAML、既知キーの不正な型・値は、モードにかかわらず入力誤りとする
+- 文書設定の `template` は組み込みテンプレート名、`toc` / `cover` は YAML の真偽値、`logo` はローカルパスの文字列または `false` とする。`cover` の既定値は `true` で、表紙と目次は独立に切り替える。`logo` の相対パスはフロントマター記述元の親ディレクトリーを基準に解決し、Git リポジトリーをソースとする指定はフロントマターでは拒否して、`--logo` だけから受け付ける
+- `--title` は有効なフロントマターのタイトルまたは補完値を上書きする。CLI による上書きや補完があっても、全ファイルのフロントマターの構文、キー、型を先に検証し、不正値を隠さない
 - `confidential` の既定値は `false` とし、利用者が明示した場合だけ `Confidential` 表示を行う
-- `SOURCE_DATE_EPOCH` は ASCII decimal の非負整数 Unix seconds とし、13 digit を超える値は数値変換前に拒否する。その後 JavaScript `Number` を経由せず parse し、安全な整数かつ ECMAScript `Date` の表現範囲にあることを確認する。不正値は無視せずエラーにする。`date` が省略されてこの値が有効なら、表示日付には UTC のその日付を使う。未設定時の表示日付は process 起動時に 1 回だけ取得した local date、PDF metadata は同じ起動 instant を使う。front matter の `date` の有無にかかわらず、`SOURCE_DATE_EPOCH` 未設定時は再現可能 build ではないことを warning にする
-- 生成日付は `lang` の primary language が `ja` なら `2026 年 8 月 3 日`、それ以外なら locale 非依存の `2026-08-03` とする。template は日付へ固定 label を追加せず、利用者が指定した任意 string の `date` は書式変更しない
-- PDF Info / XMP の title は title の plain text 表現、author は HTML として解釈しない plain text 表現を使い、author 未指定時は field を作らない。PDF catalog の `/Lang` は canonical `lang` にする。表示用 `date` や confidential flag を PDF の作成 timestamp / author field へ流用しない
-- PDF の CreationDate / ModDate と XMP timestamp は、`SOURCE_DATE_EPOCH` があればその UTC instant、なければ process 起動時刻を使う。任意 string である front matter の `date` は PDF timestamp に流用しない。upstream の正式 option または構造を理解する PDF library で設定し、PDF byte 列を正規表現置換しない
-- canonical CI では `SOURCE_DATE_EPOCH` を固定し、生成 HTML と PDF Info / XMP title・author・language・timestamp / timezone policy を同じ fixture で検査する。timestamp を固定しても browser / OS 間の PDF byte 一致までは保証しない
+- `SOURCE_DATE_EPOCH` は ASCII 十進数字で表す非負整数の Unix 秒とし、13 桁を超える値は数値変換前に拒否する。その後 JavaScript の `Number` を経由せず解析し、安全な整数かつ ECMAScript の `Date` の表現範囲にあることを確認する。不正値は無視せずエラーにする。`date` が省略されてこの値が有効なら、表示日付には UTC のその日付を使う。未設定時の表示日付はプロセス起動時に 1 回だけ取得したローカル日付、PDF メタデータは同じ起動時点を使う。フロントマターの `date` の有無にかかわらず、`SOURCE_DATE_EPOCH` 未設定時は再現可能なビルドではないことを警告する
+- 生成日付は `lang` の先頭の言語サブタグが `ja` なら `2026 年 8 月 3 日`、それ以外ならロケール非依存の `2026-08-03` とする。テンプレートは日付へ固定ラベルを追加せず、利用者が指定した任意の文字列の `date` は書式変更しない
+- PDF Info / XMP のタイトルはタイトルのプレーンテキスト表現、著者は HTML として解釈しないプレーンテキスト表現を使い、著者未指定時はフィールドを作らない。PDF カタログの `/Lang` は正規形の `lang` にする。表示用の `date` や機密表示のフラグを、PDF の作成タイムスタンプ・著者フィールドへ流用しない
+- PDF の CreationDate / ModDate と XMP のタイムスタンプは、`SOURCE_DATE_EPOCH` があればその UTC 時点、なければプロセス起動時刻を使う。任意の文字列であるフロントマターの `date` は PDF タイムスタンプに流用しない。上流の正式オプション、または構造を理解する PDF ライブラリーで設定し、PDF バイト列を正規表現で置換しない
+- 基準となる CI では `SOURCE_DATE_EPOCH` を固定し、生成 HTML と PDF Info / XMP のタイトル・著者・言語・タイムスタンプとタイムゾーンの方針を、同じフィクスチャーで検査する。タイムスタンプを固定しても、ブラウザー・OS 間の PDF バイト列の一致までは保証しない
 
 ### 2.9.3 設定解決と診断
 
-- 文書設定の`template` / `toc` / `cover` / `logo`は、CLIに値があればCLI、なければfront matter、どちらにもなければ組み込み既定値を採用する。template source / explicit presetと、logo source / disabledはそれぞれ排他的な1つの論理設定とする
-- browser path、追加font directory、host font、timeout、workspace保持、log level、`--strict-front-matter`はCLIだけから設定する。listを別の設定元から暗黙連結しない
-- 未知 front matter key の警告・無視と厳格検証は、通常変換、`--print-effective-config --input PATH`、`--doctor --input PATH` に共通で適用する。警告は通常の log level に従い、stdout の JSON に混ぜない。doctor では入力 check を `warning`、厳格検証で拒否した場合は `fail` とし、既存の診断用終了 code (`fail` があれば `1`、それ以外は `0`) を維持する
-- `SOURCE_DATE_EPOCH`だけは再現可能buildの標準環境変数として扱い、表示日付とPDF metadata timestampに使用する。front matterの`date`は表示日付だけを上書きする
-- child process は通常の CLI tool と同様に呼出元の環境変数を継承する
-- `--print-effective-config` は versioned schema を持つ JSON object を 1 個だけ stdout へ表示し、各値と、その設定元が CLI、front matter、default のどれかを含める。`--input` があれば全 Markdown から key ごとの先勝ちで選んだ `template` / `toc` / `cover` / `logo` を反映する。token、credential、環境変数の生値は含めず、秘密を含み得る proxy URL と custom CA の内容は表示しない
-- `--doctor` は effective config に基づき、Node.js、browser、template、logo、font directory、出力権限を検査する
-- `--doctor` と `--print-effective-config` は PDF を生成せず、診断で秘密情報や環境変数全体を表示しない
-- `--doctor` は browser download、利用者の project / output directory 作成、設定変更を行わない。browser 実起動の検査に必要な場合だけ、OS の secure temporary directory に専用 profile / workspace を作り、`finally` で回収する。cleanup 失敗は check の `fail` として残す。出力権限は既存の最寄り親 directory から best effort で判定し、実際の create / rename 成功を保証しない。外部 process の各 check は cleanup を含めて 10 秒、command 全体は 60 秒で打ち切り、timeout を `fail` として報告する
+- 文書設定の `template` / `toc` / `cover` / `logo` は、CLI に値があれば CLI、なければフロントマター、どちらにもなければ組み込み既定値を採用する。テンプレートのソース指定と明示プリセット、ロゴのソース指定と無効化は、それぞれ排他的な 1 つの論理設定とする
+- ブラウザーのパス、追加のフォントディレクトリー、ホストのフォント、タイムアウト、作業ディレクトリーの保持、ログレベル、`--strict-front-matter` は CLI だけから設定する。リストを別の設定元から暗黙に連結しない
+- 未知のフロントマターキーの警告・無視と厳格検証は、通常変換、`--print-effective-config --input PATH`、`--doctor --input PATH` に共通で適用する。警告は通常のログレベルに従い、標準出力の JSON に混ぜない。`--doctor` では入力の検査を `warning`、厳格検証で拒否した場合は `fail` とし、既存の診断用終了コード（`fail` があれば `1`、それ以外は `0`）を維持する
+- `SOURCE_DATE_EPOCH` だけは再現可能なビルドの標準環境変数として扱い、表示日付と PDF メタデータのタイムスタンプに使用する。フロントマターの `date` は表示日付だけを上書きする
+- 子プロセスは通常の CLI ツールと同様に、呼び出し元の環境変数を継承する
+- `--print-effective-config` はバージョン付きスキーマを持つ JSON オブジェクトを 1 個だけ標準出力へ表示し、各値と、その設定元が CLI、フロントマター、既定値のどれかを含める。`--input` があれば、全 Markdown からキーごとの先勝ちで選んだ `template` / `toc` / `cover` / `logo` を反映する。トークン、認証情報、環境変数の生の値は含めず、秘密を含み得るプロキシー URL とカスタム CA の内容は表示しない
+- `--doctor` は適用後の設定に基づき、Node.js、ブラウザー、テンプレート、ロゴ、フォントディレクトリー、出力権限を検査する
+- `--doctor` と `--print-effective-config` は PDF を生成せず、呼び出し元の環境変数を一覧表示しない。ブラウザー検査で得たレンダラーの診断は伏字化せず出力する
+- `--doctor` はブラウザーのダウンロード、利用者のプロジェクト・出力ディレクトリーの作成、設定変更を行わない。ブラウザーの実起動の検査に必要な場合だけ、OS の安全な一時ディレクトリーに専用プロファイル・作業ディレクトリーを作り、`finally` で回収する。後始末の失敗は検査の `fail` として残す。出力権限は最寄りの既存親ディレクトリーから可能な範囲で判定し、実際の作成・名前変更の成功を保証しない。外部プロセスの各検査は後始末を含めて 10 秒、コマンド全体は 60 秒で打ち切り、タイムアウトを `fail` として報告する
 - `--doctor` と `--print-effective-config` の実行時は `--input` と `--output` を必須にしない
-- input / output なしの `--doctor` は runtime と global setting だけを検査し、指定された場合だけ document resource と書込先まで検査する。未指定項目を成功確認済みと表示しない
-- `--doctor` は versioned schema の JSON object を stdout へ出し、検査ごとに `pass` / `warning` / `fail` / `not-run` と根拠を持たせる。問題を検出した場合に終了 code `1`、warning のみまたは問題なしの場合は `0` を返す
-- browser 実起動の失敗は、子 process の終了 code / signal / timeout と stderr の先頭・末尾を `message` に残す。stderr の抜粋は UTF-8 で最大 4 KiB とし、省略を明示する。既知の root / sandbox、user namespace / AppArmor、shared library、実行ファイルの問題には原因の目安を添えるが、未知の stderr も捨てない。JSON schema と診断用終了 code は変更しない
+- 入出力の指定がない `--doctor` は実行環境と共通設定だけを検査し、指定された場合だけ文書のリソースと書き込み先まで検査する。未指定項目を成功確認済みと表示しない
+- `--doctor` はバージョン付きスキーマの JSON オブジェクトを標準出力へ出し、検査ごとに `pass` / `warning` / `fail` / `not-run` と根拠を持たせる。問題を検出した場合は終了コード `1`、警告のみ、または問題なしの場合は `0` を返す
+- ブラウザーの実起動の失敗は、子プロセスの終了コード・シグナル・タイムアウトと、標準エラーの先頭・末尾を `message` に残す。標準エラーの抜粋は UTF-8 で最大 4 KiB とし、省略を明示する。既知の root / sandbox、ユーザー名前空間 / AppArmor、共有ライブラリー、実行ファイルの問題には原因の目安を添えるが、未知の標準エラーも捨てない。JSON スキーマと診断用終了コードは変更しない
 
-logo未指定はtemplate slotの既定`src`を使用する`template`状態、front matterの`logo: false`またはCLIの`--no-logo`はそれも削除する`none`状態としてeffective configで区別します。
+ロゴ未指定時は、テンプレートスロットの既定の `src` を使用する `template` 状態とします。フロントマターの `logo: false`、または CLI の `--no-logo` は、既定のロゴも削除する `none` 状態として、適用後の設定で区別します。
 
-effective config の `strictFrontMatter` は boolean で、既定は `{"value": false, "source": "default"}`、`--strict-front-matter` 指定時は `{"value": true, "source": "cli"}` です。追加 field として schema version は `5` を維持します。
+`strictFrontMatter` の設定値は真偽値です。適用後の設定には、既定で `{"value": false, "source": "default"}`、`--strict-front-matter` 指定時には `{"value": true, "source": "cli"}` を出力します。このフィールドの追加では、スキーマバージョン `5` を維持します。
 
-effective config の top-level は `schemaVersion: 5` と `command` を持ち、`config.<name> = {"value": ..., "source": "cli|front-matter|default"}` を含みます。schema 5ではenvironment sourceを削除し、`toc` / `logo`がfront matter sourceを持てるようにします。template はrepository variant、logoは`template` / `none` / `local` / `repository` variantを持ちます。doctor は `schemaVersion: 2` のままとし、全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。doctor の全体 status は 1 個でも fail があれば fail、なければ warning があれば warning、実行対象が 1 個以上すべて pass なら pass とします。key と check の出力順を固定し、UTF-8 の compact JSON 1 行と末尾 LF だけを stdout へ書きます。将来の optional field 追加は同じ schemaVersion で許可しますが、既存 field の意味・型の変更や削除では version を上げます。
+適用後の設定を表す JSON のトップレベルは `schemaVersion: 5` と `command` を持ち、`config.<name> = {"value": ..., "source": "cli|front-matter|default"}` を含みます。スキーマ 5 では設定元の `environment` を削除し、`toc` / `logo` がフロントマターを設定元に持てるようにします。テンプレートの値には `repository` 形式があり、ロゴの値は `template` / `none` / `local` / `repository` のいずれかの形式を持ちます。
+
+`--doctor` の出力は `schemaVersion: 2` のままとし、全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。全体の `status` は、1 個でも `fail` があれば `fail`、なければ `warning` があれば `warning`、実行対象が 1 個以上あり、そのすべてが `pass` なら `pass` とします。
+
+キーと検査の出力順を固定し、UTF-8 のコンパクトな JSON 1 行と末尾 LF だけを標準出力へ書きます。将来の省略可能なフィールドの追加は同じ `schemaVersion` で許可しますが、既存フィールドの意味・型の変更や削除ではバージョンを上げます。
 
 ### 2.9.4 終了コード
 
-| code | 意味 |
+| コード | 意味 |
 |---:|---|
 | `0` | 成功 |
-| `1` | renderer、browser、その他の実行時エラーまたは内部エラー |
-| `2` | CLI 引数、入力、front matter のエラー |
+| `1` | レンダラー、ブラウザー、その他の実行時エラーまたは内部エラー |
+| `2` | CLI 引数、入力、フロントマターのエラー |
 
-help、version、`--doctor`、`--print-effective-config` など command が要求された結果だけを stdout へ出し、通常の PDF build は stdout へ何も出しません。進捗、通常 log、警告、エラーと child process の出力は stderr へ送ります。例外 stack trace は標準では表示せず、`--log-level debug` の場合だけ表示します。commit 前の中断 code は Node.js と各 OS の慣例に従い、platform をまたぐ独自 code へ正規化しません。commit critical section 後の signal は前節の規則で遅延し、成功済み build を中断へ戻しません。
+ヘルプ、バージョン、`--doctor`、`--print-effective-config` など、要求されたコマンドの結果だけを標準出力へ出し、通常の PDF ビルドは標準出力へ何も出しません。進捗、通常ログ、警告、エラーと子プロセスの出力は標準エラーへ送ります。例外のスタックトレースは標準では表示せず、`--log-level debug` の場合だけ表示します。出力確定前の中断コードは Node.js と各 OS の慣例に従い、プラットフォームをまたぐ独自コードへ正規化しません。確定処理のクリティカルセクション開始後のシグナルは前節の規則で遅延し、成功済みビルドを中断へ戻しません。
 
-診断には可能な限り source file と 1-origin の line / column、該当 CLI option / front matter key、処理 phase を含めます。trusted input 前提のため human-readable log の内容は sanitize / redact せず、JSON は serializer の通常の escape に任せます。
+診断には可能な限り、記述元ファイルと 1 始まりの行・列番号、該当 CLI オプション・フロントマターキー、処理段階を含めます。信頼済み入力を前提とするため、人が読むログの内容は無害化や秘密情報の削除をせず、JSON はシリアライザーの通常のエスケープに任せます。
 
-利用者が指定した CLI の値、Markdown、front matter、custom template、logo、font、静的 local resource の不正・不存在・読取り不能は code `2` とします。browser / renderer の失敗、timeout、出力先への write / rename 失敗、bundled resource の欠落、内部 invariant 違反は code `1` とします。同じ検査でも bundled template / font の破損は利用者入力ではないため code `1` です。cleanup が commit 前に失敗した場合も code `1` として既存出力を維持します。
+利用者が指定した CLI の値、Markdown、フロントマター、独自テンプレート、ロゴ、フォント、静的ローカルリソースの不正・不存在・読み取り不能はコード `2` とします。ブラウザー・レンダラーの失敗、タイムアウト、出力先への書き込み・名前変更の失敗、組み込みリソースの欠落、内部の不変条件違反はコード `1` とします。同じ検査でも、組み込みテンプレート・フォントの破損は利用者入力ではないためコード `1` です。後始末が出力確定前に失敗した場合も、コード `1` として既存出力を維持します。
 
-## 2.10 計算量と resource 上限
+## 2.10 計算量とリソース上限
 
-入力 Markdown file 数を `M`、その合計 byte 数を `B`、生成 AST node 数を `N`、template HTML の byte 数を `T`、静的 local resource 数を `R`、解析対象 CSS の合計 byte 数を `C`、AssetServer が実際に送信する合計 byte 数を `A`、探索対象 font directory entry 数を `F`、検査・decode する font byte 数を `G`、生成 PDF の byte 数を `P` とします。file 名や URL / path の長さは可変なので、sort は time ではなく比較回数も併記し、hash 計算で文字列長を定数とはみなしません。
+入力 Markdown ファイル数を `M`、その合計バイト数を `B`、生成 AST ノード数を `N`、テンプレート HTML のバイト数を `T`、静的ローカルリソース数を `R`、解析対象 CSS の合計バイト数を `C`、`AssetServer` が実際に送信する合計バイト数を `A`、フォント探索で調べるディレクトリーのエントリー数を `F`、検査・デコードするフォントのバイト数を `G`、生成 PDF のバイト数を `P` とします。ファイル名や URL・パスの長さは可変なので、ソートは処理時間だけでなく比較回数も併記し、ハッシュ計算では文字列長を定数とみなしません。
 
-- directory entry の列挙は `O(M)` entries、入力 file 名の byte 列 sort は `O(M log M)` comparisons、`O(M)` metadata とする。UTF-8 decode、pfpdf が所有する AST traversal、heading / URL 後処理、HTML serialize は `O(B + N + T)` time / memory とする。pinned GFM parser 自体は adversarial input で benchmark し、worst-case bound を実装の根拠なしに線形と断定しない。file の逐次 `string +=`、見出しごとの全文再走査、正規表現による HTML 再解析を禁止する
-- resource discovery は canonical path の hash map と queue を使い、application-level では `O(B + T + C + R)` expected operations、`O(B + T + C + R)` memory にする。path canonicalization 自体の filesystem cost と可変長文字列の hash cost は別に計測する。CSS import cycle は visited set で停止する。AssetServer は合計 `O(A)` I/O と固定長 buffer memory で配信し、asset 全体を memory へ保持しない。range request による同じ byte の再送は browser の request に依存するため `A` に実送信 byte 数として数える
-- heading / file link の解決は事前作成した map を使い、link 1 個ごとの全見出し・全 file 線形探索を避ける
-- font discovery は各許可 directory を 1 回だけ走査し、各 directory の entry sort を合わせて最悪 `O(F log F)` comparisons、`O(F)` metadata とする。symlink directory は再帰 traversal しない。OpenType table の length / offset を file size と照合してから読み、font 内容の検査・必要な decode は `O(G)` time とする
-- PDF の sibling 一時 file への copy と構造 parse は `O(P)` I/O / time とする。copy は固定長 buffer で行うが、PDF parser の memory は object / xref 構造に応じて最悪 `O(P)` になり得る。Vivliostyle / browser の layout 計算量は pfpdf の線形 bound に含めず、absolute deadline と実 PDF performance test で停止を制御する
+- ディレクトリーエントリーの列挙は `O(M)` 件、入力ファイル名のバイト列のソートは比較回数 `O(M log M)`、管理情報は `O(M)` とする。UTF-8 デコード、pfpdf が担う AST 走査、見出し・URL の後処理、HTML のシリアライズは、時間・メモリーとも `O(B + N + T)` とする。バージョンを固定した GFM パーサー自体は、負荷を意図的に高めた入力でベンチマークし、実装の根拠なしに最悪計算量を線形と断定しない。ファイルの逐次 `string +=`、見出しごとの全文再走査、正規表現による HTML 再解析を禁止する
+- リソースの探索は実体パスのハッシュマップとキューを使い、アプリケーション層での操作回数の期待値を `O(B + T + C + R)`、メモリーを `O(B + T + C + R)` にする。パスの正規化自体のファイルシステム上のコストと、可変長文字列のハッシュ計算コストは別に計測する。CSS のインポートの循環は訪問済み集合で停止する。`AssetServer` の配信時の I/O は合計 `O(A)`、メモリーは固定長バッファー分とし、アセット全体をメモリーへ保持しない。範囲リクエストによる同じバイトの再送はブラウザーのリクエストに依存するため、`A` には実際に送信したバイト数を数える
+- 見出し・ファイルリンクの解決は事前作成したマップを使い、リンク 1 個ごとに全見出し・全ファイルを線形探索することを避ける
+- フォントの探索では、許可した各ディレクトリーを 1 回だけ走査し、各ディレクトリー内のエントリーのソートの比較回数は合わせて最悪 `O(F log F)`、管理情報は `O(F)` とする。シンボリックリンク先のディレクトリーは再帰的に走査しない。OpenType テーブルの長さ・オフセットをファイルサイズと照合してから読み、フォント内容の検査・必要なデコードは `O(G)` の時間とする
+- PDF を最終出力と同じディレクトリーの一時ファイルへコピーする処理と、PDF の構造解析は、I/O・時間とも `O(P)` とする。コピーは固定長バッファーで行うが、PDF パーサーのメモリーはオブジェクト・xref 構造に応じて最悪 `O(P)` になり得る。Vivliostyle・ブラウザーのレイアウト計算量は pfpdf の線形計算量の保証に含めず、絶対期限と実 PDF の性能テストで停止を制御する
 
-trusted input であっても renderer の停止は起こり得るため、既定 300 秒、設定可能範囲 1 秒から 1 時間の deadline を設けます。入力 byte 数や resource 数の任意な小さい上限は設けませんが、配列長、byte length、file offset の加算は safe integer overflow を検査し、Node.js または OS の上限到達を部分成功へ変換しません。性能 test は入力を 2 倍にしたときの処理時間と peak memory が継続的に二次増加しないことを確認します。
+信頼済み入力でもレンダラーの処理が進まなくなることはあるため、既定 300 秒、設定可能範囲 1 秒から 1 時間の期限を設けます。入力バイト数やリソース数に任意の小さい上限は設けませんが、配列長、バイト長、ファイルオフセットの加算は、安全な整数の範囲を超えないか検査します。Node.js または OS の上限到達を部分成功へ変換しません。性能テストでは、入力を 2 倍ずつ増やしたときに、処理時間とピークメモリー使用量が二次関数的に増加し続けないことを確認します。

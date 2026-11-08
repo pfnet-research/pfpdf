@@ -1,50 +1,62 @@
-# 4. resource、font、template
+# 4. リソース、フォント、テンプレート
 
 ## 4.1 標準フォント
 
-標準フォントには Noto Sans JP、Noto Serif JP など、再配布可能でウェイトを持つ日本語フォントを採用します。npm package 内の同じ font file を参照し、OS のインストール状態に依存させません。
+標準フォントには Noto Sans JP、Noto Serif JP など、再配布可能でウェイトを持つ日本語フォントを採用します。npm パッケージ内の同じフォントファイルを参照し、OS にインストールされたフォントに依存させません。
 
 - 本文、見出し、コード用フォントを明示する
-- CSS の先頭に OS 固有フォントを置かない
-- ホストフォント機能は既定で無効にし、通常実行ではホスト OS の font directory を探索しない
+- CSS のフォント指定で、候補の先頭に OS 固有フォントを置かない
+- ホストフォント機能は既定で無効にし、通常実行ではホスト OS のフォントディレクトリーを探索しない
 - 標準フォントを使う代表文書について、PDF が生成でき、日本語を含む本文を `pdftotext` で抽出できる最小限のスモークテストを用意する
-- font の subset 化や format 変換を行う場合は、元 license が改変と Reserved Font Name を許すか確認し、生成手順を再現可能にする
+- フォントのサブセット化や形式変換を行う場合は、元のライセンスで改変が許されるか、Reserved Font Name の使用条件を満たすかを確認し、生成手順を再現可能にする
 
-全 bundled template は `lang` の primary language が `ja` の要素で CSS `text-autospace: normal` を既定適用し、和文と欧文・数字の境界へ表示上の空きを入れます。明示した別言語の要素では解除し、code / pre / kbd / samp / textarea / SVG / MathML と数式は対象外です。明示空白と約物は保持し、source・DOM text・URL・識別子に文字を挿入しません。利用者の CSS で `text-autospace: no-autospace` に上書きできます。非対応 browser では空きを追加せず変換を継続します。Vivliostyle 11.1.0 と既定 Chrome 150 での実 PDF を確認し、フォントは同梱ゴシック・明朝の両方を対象にします。PDF の抽出器によっては視覚的な空きを空白として復元する場合があります。
+すべての同梱テンプレートでは、`lang` の先頭の言語サブタグが `ja` である要素に、CSS の `text-autospace: normal` を既定で適用します。これにより、和文と欧文・数字の境界へ表示上の空きを入れます。明示的に別の言語を指定した要素では解除し、`code` / `pre` / `kbd` / `samp` / `textarea`、SVG、MathML、数式は対象外とします。明示された空白と約物は保持し、ソース・DOM のテキスト・URL・識別子に文字を挿入しません。利用者の CSS で `text-autospace: no-autospace` に上書きできます。非対応ブラウザーでは空きを追加せず変換を継続します。
 
-## 4.2 host font の opt-in
+Vivliostyle 11.1.0 と既定の Chrome 150 で実際に生成した PDF を確認し、フォントは同梱のゴシック・明朝の両方を対象にします。PDF の抽出器によっては、視覚的な空きを空白として復元する場合があります。
 
-- `--host-fonts` で OS 標準の font directory を探索し、`--font-dir PATH` の繰り返し指定で探索先を追加できるようにする
-- `--font-dir` 自体もその directory に限った明示的な opt-in とみなし、`--host-fonts` なしで利用可能にする
+## 4.2 ホストフォントの明示的な有効化
+
+- `--host-fonts` で OS 標準のフォントディレクトリーを探索し、`--font-dir PATH` の繰り返し指定で探索先を追加できるようにする
+- `--font-dir` の指定も、そのディレクトリーに限った明示的な有効化とみなし、`--host-fonts` なしで利用可能にする
 - macOS では `~/Library/Fonts`、`/Library/Fonts`、`/System/Library/Fonts`、`/System/Library/Fonts/Supplemental` を標準探索候補とする
-- renderer は許可された font file を loopback `AssetServer` から配信する
-- 利用者が指定した host font file を package、workspace、cache へ複製しない。生成するのは一時的な font index、`@font-face` CSS、Linux 用 fontconfig metadata だけとする
-- OpenType `OS/2.fsType` などから PDF への埋め込みが禁止されていると判定できる font は候補から除外する。静的 CSS がその family / face を要求して fallback できない利用者指定 font なら終了 code `2`、bundled font なら package の不整合として `1` とする。未使用候補または制限の有無を判定できない format は warning とし、許諾を推測しない
-- `--font-dir` で発見した候補だけでなく、template / Markdown / raw HTML / CSS の静的 URL から font role として発見したすべての local / `data:` font に同じ embedding 検査を適用する。remote font の license / 内容は取得保証と同様に検査できないため利用者責任とし、再現可能な標準文書では使わない
+- 利用を許可されたフォントファイルは、レンダラー向けにループバックアドレスの `AssetServer` から配信する
+- 利用者が指定したホストフォントのファイルをパッケージ、作業ディレクトリー、キャッシュへ複製しない。生成するのは一時的なフォントインデックス、`@font-face` CSS、Linux 用の fontconfig メタデータだけとする
+- OpenType の `OS/2.fsType` などから PDF への埋め込みが禁止されていると判定できるフォントは、候補から除外する。静的 CSS がそのファミリー / フェイスを要求し、フォールバックできない場合、利用者指定のフォントなら終了コード `2`、同梱フォントならパッケージの不整合として `1` とする。未使用の候補や、制限の有無を判定できない形式については警告を出し、許諾を推測しない
+- `--font-dir` で発見した候補だけでなく、テンプレート / Markdown / 生の HTML / CSS の静的 URL からフォント用途として発見した、すべてのローカルフォントと `data:` フォントに同じ埋め込み検査を適用する。リモートフォントは、取得を保証できないのと同様にライセンスと内容も検査できないため、利用者の責任とし、再現可能な標準文書では使わない
 - ホストフォントを直接参照できることと、そのフォントを PDF へ埋め込めることは別問題であり、各フォントのライセンス条件は利用者が確認する必要がある
-- ホストフォントを使った出力は OS と font の更新に依存し、canonical build と同じ見た目を保証しない
+- ホストフォントを使った出力は OS とフォントの更新に依存し、基準となるビルドと同じ見た目を保証しない
 
 ## 4.3 `FontResolver`
 
-- bundled font を常に利用可能にし、ホストフォントが無効なら OS の font discovery を行わない
-- `--host-fonts` と明示された `--font-dir` から、利用を許可された directory の集合を作る
-- 探索順位は、CLIの`--font-dir`で指定した追加font directory list、`--host-fonts`が追加するOS標準directoryの固定順、bundled fallbackの順とする
-- OpenType の name table から family、weight、style、stretch を読み、採用した各 face を logical font URL で参照する一時的な `@font-face` CSS を生成する。`--font-dir` は font を自動的に本文へ選択する option ではなく、template / document CSS が family 名で選べる候補を追加する
-- renderer の実行環境から参照可能な font URL を使う CSS を生成し、必要な場合だけ renderer 内部向けの fontconfig metadata を渡す
-- bundled template の静的 CSS が要求する non-generic family を抽出し、見つかった face だけを有効にする。見つからない family は source location 付き warning とし、bundled fallback が font-family list の末尾にあることを template test で保証する。custom / raw CSS の dynamic property まで選択 font を保証しない
-- TTF、OTF、TTC、WOFF2 など Chromium で検証済みの format だけを対象にする。TTC の face index、variable font axis、weight / style mapping を fixture で確認し、未対応 format や face は `--doctor` で理由を表示する
-- directory は決定的な file 名順で再帰探索するが、symlink directory はたどらない。symlink file は解決先が regular file の場合だけ候補にし、canonical path で重複を除く
-- 同じ family / weight / style / stretch に複数候補がある場合は探索順位が先の file を採用し、競合を warning にする。filesystem の列挙順や「最後に見つかった file」へ依存させない
-- OpenType の table directory、offset、length、collection face count を file size と照合し、整数 overflow と範囲外 read を入力エラーとして扱う。1 face 当たりの table と 1 collection 当たりの face はそれぞれ 4096 を上限とし、通常の font として不合理な header で CPU / memory を消費しない
-- family 名と logical font URL は CSS string / URL token として escape し、font metadata を CSS source へそのまま連結しない
-- font file の copy は行わず、終了時に一時 CSS、index、fontconfig metadata を削除する
-- font family、実際に選択された file、埋め込み制限の検査結果を debug log と `--doctor` で確認可能にする
-- Chromium 自体は OS font へアクセス可能なため、既定値で保証するのは pfpdf が host directory を探索せず、bundled template が host family を要求しないことまでとする。再現性が必要な文書では custom / raw CSS から OS 固有の family を要求しない
-- custom / raw CSS の `local()` source は browser 自身の discovery を経由して実 file と embedding flag を事前特定できないため、利用時に warning を出す。bundled template では `local()` を禁止し、検査済み logical font URL と generic fallback だけを使う
+- 同梱フォントを常に利用可能にし、ホストフォントが無効なら OS のフォント探索を行わない
+- `--host-fonts` と明示された `--font-dir` から、利用を許可されたディレクトリーの集合を作る
+- 探索順位は、CLI の `--font-dir` で指定した追加ディレクトリーのリスト順、`--host-fonts` が追加する OS 標準ディレクトリーの固定順、同梱フォントへのフォールバックの順とする
+- OpenType の name テーブルからファミリー、ウェイト、スタイル、ストレッチを読み、採用した各フェイスをフォントの論理 URL で参照する一時的な `@font-face` CSS を生成する。`--font-dir` は、フォントを自動的に本文へ適用するオプションではなく、テンプレートや文書の CSS からファミリー名で選べる候補を追加する
+- レンダラーの実行環境から参照可能なフォント URL を使う CSS を生成し、必要な場合だけレンダラー内部向けの fontconfig メタデータを渡す
+- 同梱テンプレートの静的 CSS が要求する、汎用ではないフォントファミリーを抽出し、見つかったフェイスだけを有効にする。見つからないファミリーについてはソース内の位置情報を添えた警告を出す。同梱フォントへのフォールバックが `font-family` の候補リストの末尾にあることを、テンプレートのテストで保証する。カスタム CSS や直接記述した CSS の動的なプロパティーについては、選択されるフォントまで保証しない
+- TTF、OTF、TTC、WOFF2 など、Chromium で検証済みの形式だけを対象にする。TTC のフェイスインデックス、可変フォントの軸、ウェイト / スタイルの対応をテスト用データで確認し、未対応の形式やフェイスは `--doctor` で理由を表示する
+- ディレクトリーは、ファイル名に基づく一定の順序で再帰探索するが、シンボリックリンクのディレクトリーはたどらない。シンボリックリンクのファイルは、解決先が通常ファイルの場合だけ候補にし、リンクを解決した実体パスで重複を除く
+- 同じファミリー / ウェイト / スタイル / ストレッチに複数の候補がある場合は、探索順位が先のファイルを採用し、競合を警告する。ファイルシステムの列挙順や「最後に見つかったファイル」へ依存させない
+- OpenType のテーブルディレクトリー、オフセット、長さ、コレクション内のフェイス数をファイルサイズと照合し、整数のオーバーフローと範囲外の読み取りを入力エラーとして扱う。1 フェイス当たりのテーブル数と 1 コレクション当たりのフェイス数は、それぞれ 4096 を上限とする。通常のフォントとして不合理なヘッダーで CPU / メモリーを消費しないようにする
+- ファミリー名とフォントの論理 URL は、CSS の文字列 / URL トークンとしてエスケープし、フォントのメタデータを CSS ソースへそのまま連結しない
+- フォントファイルは複製せず、終了時に一時 CSS、インデックス、fontconfig メタデータを削除する
+- フォントファミリー、実際に選択されたファイル、埋め込み制限の検査結果を、デバッグログと `--doctor` で確認できるようにする
+- Chromium 自体は OS のフォントへアクセスできるため、既定値で保証するのは、pfpdf がホストのディレクトリーを探索せず、同梱テンプレートがホストのファミリーを要求しないことまでとする。再現性が必要な文書では、カスタム CSS や直接記述した CSS から OS 固有のファミリーを要求しない
+- カスタム CSS や直接記述した CSS の `local()` は、ブラウザー自身の探索を経由するため、実際のファイルと埋め込み制限のフラグを事前に特定できない。利用時には警告を出す。同梱テンプレートでは `local()` を禁止し、検査済みのフォントの論理 URL と汎用フォントへのフォールバックだけを使う
 
-## 4.4 template とロゴの分離
+## 4.4 テンプレートとロゴの分離
 
-`v0.1.0` には研究報告向けの抑制した `academic`、長文向けの落ち着いた `book`、短い会議資料や社内メモ向けの省スペースな `compact`、中立な `default`、温かくカジュアルな小冊子向けデザインの `notebook`、企業文書向けデザインの `pfn`、コードと表を重視した高密度な技術文書向けデザインの `technical` を bundled template として含めます。bundled template 自体にはライセンス未確認のロゴを含めず、`pfn` を含む全 template がロゴなしで動作します。
+`v0.1.0` には、次のテンプレートを同梱します。
+
+- `academic`: 研究報告向けの、装飾を抑えたデザイン
+- `book`: 長文向けの落ち着いたデザイン
+- `compact`: 短い会議資料や社内メモ向けの省スペースなデザイン
+- `default`: 中立的なデザイン
+- `notebook`: 温かくカジュアルな小冊子向けのデザイン
+- `pfn`: 企業文書向けのデザイン
+- `technical`: コードと表を重視した、高密度な技術文書向けのデザイン
+
+同梱テンプレート自体にはライセンス未確認のロゴを含めず、`pfn` を含むすべてのテンプレートがロゴなしで動作します。
 
 ```text
 resources/templates/
@@ -78,87 +90,86 @@ resources/templates/
     vivliostyle.css
 ```
 
-- Markdown の front matter `template`、または bundled 名と完全一致する `--template SOURCE` で bundled template を選択する。複数 file では最初に指定された `template` を使う。`--template-preset NAME` は bundled preset であることを明示する。CLIはfront matterより優先する
-- custom / repository template は `logo` slot の `src` に template 相対 path を持つ既定ロゴを宣言できる。bundled template は既定ロゴを持たない
-- front matterの`logo`はlocal pathまたは`false`を受け付ける。CLIの`--logo SOURCE`はlocal pathまたはGit locatorでfront matterとtemplate既定ロゴを上書きし、`--no-logo`は両方を無効化する
-- logo が明示指定されず slot に `src` もなければ logo placeholder 自体を出力しない。壊れた image placeholder を残さない
-- front matter logoの相対pathは`logo`を最初に指定したMarkdownの親directory、CLI logoの相対pathはカレントディレクトリを基準に解決する
-- logo と template は trusted input とし、存在して読み取れることだけを事前検査する。内容を sandbox 化しない
+- Markdown のフロントマターの `template`、または同梱名と完全一致する `--template SOURCE` で同梱テンプレートを選択する。複数ファイルでは最初に指定された `template` を使う。`--template-preset NAME` は同梱プリセットであることを明示する。CLI はフロントマターより優先する
+- カスタムテンプレートやリポジトリー由来のテンプレートは、`logo` スロットの `src` にテンプレートからの相対パスを指定して、既定のロゴを宣言できる。同梱テンプレートは既定のロゴを持たない
+- フロントマターの `logo` はローカルパスまたは `false` を受け付ける。CLI の `--logo SOURCE` は、ローカルパスまたは Git ロケーターでフロントマターのロゴとテンプレートの既定のロゴを上書きする。`--no-logo` は両方を無効化する
+- ロゴが明示指定されず、スロットに `src` もなければ、ロゴ用の要素自体を出力しない。壊れた画像を示す代替表示を残さない
+- フロントマターのロゴの相対パスは、`logo` を最初に指定した Markdown の親ディレクトリーを基準に解決する。CLI で指定したロゴの相対パスは、カレントディレクトリーを基準に解決する
+- ロゴとテンプレートは信頼できる入力として扱い、存在して読み取れることだけを事前検査する。内容をサンドボックス化しない
 
-## 4.5 custom template
+## 4.5 カスタムテンプレート
 
-- `--template SOURCE` が bundled preset 名と完全一致しない通常文字列なら、custom template directory path として扱う。同名directoryを選ぶ場合は`./default`のようにpathであることが分かる表記を使う
-- custom template の path は front matter では受け付けず、CLIからだけ指定する
-- custom template は信頼できるローカルコードと同様に扱い、raw HTML や script を実行し得ることを明記する
-- custom template format に `apiVersion`、JSON Schema、version 間の互換性保証は設けない。template の見た目と構造を維持したい利用者は pfpdf の version を固定する。ただし、同じ pfpdf version 内で曖昧な文字列置換を避けるため、次の DOM slot contract は明確に定義する
-- custom template directory は `template.html`、`style.css`、`vivliostyle.css` を直接持ち、選択した pfpdf version が必要とする file の存在だけを検査する
+- `--template SOURCE` が同梱プリセット名と完全一致しない通常の文字列なら、カスタムテンプレートのディレクトリーパスとして扱う。同名のディレクトリーを選ぶ場合は、`./default` のようにパスであることが分かる表記を使う
+- カスタムテンプレートのパスはフロントマターでは受け付けず、CLI からだけ指定する
+- カスタムテンプレートは信頼できるローカルコードと同様に扱い、生の HTML やスクリプトを実行し得ることを明記する
+- カスタムテンプレートの形式に `apiVersion`、JSON Schema、バージョン間の互換性保証は設けない。テンプレートの見た目と構造を維持したい利用者は、pfpdf のバージョンを固定する。ただし、同じ pfpdf バージョン内で曖昧な文字列置換を避けるため、次の DOM スロットの契約は明確に定義する
+- カスタムテンプレートのディレクトリーには、`template.html`、`style.css`、`vivliostyle.css` を直接配置する。選択した pfpdf バージョンが必要とするファイルの存在だけを検査する
 
-### 4.5.1 Git repository source
+### 4.5.1 Git リポジトリーからの取得
 
-- `--template 'git::URL//PATH?ref=REVISION'` で Git repository 内の custom template directoryを指定できる。`--logo`も同じ形式で通常 file を指定する
-- `PATH` は repository root からの `/` 区切り相対 path とし、サブディレクトリを許可するが、absolute path、空 component、`.`、`..`、backslash は code `2` とする。template は directory、logo は通常 file でなければならない
-- 対応 URL scheme は `https://`、`ssh://`、`file://` とする。`file://` は local / test 用である。password、および HTTPS URL の userinfo は credential 漏洩を避けるため拒否し、private repository は Git credential helper または SSH agent で認証する
-- `ref` は branch、tag、commit を受け付ける。省略時は remote `HEAD` を使うが、解決 commit を warning に出す。再現可能な CI では完全な commit hash を指定する
-- repository source は OS の一時 directory に depth 1、detached HEAD、submodule 無効で checkout し、同一 process 内の同じ URL / ref は共有する。persistent cache は持たず、`--keep-work-dir` の対象となる build workspace と一緒に回収する
-- locator の構文 / path / file type error は code `2`、Git 起動、network、認証、fetch / checkout failure と timeout は code `1` とする。conversion の timeout は 300 秒、doctor の外部 process check は 10 秒とする。Git child process は shell を介さず argument array で起動し、interactive prompt を無効化する
-- repository template も trusted code として扱う。front matter から repository source を指定できず、CLIによる明示選択だけが network access と template script の実行を発生させる
+- `--template 'git::URL//PATH?ref=REVISION'` で、Git リポジトリー内のカスタムテンプレートのディレクトリーを指定できる。`--logo` も同じ形式で通常ファイルを指定する
+- `PATH` はリポジトリーのルートからの `/` 区切りの相対パスとし、サブディレクトリーを許可する。絶対パス、空のパス要素、`.`、`..`、バックスラッシュは終了コード `2` とする。テンプレートはディレクトリー、ロゴは通常ファイルでなければならない
+- 対応する URL スキームは `https://`、`ssh://`、`file://` とする。`file://` はローカル / テスト用である。認証情報の漏洩を避けるため、パスワード、および HTTPS URL の userinfo は拒否する。非公開リポジトリーは Git の認証情報ヘルパーまたは SSH エージェントで認証する
+- `ref` はブランチ、タグ、コミットを受け付ける。省略時はリモートの `HEAD` を使うが、解決したコミットを警告に出す。再現可能な CI では完全なコミットハッシュを指定する
+- リポジトリーからの取得には、OS の一時ディレクトリーを使う。深さ 1、detached HEAD、サブモジュール無効でチェックアウトし、同一プロセス内では同じ URL / ref の取得結果を共有する。永続キャッシュは持たず、`--keep-work-dir` の対象となるビルドの作業ディレクトリーと一緒に回収する
+- ロケーターの構文、パス、ファイルの種類のエラーは終了コード `2` とする。Git の起動、ネットワーク、認証、フェッチ / チェックアウトの失敗とタイムアウトは終了コード `1` とする。変換時のタイムアウトは 300 秒、`--doctor` による外部プロセスの検査は 10 秒とする。Git の子プロセスはシェルを介さず引数配列で起動し、対話式のプロンプトを無効化する
+- リポジトリー由来のテンプレートも、信頼できるコードとして扱う。フロントマターからリポジトリーを取得元に指定することはできず、CLI による明示的な選択でのみ、ネットワークアクセスとテンプレートのスクリプトの実行が発生する
 
-### 4.5.2 DOM slot contract
+### 4.5.2 DOM スロットの契約
 
-`template.html` は完全な HTML document とし、`data-pfpdf-slot` attribute で挿入位置を宣言します。
+`template.html` は完全な HTML 文書とし、`data-pfpdf-slot` 属性で挿入位置を宣言します。
 
-| slot | 個数 | 挿入内容 |
+| スロット | 個数 | 挿入内容 |
 |---|---:|---|
-| `content` | 必須、1 個 | source file ごとの section を含む本文 |
-| `cover` | 任意、0 または 1 個 | 表紙または先頭 header 全体。`cover: false` で element ごと削除 |
-| `title` | 任意、0 または 1 個 | title。許可済みの `<br>` だけを element として保持 |
-| `author` | 任意、0 または 1 個 | author の text |
-| `series` | 任意、0 または 1 個 | series の text |
-| `date` | 任意、0 または 1 個 | date の text |
+| `content` | 必須、1 個 | ソースファイルごとのセクションを含む本文 |
+| `cover` | 任意、0 または 1 個 | 表紙または先頭ヘッダー全体。`cover: false` で要素ごと削除 |
+| `title` | 任意、0 または 1 個 | タイトル。許可済みの `<br>` だけを要素として保持 |
+| `author` | 任意、0 または 1 個 | 著者のテキスト |
+| `series` | 任意、0 または 1 個 | シリーズ名のテキスト |
+| `date` | 任意、0 または 1 個 | 日付のテキスト |
 | `confidential` | 任意、0 または 1 個 | `confidential: true` の場合だけ表示 |
-| `toc` | 任意、0 または 1 個 | 目次。slot がなければ content の先頭へ挿入 |
+| `toc` | 任意、0 または 1 個 | 目次。スロットがなければ `content` の先頭へ挿入 |
 | `logo` | 任意、0 または 1 個 | `img` の `src` / `alt` を設定 |
 
-- HTML5 parser で DOM を組み立て、`html` / `head` / `body` と `content` slot の存在、同じ slot の重複、未知 slot を検査する。doctype、ID、slot 外の attribute、trusted HTML の妥当性を重複して検査しない
-- builder は root `html` の `lang` / `dir` を metadata の canonical language tag / direction へ設定する。template 側の固定値や host locale を優先しない
-- builder は inert な DOM として template を parse し、slot element の child node を DOM API で置換する。metadata を template source へ文字列補間しない
-- 目次には文書言語に応じた見出しと継続ラベルを builder が挿入する。継続ラベルは `.pfpdf-toc-continuation-marker` の named string として提供し、template は paged media の margin box で装飾する。目次直後の空 marker が named string を解除するため、本文ページには継続ラベルを残さない。この styling hook は新しい DOM slot を追加せず、`toc` slot の contract を変更しない
-- `logo` slot は `img` element に指定する。slot 自身の `src` は template の既定ロゴであり、template directory 相対の通常 resource として解決する。明示 logo は logical `src` で上書きし、class など他の attribute は保持する。template に `alt` がなければ decorative image として `alt=""` を設定する
-- 明示 logo が指定されたのに `logo` slot がない場合は、利用者の指定を黙って捨てず終了 code `2` とする。既定 `src` も明示 logo もない場合、または `--no-logo` の場合は slot element 自体を削除する
-- `author` または `series` が未指定なら対応する slot element 自体を削除する。title は明示値または補完値、date は明示値または生成値を常に持つため、それらの slot が存在すれば必ず内容を設定する
-- bundled template はすべて `series` slot を持ち、固定の出版名、文書種別、ブランド名、目次名、metadata 接頭辞、callout 名、図表番号を追加しない。series を柱にも表示する場合は同じ slot を重複させず named string を使う
-- `confidential: false` のときは `confidential` slot element 自体を削除する。true の場合だけ template に残し、表示 text は builder が設定する。bundled template は表紙または先頭 header と、目次・本文を含む以後の全 page に template 固有の表現で表示する
-- `--no-toc` の場合は `toc` slot を削除し、content へも挿入しない
-- `cover: false` / `--no-cover` は `cover` slot を削除する。`content` / `toc` slot は cover の内側へ置けず、cover 自体に html / head / body は使えない。cover slot のない custom template は表紙を宣言していないため、切替は no-op とする
-- 表紙を省略すると title / author / date / logo の表紙上の表示も省略するが、HTML title と PDF metadata は維持する。series / Confidential の named string source は非表示 marker へ移し、bundled template の本文・目次ページの柱を維持する。custom template で独自の running element を使う場合は cover slot の外へ置く
-- body に `pfpdf-has-cover` または `pfpdf-no-cover` class を付ける。bundled template は独立表紙に `pfpdf-cover` named page を使い、compact は header と本文を同じページに保つ専用 named page の first 規則を使う。表紙用の first-page 例外を表紙省略時の本文へ適用しない
-- script は最終 `document.html` が browser に load されるまで実行しない。template script の非同期処理は readiness contract へ登録する
-- `style.css` は共通 style、`vivliostyle.css` は paged media style としてこの順で読み込む。両方を resource graph に通し、`@import` と `url()` を解決する
+- HTML5 パーサーで DOM を組み立て、`html` / `head` / `body` と `content` スロットの存在、同じスロットの重複、未知のスロットを検査する。doctype、ID、スロット外の属性、信頼して扱う HTML の妥当性を重複して検査しない
+- ビルダーはルート要素 `html` の `lang` / `dir` に、メタデータの正規化済み言語タグ / 書字方向を設定する。テンプレート側の固定値やホストのロケールを優先しない
+- ビルダーは、スクリプトなどが動作しない DOM としてテンプレートを解析し、スロット要素の子ノードを DOM API で置換する。メタデータをテンプレートのソースへ文字列補間しない
+- ビルダーは、文書言語に応じた見出しと継続ラベルを目次へ挿入する。継続ラベルは `.pfpdf-toc-continuation-marker` の要素から名前付き文字列（named string）として提供し、テンプレートはページメディアのマージンボックスで装飾する。目次直後の空マーカーが名前付き文字列を解除するため、本文ページには継続ラベルを残さない。この装飾用のフックは新しい DOM スロットを追加せず、`toc` スロットの契約を変更しない
+- `logo` スロットは `img` 要素に指定する。スロット自身の `src` はテンプレートの既定のロゴであり、テンプレートのディレクトリーからの相対パスを持つ通常のリソースとして解決する。明示指定のロゴがあれば、その論理 URL で `src` を上書きし、`class` など他の属性は保持する。テンプレートに `alt` がなければ、装飾画像として `alt=""` を設定する
+- ロゴが明示指定されたのに `logo` スロットがない場合は、利用者の指定を黙って捨てず終了コード `2` とする。既定の `src` も明示指定のロゴもない場合、または `--no-logo` の場合は、スロット要素自体を削除する
+- `author` または `series` が未指定なら、対応するスロット要素自体を削除する。`title` は明示値または補完値、`date` は明示値または生成値を常に持つため、それらのスロットが存在すれば必ず内容を設定する
+- 同梱テンプレートはすべて `series` スロットを持ち、固定の出版名、文書種別、ブランド名、目次名、メタデータの接頭辞、コールアウト名、図表番号を追加しない。シリーズ名を柱にも表示する場合は、同じスロットを重複させず名前付き文字列を使う
+- `confidential: false` のときは `confidential` スロット要素自体を削除する。`true` の場合だけテンプレートに残し、表示テキストはビルダーが設定する。同梱テンプレートは表紙または先頭ヘッダーと、目次・本文を含む以後の全ページに、テンプレート固有の表現で表示する
+- `--no-toc` の場合は `toc` スロットを削除し、`content` へも目次を挿入しない
+- `cover: false` / `--no-cover` は `cover` スロットを削除する。`content` / `toc` スロットは `cover` の内側へ置けず、`cover` 自体に `html` / `head` / `body` は使えない。`cover` スロットのないカスタムテンプレートは表紙を宣言していないため、切り替えても処理を行わない
+- 表紙を省略すると、タイトル / 著者 / 日付 / ロゴの表紙上の表示も省略するが、HTML のタイトルと PDF のメタデータは維持する。シリーズ名 / Confidential の名前付き文字列を設定する要素は非表示マーカーへ移し、同梱テンプレートの本文・目次ページの柱を維持する。カスタムテンプレートで独自のランニング要素を使う場合は、`cover` スロットの外へ置く
+- `body` に `pfpdf-has-cover` または `pfpdf-no-cover` クラスを付ける。同梱テンプレートは独立した表紙に `pfpdf-cover` の名前付きページを使い、`compact` はヘッダーと本文を同じページに保つ専用の名前付きページの `:first` 規則を使う。表紙用の先頭ページの例外規則を、表紙省略時の本文へ適用しない
+- スクリプトは、最終的な `document.html` がブラウザーに読み込まれるまで実行しない。テンプレートのスクリプトによる非同期処理は、文書の準備完了を通知する仕組みへ登録する
+- `style.css` は共通スタイル、`vivliostyle.css` はページメディア用スタイルとして、この順で読み込む。両方をリソースグラフに通し、`@import` と `url()` を解決する
 
 ## 4.6 `TemplateResolver` と `HtmlDocumentBuilder`
 
-- `TemplateResolver` は bundled template 名または custom template directory を解決し、現在の pfpdf version が必要とする file の型、読取り可否、DOM slot contract を検証する
-- テンプレートと CSS は npm package resource として配置する
-- logo path は template から分離し、指定された場合だけ workspace から参照可能な URL へ変換する
-- package / input asset は `ResourceResolver` の logical URL で参照する。単一 HTML 用の data URL materialize 処理や renderer ごとの HTML builder は持たない
-- MathJax と highlight.js は package 内の module を使う build-time transform とし、生成 HTML から browser script として参照しない
-- `HtmlDocumentBuilder` が生成した `document.html` を `AssetServer` が byte 変更なしで配信し、Vivliostyle CLI にその URL を渡す。integration test も同じ builder 出力と配信 byte 列を検査する
-- metadata は slot ごとの node / text context に合った型検証を通し、単純な文字列置換へ未検証値を渡さない。metadata を CSS や attribute 名へ挿入する slot は提供しない
-- browser 内の readiness coordinator は font、local / data / remote image、利用者が登録した promise、resource load error を集約し、timeout や JavaScript error を renderer へ伝える
+- `TemplateResolver` は同梱テンプレート名またはカスタムテンプレートのディレクトリーを解決し、現在の pfpdf バージョンが必要とするファイルの種類、読み取り可否、DOM スロットの契約を検証する
+- テンプレートと CSS は npm パッケージのリソースとして配置する
+- ロゴのパスはテンプレートから分離し、指定された場合だけ作業ディレクトリーから参照可能な URL へ変換する
+- パッケージ内のアセットと入力アセットは、`ResourceResolver` の論理 URL で参照する。アセットをデータ URL として埋め込んで単一 HTML を作る処理や、レンダラーごとの HTML ビルダーは持たない
+- MathJax と highlight.js による変換は、パッケージ内のモジュールを使ってビルド時に行い、生成 HTML からブラウザーのスクリプトとして参照しない
+- `HtmlDocumentBuilder` が生成した `document.html` を `AssetServer` がバイト列を変更せずに配信し、Vivliostyle CLI にその URL を渡す。統合テストも、同じビルダーの出力と配信バイト列を検査する
+- メタデータは、スロットごとのノード / テキストの文脈に合った型検証を通し、単純な文字列置換へ未検証の値を渡さない。メタデータを CSS や属性名へ挿入するスロットは提供しない
+- ブラウザー内の `ReadinessCoordinator` は、フォント、ローカル / データ URL / リモートの画像、利用者が登録した Promise、リソースの読み込みエラーを集約し、タイムアウトや JavaScript エラーをレンダラーへ伝える
+- 画像のリソース解決では、元の Markdown / テンプレート HTML のパス・行番号と、記述された参照先を診断へ含める。除去したフロントマターの行数を補正し、ローカルファイルが存在しない場合は、解決後のパスも示す。静的な Markdown 画像の空 URL は入力エラー（コード `2`）とする
+- 生の HTML の `img` はスクリプトが `src` を設定できるため、入力の準備時には一律に拒否しない。文書の準備完了を通知する仕組みに登録された Promise の完了後、`src` / `srcset` とデコードの成否を検査する。空・未指定・破損・HTTP / 通信の失敗は実行時エラー（コード `1`）とする。元の画像の位置と参照先を DOM の診断用属性に残し、生成 SVG 画像にも適用する。スクリプトで新規生成された画像の位置を特定できない場合は、`document.html` と現在の URL を示す
+- ブラウザーは画像の HTTP ステータスを公開しないため、読み込み / デコードのエラーでは元の参照先と解決後の URL を示す。診断用 URL はそれぞれ 256 文字、準備完了通知のメッセージは 1024 文字までとし、失敗時には既存の出力を保持する
 
-- 画像の resource 解決では元の Markdown / template HTML の path・行番号と記述した参照先を診断へ含める。除去した front matter の行数を補正し、ローカル不存在には解決後の path も示す。静的な Markdown 画像の空 URL は入力エラー (code `2`) とする
-- raw HTML の `img` は script が `src` を設定できるため入力準備では一律に拒否しない。登録された readiness promise の完了後、`src` / `srcset` と decode を検査し、空・未指定・破損・HTTP / 通信失敗は runtime error (code `1`) とする。元の画像位置と参照先を DOM の診断用 attribute に残し、生成 SVG 画像にも適用する。script で新規生成された画像の位置を特定できない場合は `document.html` と現在の URL を示す
-- browser は画像の HTTP status を公開しないため、load / decode エラーでは元の参照先と解決後 URL を示す。診断用 URL は各256文字、readiness message は1024文字までとし、失敗時の既存出力保持を維持する
+## 4.7 同梱アセットのバージョン管理
 
-## 4.7 bundled asset の version 管理
+- 同梱する MathJax は、保守されている現行のメジャーバージョン（3 系以降）を採用し、`$` / `$$` の区切り文字と `processEscapes` 相当の設定を有効にする
+- 同梱する highlight.js は 11 系を採用し、言語の別名を正規化して、使用する言語のアセットだけを読み込む。未知の言語名でもコードを失わずプレーンテキストとして出力し、ソース内の位置情報を添えた警告を出す
+- MathJax、highlight.js、フォントのバージョン、ライセンス、入手元は `THIRD_PARTY_LICENSES.md` に一覧化する
+- CLI 起動時のリソースのパスは、`process.cwd()` や npm キャッシュの配置に依存せず、ES モジュールのパッケージの位置から解決する
 
-- bundled MathJax は保守されている現行 major(3 系以降)を採用し、`$` / `$$` の delimiter と `processEscapes` 相当の設定を有効にする
-- bundled highlight.js は 11 系を採用し、言語 alias の正規化と使用言語だけの asset 読み込みを行う。未知の言語名は code を失わず plain text として出力し、source location 付き warning にする
-- MathJax、highlight.js、フォントの version、license、入手元は `THIRD_PARTY_LICENSES.md` に一覧化する
-- CLI 起動時の resource path は `process.cwd()` や npm cache layout に依存せず、ES module の package location から解決する
+## 4.8 参考文献の入力とスタイル
 
-## 4.8 bibliography input と style
+フロントマターが指す `.bib` は、ビルド時に全バイトを読み終える入力ファイルです。画像・CSS・フォントのようにブラウザーが取得するリソースグラフへは登録しません。したがって、`AssetServer` の論理 URL や、描画開始の準備段階での取得処理は必要ありません。相対パスは、フロントマターを記述したソースの親ディレクトリーを基準に解決します。入力を信頼して扱う方針の範囲で絶対パスと `..` も許可しますが、チュートリアルでは移植可能な相対配置を推奨します。
 
-front matter が指す `.bib` は build 時に全 byte を読み終える input であり、画像・CSS・font のように browser が取得する resource graphへ登録しません。したがって AssetServer の logical URL や readiness fetch を必要としません。relative path は front matter source の親 directory、absolute path と `..` は trusted-input 方針の範囲で許可しますが、tutorial では移植可能な相対配置を推奨します。
-
-Citation.js、citeproc-js、使用する CSL style / locale は lockfile と公開 shrinkwrap に固定し、license と入手元を `THIRD_PARTY_LICENSES.md` に記録します。CSL が返す HTML は document wrapper として挿入せず HAST fragment に parseし、pfpdf が安定した class、ID、ARIA role、backlink を付けます。全 bundled template は `common.css` / `common-vivliostyle.css` の構造 rule を共有し、文献本文の意味や固定 label を template 固有 CSS から追加しません。
+Citation.js、citeproc-js、使用する CSL のスタイル / ロケールは、ロックファイルと公開する shrinkwrap で固定し、ライセンスと入手元を `THIRD_PARTY_LICENSES.md` に記録します。CSL が返す HTML は文書全体を包む要素として挿入せず、HAST 断片として解析し、pfpdf が安定したクラス、ID、ARIA ロール、戻りリンクを付けます。すべての同梱テンプレートは `common.css` / `common-vivliostyle.css` の構造上の規則を共有し、文献本文の意味や固定ラベルをテンプレート固有の CSS から追加しません。

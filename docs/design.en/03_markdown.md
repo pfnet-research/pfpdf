@@ -19,14 +19,14 @@ At minimum, the following are processed according to the GFM/CommonMark rules:
 pfpdf's extensions to GFM are kept separate within the parser pipeline.
 
 1. Validate UTF-8 and front matter, and fix the order of the input files
-2. Treat each Markdown file as an independent document, generating its AST in a single parse that incorporates the GFM, CJK-friendly delimiter, math, and pfpdf directive tokenizer extensions. Code and raw HTML are protected with the highest priority; outside of them, math and directives claim their internal tokens before emphasis and strong emphasis are processed
+2. Parse each Markdown file as an independent document. Generate its AST in a single parse using the GFM, CJK-friendly delimiter, math, and pfpdf directive tokenizer extensions. Protect code and raw HTML first; outside those contexts, let math and directives claim their internal tokens before processing emphasis and strong emphasis
 3. Prepend a file anchor to each file's AST and join them into a single document as an array of ASTs
 4. Process heading IDs, the table of contents, cross-file links, and resource URLs using AST, HTML, and CSS parsers
 5. Generate HTML using context-aware escaping and DOM APIs
 
 Markdown source strings must not be joined with simple separators before parsing. Doing so lets unclosed code fences, HTML blocks, lists, setext headings, and link reference definitions leak into the next file, producing a different syntax tree from parsing each file independently. Independent parsing also confines link reference definitions and footnote-like extensions to their source file. File boundaries generate no empty paragraphs, and adjacent blocks cannot alter one another's syntax.
 
-In table rendering, non-empty cells of 4 graphemes or fewer receive `.pfpdf-table-cell-compact`, and longer cells receive `.pfpdf-table-cell-min-4`. This keeps short status words on a single line while allowing long-text cells to wrap. Tables with 8 or more columns receive `.pfpdf-table-many-columns`, so templates can adjust the whole table's font size and spacing without having to guess column meaning or position.
+In table rendering, non-empty cells of 4 grapheme clusters or fewer receive `.pfpdf-table-cell-compact`, and longer cells receive `.pfpdf-table-cell-min-4`. This keeps short status words on a single line while allowing cells with longer text to wrap. Tables with 8 or more columns receive `.pfpdf-table-many-columns`. Templates can then adjust the whole table's font size and spacing without having to guess column meaning or position.
 
 All bundled templates preserve GFM column alignment in both header and body cells. `left` and `right` refer to physical sides regardless of the document's `dir`, and `center` centers the content. Unspecified cells default to the logical direction `start`: left in LTR and right in RTL. Wrapping long text does not change the specified alignment.
 
@@ -46,9 +46,9 @@ If MathJax reports a TeX error in a source expression, pfpdf does not accept a P
 
 ### 3.3.2 Page breaks
 
-Outside block containers, a line consisting of three or more consecutive ASCII underscores (such as `___` or `____`) with no indentation is a thematic break in GFM, but pfpdf reserves it as a page break. Surrounding or intervening whitespace, and `___` inside blockquotes or list items are not part of the reserved notation and are processed as GFM. `---` and `***` remain available for ordinary thematic breaks. This difference is recorded as an explicit expected deviation in the GFM conformance suite.
+pfpdf reserves an unindented line consisting only of three or more consecutive ASCII underscores (such as `___` or `____`) as a page break when it appears outside block containers such as blockquotes and lists. GFM treats this notation as a thematic break. Lines with whitespace before, after, or between the underscores, and `___` inside blockquotes or list items, are not part of the reserved notation and are processed as GFM. `---` and `***` remain available for ordinary thematic breaks. This difference is recorded as an intentional deviation in the GFM conformance suite.
 
-The directive is normalized to mean "start the next rendered block at the top of a new page", implemented by attaching the reserved `data-pfpdf-page-break` attribute to the next block and using the paged CSS `break-before: page`. Directives at the start or end of the document, as well as consecutive directives, do not create blank pages and are collapsed into a single break. A feature for inserting blank pages themselves is not provided in `v0.1.0`.
+The directive is normalized to mean "start the next rendered block at the top of a new page", implemented by attaching the reserved `data-pfpdf-page-break` attribute to the next block and using the paged CSS `break-before: page`. Directives at the start or end of the document are ignored. Consecutive directives within the document collapse to a single break, so neither case creates blank pages. A feature for inserting blank pages themselves is not provided in `v0.1.0`.
 
 ### 3.3.3 Heading anchors and the table of contents
 
@@ -60,9 +60,13 @@ The beginning of each source file is assigned a sequentially numbered anchor of 
 4. If the result is empty, use `section`
 5. On collision with an already-used ID, append `-2`, `-3`, and so on until an unused ID is found. Collisions with headings whose original text ends in such a suffix are checked against the same global set. A next-suffix cursor is kept per base, so the scan does not restart from `-2` on every duplicate
 
-The table of contents includes all heading nodes (`h1` through `h6`) of the Markdown AST in source order, and excludes headings from raw HTML and the template itself, as well as the cover's metadata title. Raw HTML headings receive no automatic ID; to make them link targets, specify an explicit `id`. Links to a `chapter.md` merged into the same document are converted to the file anchor. `chapter.md#fragment` matches within the target file, and `#fragment` matches within the source file containing the link, comparing the once-percent-decoded fragment against the final explicit or heading ID for exact equality at the Unicode code point level. Suffixes are never re-derived from the base slug; a link to the second of two duplicate headings uses the actual `-2` ID. The query component of a relative Markdown link has no defined meaning and results in exit code `2`. Nonexistent targets also yield code `2`, with no case-insensitive guessing or ambiguous basename-only matching.
+The table of contents includes all heading nodes (`h1` through `h6`) of the Markdown AST in source order. It excludes headings from raw HTML and the template itself, as well as the cover's metadata title. Raw HTML headings receive no automatic ID; to make them link targets, specify an explicit `id`.
 
-The PDF outline (bookmarks) is built from the same headings as the table of contents. Vivliostyle derives the outline hierarchy from the nesting of `li` / `ol` in the document's TOC navigation, but the visible table of contents is a flat list indented by depth classes. The builder therefore appends a `nav.pfpdf-outline` to the end of the content that nests the same headings by heading level; a heading that skips a level becomes a child of the nearest shallower heading. `epub:type="toc"` makes Vivliostyle prefer this nav over the visible `role="doc-toc"` list, and `hidden` keeps it off the pages. The generated stylesheet also hides `nav.pfpdf-outline[hidden]` so that template rules such as `nav { display: block; }` do not print it. Vivliostyle's TOC view ignores author stylesheets and restores `[hidden]` elements when reading it, so the outline still reflects it. Because the outline is PDF viewer navigation, it is emitted even when `toc: false` omits the visible table of contents. It is placed at the end of the content so that template rules for the first content element are unaffected.
+Links to a `chapter.md` merged into the same document are converted to its file anchor, and `chapter.md#fragment` becomes `#fragment`. The target path is percent-decoded once and normalized, then matched exactly against the input filenames. pfpdf does not guess case-insensitive matches or match an ambiguous basename. Fragments are not checked against explicit or generated heading IDs. Standalone `#fragment` links, links to Markdown files outside the merged inputs, relative links with a query, and other navigation links are preserved for the renderer to interpret. A link to the second of two duplicate headings uses the actual generated ID with the `-2` suffix.
+
+The PDF outline (bookmarks) is built from the same headings as the table of contents. Vivliostyle derives the outline hierarchy from the nesting of `li` / `ol` in the document's TOC navigation, but the visible table of contents is a flat list indented by depth classes. The builder therefore appends a `nav.pfpdf-outline` to the end of the content that nests the same headings by heading level; a heading that skips a level becomes a child of the nearest preceding shallower heading.
+
+This `nav` uses `epub:type="toc"` to make Vivliostyle prefer it over the visible `role="doc-toc"` list, and `hidden` keeps it off the pages. The generated stylesheet also hides `nav.pfpdf-outline[hidden]` so that template rules such as `nav { display: block; }` do not print it. Vivliostyle's TOC view ignores document stylesheets and restores `[hidden]` elements when reading the navigation, so the headings still appear in the outline. The outline is navigation for the PDF viewer, so it is emitted even when `toc: false` omits the visible table of contents. It is placed at the end of the content so that template rules for the first content element are unaffected.
 
 ### 3.3.4 Japanese strong emphasis (CJK-friendly)
 
@@ -89,9 +93,11 @@ Background material:
 
 ### 3.3.5 Break opportunities in long unbroken strings
 
-After Markdown and raw HTML have been converted to HAST, heading IDs, the table of contents, and resource URLs have been finalized, and math and code highlighting have been rendered, `<wbr>` elements are inserted into ordinary visible text nodes. This is an output decoration, not Markdown syntax. The input, link destinations, `href`, `src`, `id`, classes, styles, and other properties are not modified.
+pfpdf inserts `<wbr>` elements into ordinary visible text nodes after converting Markdown and raw HTML to HAST, finalizing heading IDs, the table of contents, and resource URLs, rendering math, and applying code highlighting. This is an output decoration, not Markdown syntax. The input, link destinations, `href`, `src`, `id`, classes, styles, and other properties are not modified.
 
-Runs containing no whitespace or existing break opportunities are measured in grapheme clusters via `Intl.Segmenter`. Runs of 15 graphemes or fewer are left unchanged; runs of 16 graphemes or more receive at least one break candidate, keeping each segment at 16 graphemes or fewer in principle. Priority goes first to the URL/path characters `/`, `?`, `&`, `#`, `;`, `=`, then to the host/file/identifier characters `.`, `@`, `:`, `-`, `_`, then to camelCase and letter-digit transitions, and finally to a fixed-length fallback, in that order. No split occurs in the middle of `://`, percent-encoded `%HH`, IPv6 `::`, combining characters, variation selectors, or emoji ZWJ sequences. Candidates are evaluated deterministically by count, priority, short end fragments, segment-length imbalance, and source position, in that order.
+Runs containing no whitespace or existing break opportunities are measured in grapheme clusters via `Intl.Segmenter`. Runs of 15 graphemes or fewer are left unchanged; runs of 16 graphemes or more receive at least one break candidate, keeping each segment at 16 graphemes or fewer in principle. Priority goes first to the URL/path characters `/`, `?`, `&`, `#`, `;`, `=`, then to host, file, and identifier characters such as `.`, `@`, `:`, `-`, `_`, then to camelCase and letter-digit transitions, and finally to a fixed-length fallback, in that order. No split occurs in the middle of `://`, percent-encoded `%HH`, IPv6 `::`, combining characters, variation selectors, or emoji ZWJ sequences.
+
+Segments normally contain at least 4 grapheme clusters. Break positions are selected by preferring smaller values for the sum of candidate priorities, then the candidate count, then the sum of squared segment lengths, and finally the sum of candidate positions within the run. The sum of squared lengths limits imbalance between segments. The same input always yields the same positions.
 
 Runs continue across inline element boundaries, so display strings spanning links, `strong`, and `em` are handled as well. Runs end at blocks, `br`, existing `wbr`, zero-width spaces, soft hyphens, and characters where ordinary CJK typesetting allows inter-character breaks. Existing `wbr` elements are respected, and running the same transform twice adds no further candidates.
 
@@ -101,15 +107,21 @@ Runs continue across inline element boundaries, so display strings spanning link
 
 A fenced code block whose info string is lowercase `mermaid` is converted into a diagram as a pfpdf extension. Using the Mermaid version pinned in the package and a server-side DOM adapter, a static SVG is generated within the Markdown pipeline. The SVG is placed in the build workspace as `generated/mermaid-NNNN.svg` and referenced from an `img` inside a `.pfpdf-mermaid` container. No CDN, host-installed Mermaid, or additional headless browser process is used.
 
-Mermaid is fixed to `startOnLoad: false` and `securityLevel: strict`, with HTML labels disabled and error rendering suppressed. Each diagram is assigned a deterministic ID, and the SVG is parsed as HAST and then serialized as an external SVG after the normal resource URL rewriting completes. Inline SVG is not used because in Vivliostyle's pagination DOM, SVG marker fragment references are lost and the arrowheads simply disappear. External SVG preserves markers with the same renderer and browser, and because it is not converted to a raster image, vectors and in-SVG text are preserved.
+Mermaid is fixed to `startOnLoad: false` and `securityLevel: strict`, with HTML labels disabled and error rendering suppressed. Each diagram receives a deterministic ID. Its SVG is parsed as HAST, resource URLs are rewritten, and the result is serialized as an external SVG. Inline SVG is not used because SVG marker fragment references are lost in Vivliostyle's pagination DOM, making arrowheads disappear. External SVG preserves markers with the same renderer and browser. Because it is not converted to a raster image, vectors and text within the SVG are preserved.
 
-The default layout is ELK (`@mermaid-js/layout-elk`). A diagram that selects a layout through `config.layout` in its front matter or through an init directive follows that selection, as Mermaid's site config and diagram config precedence defines (for example `layout: dagre`). ELK is also pure JavaScript and uses no additional browser process.
+The default layout is ELK (`@mermaid-js/layout-elk`). If a diagram specifies a layout through `config.layout` in its front matter or through an init directive, Mermaid applies that choice according to its precedence rules for site and diagram configuration (for example `layout: dagre`). ELK is also pure JavaScript and uses no additional browser process.
 
 Gantt diagrams use the same SVG generation pipeline. If the server-side DOM lacks `Node.parentElement`, a getter is added that returns the parent when it is an element, or `null` otherwise. No simulated `offsetWidth` is added: when the container width is unavailable, Mermaid uses its own default width of 1200px. A diagram's `config.gantt.useWidth` takes precedence, and the generated SVG is fitted to the body width like other images.
 
 Because a diagram cannot be split across pages, the generated SVG is scaled down to fit both the body width and the height of one page area. The image uses `max-width: 100%` and `max-height: calc(100vh - 2.5em)` to reserve its container's top and bottom margins of `1.25em` each. It is a centered block image, so inline baseline space does not add to its height. Vivliostyle resolves viewport units against the page area, so the limit follows each template's page margins. Tall flowcharts and sequence diagrams fit within the page area, although their text becomes smaller as they shrink.
 
-Text measurement in the server-side DOM is aligned with a real browser in the following ways. The font used for measurement is the bundled Noto Sans JP: its unicode-range subsets are looked up per code point and assigned to both `Noto Sans JP` and the default `sans-serif`. Em values in the position attributes of `text` / `tspan` are converted to px, the `text-anchor: middle` of `.node .label text` from Mermaid's own stylesheet is reflected, and `getBBox()` returns only `x` / `y` / `width` / `height`, as an SVGRect does. These changes affect only the values Mermaid reads for layout; the attributes of the generated SVG are not changed. They also remove the edge label background drift in flowcharts, which came from misreading em values, so labeled edges such as `-->|label|` can be used.
+Text measurement in the server-side DOM uses the following steps to match dimensions in a real browser:
+
+- Use the bundled Noto Sans JP for measurement. Look up its `unicode-range` subsets per code point and assign them to both `Noto Sans JP` and the default `sans-serif`
+- Convert em values in the position attributes of `text` / `tspan` to px, and account for the `text-anchor: middle` rule for `.node .label text` in Mermaid's own stylesheet
+- Return only `x` / `y` / `width` / `height` from `getBBox()`, matching an SVGRect
+
+These operations affect only the values Mermaid reads for layout; the attributes of the generated SVG are not changed. They also remove the edge label background drift in flowcharts, which came from misreading em values, so labeled edges such as `-->|label|` can be used.
 
 Syntax or rendering errors in Mermaid source yield code `2` with the source file and line; load or initialization failures of the bundled runtime yield code `1`. In neither case is unrendered code or an error diagram left in the PDF.
 
@@ -117,20 +129,20 @@ Syntax or rendering errors in Mermaid source yield code `2` with the source file
 
 As a pfpdf extension, bibliography citations recognize `\cite{key}` and the multi-key form `\cite{key1,key2}`. In TeX, the command for citing literature is `\cite`, while `\ref` is generic label referencing, so the latter is reserved for future figure, table, equation, and section references. CommonMark preserves a backslash before an ASCII letter, so `\c` itself is not lost as a Markdown escape.
 
-- A citation key starts with an ASCII letter or digit, followed by letters, digits, and `_:.#$%&+?<>~/-`. Commas separate clusters, so a key never contains one
+- A citation key starts with an ASCII letter or digit; subsequent characters must also be ASCII letters, digits, or one of `_:.#$%&+?<>~/-`. Commas separate keys within a citation cluster and cannot appear within a key
 - ASCII whitespace around keys is stripped; empty keys, duplicates within the same cluster, and missing or nested braces yield code `2` with file and line
 - `\\cite{key}` is the literal `\cite{key}`. Citation syntax is not recognized inside inline, fenced, or indented code, raw HTML, or math
 - Citations inside links and headings yield code `2` in the initial version, to avoid nested anchors and style-dependent slugs
 - After each source file has been parsed independently, the clusters of all files are collected in document order, and a single citeproc session determines numbering and bibliography order
 - A citation is an internal link with `role="doc-biblioref"`; an entry has a unique encoded ID and `role="doc-backlink"` links to every citing position. BibTeX keys are never used as raw HTML IDs without validation
 
-The explicit position of the bibliography list is a top-level standalone line `\printbibliography`. There is 0 or 1 per document; when omitted, the list is appended to the end of the last source section. No heading is generated automatically; to include the bibliography in the table of contents, write an ordinary Markdown heading immediately before the marker. A marker with no citations, 2 or more markers, and citations without a specified bibliography all yield code `2`.
+To choose where the bibliography appears, write `\printbibliography` on a standalone top-level line. A document may contain at most one marker; when it is omitted, the list is appended to the end of the last source section. No heading is generated automatically; to include the bibliography in the table of contents, write an ordinary Markdown heading immediately before the marker. A marker with no citations, 2 or more markers, and citations without a specified bibliography all yield code `2`.
 
 The initial version ships a single version-pinned numeric CSL style. The CSL processor's bibliography order is the canonical source of numbering, and entry bodies are not rebuilt by a custom formatter. Custom CSL, locators, prenotes, author-only and year-only forms, `\nocite`, and Pandoc's `[@key]` are out of scope for the initial version.
 
 ### 3.3.8 Source line wrapping in Japanese paragraphs
 
-When the resolved document language is `ja` or a variant tag, remove only source soft line breaks whose immediate neighbors in a Markdown paragraph are Han, kana, Japanese punctuation, or full-width punctuation. The same rule crosses inline strong/emphasis/link elements and applies to paragraphs in lists, blockquotes, and notes, with LF and CRLF support.
+When the resolved document language is `ja` or a variant tag, remove only source soft line breaks whose immediate neighbors in a Markdown paragraph are Han, kana, Japanese punctuation, or full-width punctuation. The same rule crosses inline strong/emphasis/link elements and applies to paragraphs in lists, blockquotes, and footnotes, with LF and CRLF support.
 
 Preserve Latin word boundaries, Japanese/Latin boundaries, explicit spaces, soft breaks with authored trailing spaces, hard breaks, and paragraph boundaries. Code, math, images, and footnote references are boundaries; paragraphs containing raw HTML and raw HTML blocks are unchanged. Preserve authored newline character references such as `&#10;` / `&NewLine;` too. Headings, IDs, URLs, and source positions are unchanged. Non-Japanese document languages retain GFM soft breaks.
 
@@ -138,11 +150,11 @@ Preserve Latin word boundaries, Japanese/Latin boundaries, explicit spaces, soft
 
 Inline and block-level raw HTML pass through to preserve the flexibility that Markdown alone cannot provide. pfpdf follows GFM parsing rules but does not apply GitHub.com's post-conversion sanitization or GFM's "Disallowed Raw HTML" tag filter. Authors may use `table`, `div`, `section`, `figure`, `style`, and `script` where needed. Input is treated as trusted code, and local file access is not sandboxed (see Chapter 08).
 
-However, for URL rewriting and template assembly, raw HTML is read as fragments by an HTML parser and re-serialized. This is not allowlist-based removal of tags or attributes, but the byte representation — quoting, attribute order, tag closing style — may not match the input. HTML blocks spanning source files cannot be constructed. Static URLs are registered into the chapter 02 resource graph; local URLs generated later by scripts are outside the guarantee.
+For URL rewriting and template assembly, raw HTML is read as fragments by an HTML parser and re-serialized. This is not allowlist-based removal of tags or attributes, but the byte representation — quoting, attribute order, tag closing style — may not match the input. HTML blocks spanning source files cannot be constructed. Static URLs are registered into the chapter 02 resource graph; local URLs generated later by scripts are outside the guarantee.
 
 `<base>`, `meta[http-equiv=refresh]`, and custom `data-pfpdf-*` attributes are also preserved as trusted HTML. Since these can change resource resolution and what is rendered, the consequences of using them are the user's responsibility.
 
-Synchronous errors in user scripts and unhandled rejections before readiness are conversion failures. Asynchronous work that affects pagination must be registered with `window.pfpdf.registerReady(promise)`. Completion of unregistered timers, events, and workers is never inferred automatically.
+Synchronous errors in user scripts and unhandled Promise rejections detected before the document is ready are conversion failures. Asynchronous work that affects pagination must be registered with `window.pfpdf.registerReady(promise)`. Completion of unregistered timers, events, and workers is never inferred automatically.
 
 ## 3.5 Distinguishing GFM from GitHub.com-specific features
 
@@ -155,9 +167,9 @@ GitHub.com also renders features such as footnotes, alerts, mentions, issue refe
 
 Footnote syntax `Text[^note]` and `[^note]: Additional detail` places each note once at the bottom of its first-reference page. References use DPUB-ARIA `doc-noteref` and note bodies use `aside[role="doc-footnote"]`, allowing Vivliostyle to place page footnotes. Later repeated references link to that same body. Notes are numbered in first-reference order across the document, while definition identifiers remain scoped to each source file. Reusing an identifier in another file produces a distinct note, with collision-free IDs and forward/back links throughout the document. Authored note text, multiple paragraphs, code, and links are retained. Long bodies may split across following pages.
 
-When the resolved document language has primary language `ja`, references and bodies have the accessible label `脚注 1`, and back links use `参照 1 に戻る` (`参照 1（2 回目） に戻る` for a repeated reference). English and all other languages use `Footnote 1` / `Back to reference 1`. Footnotes do not generate TOC headings.
+When the first subtag of the resolved document language is `ja`, references and bodies have the accessible label `脚注 1`, and back links use `参照 1 に戻る` (`参照 1（2 回目） に戻る` for a repeated reference). English and all other languages use `Footnote 1` / `Back to reference 1`. Footnotes do not generate TOC headings.
 
-## 3.6 How conformance is checked
+## 3.6 Checking GFM conformance
 
 GFM Spec examples are run against the `GfmAdapter` before pfpdf-specific post-processing — the template wrapper, heading IDs, the table of contents, and resource URL rewriting — is added. This checks the parser's own conformance without misjudging pfpdf's added attributes as GFM violations.
 
@@ -166,16 +178,14 @@ GFM Spec examples are run against the `GfmAdapter` before pfpdf-specific post-pr
 - The spec version, support table, pfpdf extensions, and expected deviations are consolidated in this chapter, and diffs are reviewed whenever the parser library or spec fixtures are updated
 - Conformance fixtures pin the upstream example number, input, expected HTML, license, and spec checksum in the repository, and are never fetched from the network at test time
 
-### Expected deviation list
+### Intentional deviations
 
 | Item | GFM behavior | pfpdf behavior | Reason |
 |---|---|---|---|
 | Disallowed Raw HTML tag filter | Filters `<script>` and others | Preserved without filtering | Prioritizes expressive freedom for trusted documents |
 | Standalone line of three or more consecutive `_` characters | Thematic break | Page break | Reserved as a pfpdf directive. `---` / `***` remain as alternatives |
-| `**...**` adjacent to CJK | May not become strong | Converted to `<strong>` | Prioritizes natural notation in Japanese documents |
+| `**...**` adjacent to CJK | May not become strong emphasis | Converted to `<strong>` | Prioritizes natural notation in Japanese documents |
 | `$...$` / `$$...$$` | Plain text | Typeset as math | pfpdf extension |
 | `mermaid` fenced code block | Code block | Converted to a static SVG diagram | pfpdf extension |
 | `\cite{key}` / `\printbibliography` | Plain text | Citation link / bibliography list | pfpdf extension |
-| `<base>` | Preserved as raw HTML | Input error | To fix the basis of logical resource URLs and internal links |
-| `meta[http-equiv=refresh]` | Preserved as raw HTML | Input error | To forbid document navigation during rendering |
 | Soft breaks between CJK characters in Japanese paragraphs | Preserves newline | Removes source-only breaks with `lang: ja` | Source wrapping must not add whitespace; preserve authored spaces and code / HTML |

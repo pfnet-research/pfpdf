@@ -8,9 +8,15 @@ dir: ltr
 
 # pfpdf Design Document
 
-This document records the detailed design of pfpdf: its implementation principles, architecture, Markdown processing, resources and templates, renderers, distribution, compatibility, security model, and major design decisions.
+<style>
+@media print {
+  p:has(code), li:has(code), dd:has(code) { text-align: start; }
+}
+</style>
 
-- Target version: `v0.1.0`
+This document records the implementation requirements and design decisions for pfpdf, which converts Markdown documents to PDF through HTML. It sets requirements for GFM and Japanese typesetting, configuration through front matter and the CLI, and the handling of trusted documents. It also defines the policy that partial output does not count as success when an error occurs.
+
+- Scope: the initial design targeting `v0.1.0` and subsequent design changes. Chapter 09 records the status and decision date of each design decision.
 - Language status: the Japanese version in `docs/design.ja/` is canonical. This English translation mirrors its structure. If the two versions differ in their interpretation of the specification, the Japanese version takes precedence.
 
 ## Audience and purpose
@@ -32,7 +38,7 @@ For user-facing setup instructions and examples, see `docs/tutorial.en/`. The RE
 | 03 | Markdown processing and GFM |
 | 04 | Resources, fonts, and templates |
 | 05 | Renderer |
-| 06 | Distribution and releases |
+| 06 | Distribution and release |
 | 07 | Compatibility and testing |
 | 08 | Security model |
 | 09 | Record of design decisions |

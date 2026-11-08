@@ -10,7 +10,7 @@ bibliography: references.bib
 
 # 1. 文字と段落
 
-日本語、English、数字 0123456789、記号「」―…を含む共通入力です。
+各テンプレートの確認に使う共通の入力です。日本語、English、数字 0123456789、記号「」―…を含みます。
 
 ## 1.1 通常の段落
 
@@ -43,7 +43,7 @@ bibliography: references.bib
 ## 2.1 箇条書き
 
 - 短い項目
-- 折り返しを確認するための長い項目。日本語と English words を混在させても二行目の開始位置が揃うことを確認します
+- 折り返しを確認するための長い項目。日本語と English words を混在させても、2行目が1行目の本文と同じ位置から始まることを確認します。
 - 最後の項目
 
 ## 2.2 番号付きリスト
@@ -94,7 +94,7 @@ bibliography: references.bib
 
 ## 3.4 行数が多い表
 
-| No. | 入力 | 期待結果 | 備考 |
+| No. | 入力 | 期待する結果 | 備考 |
 |---:|---|---|---|
 | 01 | heading | 目次へ追加 | level 1 |
 | 02 | paragraph | 段落を生成 | 日本語 |
@@ -134,7 +134,7 @@ export function summarize(result: PreviewResult): string {
 GET /api/v1/template-preview/reports/2026/08/04?include=typography,tables,code,math,images,raw-html&format=print-quality-pdf HTTP/1.1
 ```
 
-## 4.3 長いコードblock
+## 4.3 長いコードブロック
 
 ```text
 01  prepare input and metadata
@@ -179,11 +179,11 @@ ___
 
 ## 5.1 画像
 
-![縦横比とcaption相当の配置を確認するサンプル画像](assets/preview.svg)
+![横長の枠の左に灰色の円、右に3本の横線を配置したサンプル画像](assets/preview.svg)
 
 ## 5.2 キー表示
 
-raw HTMLによる <kbd>Ctrl</kbd> + <kbd>Enter</kbd>、下付きのH<sub>2</sub>O、上付きのx<sup>2</sup>を表示します。
+生の HTML で、キー入力を示す <kbd>Ctrl</kbd> + <kbd>Enter</kbd> と、下付き文字を含む H<sub>2</sub>O、上付き文字を含む x<sup>2</sup> を表示します。
 
 ## 5.3 details要素
 
@@ -192,7 +192,7 @@ raw HTMLによる <kbd>Ctrl</kbd> + <kbd>Enter</kbd>、下付きのH<sub>2</sub>
   <p>summary、本文、markerの位置を確認します。</p>
 </details>
 
-## 5.4 インラインstyle
+## 5.4 インラインスタイル
 
 <span style="border: 1px solid currentColor; padding: 0.15em 0.4em;">枠付きの短い要素</span>を本文中に置きます。
 
@@ -222,9 +222,9 @@ raw HTMLによる <kbd>Ctrl</kbd> + <kbd>Enter</kbd>、下付きのH<sub>2</sub>
 
 ## 6.4 最終確認
 
-### 6.4.1 上余白
+### 6.4.1 上の余白
 
-#### 6.4.1.1 下余白
+#### 6.4.1.1 下の余白
 
 ##### 6.4.1.1.1 Running header
 
@@ -240,6 +240,6 @@ raw HTMLによる <kbd>Ctrl</kbd> + <kbd>Enter</kbd>、下付きのH<sub>2</sub>
 
 # 7. 参考文献
 
-本文中の単一引用\cite{commonmark2024}と、複数引用\cite{citationjs2019,vivliostyle2026}の番号、折り返し、内部リンクを確認します。同じ文献の再引用\cite{citationjs2019}には複数の戻りリンクが付きます。
+文献を1件だけ引用する例\cite{commonmark2024}と、複数件をまとめて引用する例\cite{citationjs2019,vivliostyle2026}で、番号、折り返し、内部リンクを確認します。同じ文献を再び引用した例\cite{citationjs2019}では、参考文献一覧の該当項目に各引用箇所への戻りリンクが付きます。
 
 \printbibliography
