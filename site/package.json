@@ -12,7 +12,7 @@
     "preview": "astro preview"
   },
   "dependencies": {
-    "astro": "7.4.7",
+    "astro": "7.4.13",
     "@astrojs/markdown-remark": "7.3.4"
   },
   "devDependencies": {
