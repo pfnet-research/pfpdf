@@ -20,6 +20,9 @@ Options:
   --host-fonts             Use the OS standard font directories
   --font-dir PATH          Additional font directory. Can be specified multiple times
   --browser-path PATH      Browser used by the renderer
+  --vivliostyle-cli PATH   Vivliostyle JavaScript entry point
+  --vivliostyle-daemon-dir DIR
+                           Use a running daemon on Linux or macOS
   --render-timeout-ms N    Time limit from renderer preparation through PDF inspection; default: 300000 ms
   --keep-work-dir          Keep the temporary working directory
   --strict-front-matter    Reject unknown front matter keys; default: warn and ignore
@@ -73,9 +76,45 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --browser-path /usr/bin/chromium
 ```
 
+### 7.4.1 Reuse Vivliostyle across conversions
+
+On Linux and macOS, a compatible Vivliostyle CLI can keep its Node.js build process and Chromium running between conversions. Use a CLI build that supports `build-worker`, `build-daemon`, and `build --build-daemon`. Set `cli` to its absolute JavaScript entry point. You can also pass `--vivliostyle-cli "$cli"` by itself for a one-off build.
+
+Create a directory accessible only to your user, with a dedicated `context` subdirectory. Start the worker first.
+
+```bash
+cli=/absolute/path/to/vivliostyle-cli/dist/cli.js
+daemon_dir=$(mktemp -d /tmp/pfpdf-vs.XXXXXXXX)
+chmod 700 "$daemon_dir"
+mkdir -m 700 "$daemon_dir/context"
+printf '%s\n' "$daemon_dir"
+node "$cli" build-worker --socket "$daemon_dir/worker.sock"
+```
+
+After the worker reports that it is ready, open another terminal. Set `cli` and `daemon_dir` to the same absolute paths and start the daemon from `context`.
+
+```bash
+cd "$daemon_dir/context"
+node "$cli" build-daemon --socket "$daemon_dir/daemon.sock" \
+  --browser-worker "$daemon_dir/worker.sock"
+```
+
+After the daemon reports that it is ready, run conversions from your document directory in a third terminal. Set the same `cli` and `daemon_dir` again.
+
+```bash
+pfpdf --input first.md --output first.pdf \
+  --vivliostyle-cli "$cli" --vivliostyle-daemon-dir "$daemon_dir"
+pfpdf --input second.md --output second.pdf \
+  --vivliostyle-cli "$cli" --vivliostyle-daemon-dir "$daemon_dir"
+```
+
+Both Vivliostyle options resolve relative paths from the directory where pfpdf starts. `--print-effective-config` lists both settings and their sources. `--doctor` checks the selected CLI, `context`, and the socket, and uses a one-off build of that CLI for the browser launch check.
+
+When finished, press Ctrl+C in the daemon terminal first and wait for it to exit. Then press Ctrl+C in the worker terminal and wait for it to exit. Remove the empty directories with `rmdir "$daemon_dir/context" "$daemon_dir"`.
+
 ## 7.5 Timeouts
 
-The default timeout of 300,000 ms (five minutes) covers the combined time for browser verification and initial download, waiting for the document to be ready for rendering, PDF rendering, post-processing, and structural inspection. If a large document or slow initial download needs more time, choose a value from 1,000 to 3,600,000 ms. Unlimited values such as `0` are not accepted.
+The default timeout of 300,000 ms (five minutes) covers browser verification and initial download, any wait in the daemon queue, waiting for the document to be ready, PDF rendering, post-processing, and structural inspection. If a large document or slow initial download needs more time, choose a value from 1,000 to 3,600,000 ms. Unlimited values such as `0` are not accepted.
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \

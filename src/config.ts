@@ -34,6 +34,8 @@ export interface Config {
   hostFonts: ResolvedValue<boolean>;
   fontDirs: ResolvedValue<string[]>;
   browserPath: ResolvedValue<string | null>;
+  vivliostyleCli: ResolvedValue<string | null>;
+  vivliostyleDaemonDir: ResolvedValue<string | null>;
   renderTimeoutMs: ResolvedValue<number>;
   keepWorkDir: ResolvedValue<boolean>;
   strictFrontMatter: ResolvedValue<boolean>;
@@ -45,6 +47,8 @@ export interface Config {
   templateDirAbs: string | null;
   fontDirsAbs: string[];
   browserPathAbs: string | null;
+  vivliostyleCliAbs: string | null;
+  vivliostyleDaemonDirAbs: string | null;
   cwd: string;
 }
 
@@ -55,6 +59,7 @@ interface RawCli {
 const VALUE_OPTIONS = new Set([
   '--input', '--output', '--title', '--template', '--template-preset', '--logo',
   '--font-dir', '--browser-path',
+  '--vivliostyle-cli', '--vivliostyle-daemon-dir',
   '--render-timeout-ms', '--log-level',
 ]);
 const FLAG_OPTIONS = new Set([
@@ -63,6 +68,7 @@ const FLAG_OPTIONS = new Set([
 ]);
 const PATH_OPTIONS = new Set([
   '--input', '--output', '--template', '--template-preset', '--logo', '--font-dir', '--browser-path',
+  '--vivliostyle-cli', '--vivliostyle-daemon-dir',
 ]);
 
 const CONFLICT_PAIRS: Array<[string, string]> = [
@@ -220,6 +226,16 @@ export function resolveConfig(
     ? { value: true, source: 'cli' }
     : { value: false, source: 'default' };
   const browserPath = str('--browser-path');
+  const vivliostyleCli = str('--vivliostyle-cli');
+  const vivliostyleDaemonDir = str('--vivliostyle-daemon-dir');
+  if (vivliostyleDaemonDir.value !== null) {
+    if (process.platform !== 'linux' && process.platform !== 'darwin') {
+      throw new InputError('--vivliostyle-daemon-dir is supported only on Linux and macOS');
+    }
+    if (vivliostyleCli.value === null) {
+      throw new InputError('--vivliostyle-daemon-dir requires --vivliostyle-cli');
+    }
+  }
   const strictFrontMatter: ResolvedValue<boolean> = raw['--strict-front-matter'] !== undefined
     ? { value: true, source: 'cli' }
     : { value: false, source: 'default' };
@@ -282,6 +298,8 @@ export function resolveConfig(
     hostFonts,
     fontDirs,
     browserPath,
+    vivliostyleCli,
+    vivliostyleDaemonDir,
     renderTimeoutMs,
     keepWorkDir,
     strictFrontMatter,
@@ -292,6 +310,8 @@ export function resolveConfig(
     templateDirAbs: template.value.kind === 'custom' ? abs(template.value.dir) : null,
     fontDirsAbs: fontDirs.value.map((p) => path.resolve(cwd, p)),
     browserPathAbs: abs(browserPath.value),
+    vivliostyleCliAbs: abs(vivliostyleCli.value),
+    vivliostyleDaemonDirAbs: abs(vivliostyleDaemonDir.value),
     cwd,
   };
 }
@@ -351,6 +371,8 @@ export function effectiveConfigJson(config: Config): string {
       hostFonts: entry(config.hostFonts),
       fontDirs: entry(config.fontDirs),
       browserPath: entry(config.browserPath),
+      vivliostyleCli: entry(config.vivliostyleCli),
+      vivliostyleDaemonDir: entry(config.vivliostyleDaemonDir),
       renderTimeoutMs: entry(config.renderTimeoutMs),
       keepWorkDir: entry(config.keepWorkDir),
       strictFrontMatter: entry(config.strictFrontMatter),
@@ -389,6 +411,9 @@ Options:
   --host-fonts             search OS standard font directories
   --font-dir PATH          extra font directory (repeatable)
   --browser-path PATH      browser used by the renderer
+  --vivliostyle-cli PATH   use the specified Vivliostyle JavaScript entry point
+  --vivliostyle-daemon-dir DIR
+                           use a running Vivliostyle daemon (Linux/macOS; requires --vivliostyle-cli)
   --render-timeout-ms N    overall renderer time limit in ms (default: 300000)
   --keep-work-dir          keep the temporary working directory
   --strict-front-matter    reject unknown front matter keys (default: warn and ignore)

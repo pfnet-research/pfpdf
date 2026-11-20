@@ -12,15 +12,25 @@ The `Renderer` interface accepts an immutable `RenderJob`. The job contains the 
 
 - Invoke the Vivliostyle CLI as a Node.js child process, maintaining a clear boundary from the pfpdf main process
 - Pass the document URL of the `AssetServer` as input; do not generate a separate workspace `file:` URL
-- Do not resolve the Vivliostyle CLI via `PATH` or `npx`; launch the entry point that pfpdf resolved through package resolution, using the Node.js at `process.execPath`
-- Use the browser managed by the pinned Vivliostyle CLI's standard mechanism, or a verified browser explicitly specified by the user, and pass only confirmed option names. Do not reimplement browser acquisition or cache recovery in pfpdf
+- Launch the bundled Vivliostyle entry point resolved through package resolution, or the file selected with `--vivliostyle-cli`, using the Node.js at `process.execPath`
+- Use the browser managed by the selected Vivliostyle CLI, or the executable specified with `--browser-path`. The Vivliostyle CLI handles browser acquisition and caching
 - Do not assemble shell strings; launch child processes with an argument array and `shell: false`
 - Do not unnecessarily disable the sandbox provided upstream
 - Do not forward the child's stdout and stderr to the parent's stdout; stream them to stderr at the appropriate log level and save them in the renderer diagnostics. Because trusted input is assumed, do not sanitize the content or redact credentials
 - Cap saved renderer diagnostics at 8 MiB; after the cap is exceeded, keep draining the child pipe rather than abandoning it, to prevent deadlock. Record the truncation and the number of omitted bytes in the file, and do not let process memory grow in proportion to log volume. The volume forwarded to stderr is managed by the caller and is never diverted to stdout
-- On timeout, `SIGINT`, and `SIGTERM`, start no new work; first request graceful termination, then force-kill after 5 seconds. The entire cleanup is also capped at 15 seconds. Use a dedicated process group on POSIX and the available process-tree termination on Windows to reclaim browser descendants on a best-effort basis. PIDs whose termination the OS cannot confirm after the cap are explicitly recorded in the diagnostics and are not treated as success
+- On timeout, `SIGINT`, and `SIGTERM`, stop the one-off renderer with `SIGTERM`, force it to terminate after 5 seconds, and stop waiting for the child after 10 seconds. Use a dedicated process group on POSIX to reclaim browser descendants on a best-effort basis
 - Before conversion, check that the browser executable exists, is a regular file, and is executable. Perform the additional launch check with a minimal HTML page in `--doctor`, rather than on every run. If an actual conversion reveals an incompatible browser, produce a clear diagnostic and exit code `1`
 - Do not treat a run as success if the child was terminated by a signal, if the exit code is nonzero, or if pipes or processes fail to close by the deadline
+
+### 5.2.1 Persistent builds
+
+`--vivliostyle-daemon-dir DIR` is supported on Linux and macOS and requires `--vivliostyle-cli PATH`. Both paths resolve from pfpdf's startup directory. The caller creates an owner-only directory and its dedicated `context` subdirectory, starts `node "$cli" build-worker --socket "$daemon_dir/worker.sock"`, and then starts `node "$cli" build-daemon --socket "$daemon_dir/daemon.sock" --browser-worker "$daemon_dir/worker.sock"` with `context` as its working directory. Keep `context` separate from document inputs and Vivliostyle project configuration.
+
+Each pfpdf conversion uses the same explicit CLI and daemon directory. pfpdf launches the client with `DIR/context` as its working directory and adds `--build-daemon DIR/daemon.sock` to the usual build arguments. The same loopback document URL, temporary PDF path, and output validation apply. The caller stops the daemon and waits for it to exit before stopping the worker. The tutorial in section 7.4.1 includes the commands for two conversions.
+
+The render deadline includes time in the daemon queue. On timeout or interruption, pfpdf sends `SIGTERM` to the client. The client has up to 12 seconds to cancel and close its connection. pfpdf keeps serving the document until the client closes, forces termination with `SIGKILL` after 13 seconds if necessary, and stops waiting for the client after 15 seconds.
+
+A missing or incorrectly typed CLI or context, or a nonsocket entry at `daemon.sock`, is a path error (exit code `2`). An absent socket in a valid daemon directory, a refused connection, and rendering failures produce renderer diagnostics and exit code `1`. Both exit codes preserve an existing PDF. `--doctor` checks the existence and type of the selected CLI, context, and socket. Its browser probe uses a one-off build with the selected CLI.
 
 ## 5.3 Output validation and commit
 

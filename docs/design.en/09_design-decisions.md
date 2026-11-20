@@ -653,3 +653,13 @@ Each decision follows this format:
 - Verification: Resolve dependencies through their actual parents and check directory reads stop after cancellation, bounded preprocessing, Windows paths, workspace exclusions, ignore reinclusion, archive glob / ZIP, cache verification / removal, and ShellJS executable lookup. Validate normal unit / lint checks, all four documentation PDFs, PDF smoke tests, and packed dependency reproduction, recording other OS results separately through CI
 - Distribution check caveat: Direct local `.tgz` installation in npm 10.9.0 / 11.17.0 ignores shrinkwrap, a known upstream limitation. A local registry with the same `_hasShrinkwrap` metadata as the public registry reproduces the pinned tree. Verify this without publishing or deploying, and also follow the existing release procedure: `npm ci --omit=dev`, `npm ls`, lock comparison, and PDF smoke from the extracted package root. `npm ls` from a consuming project can report overrides beyond parent ranges as invalid; distinguish this diagnostic from checking exact versions and integrity
 - Reconsideration conditions: Parents officially adopt patched versions, allowing overrides to be removed. Reevaluate when new advisories or pattern compatibility problems appear
+
+## DD-58: Opt in to an externally managed Vivliostyle daemon
+
+- Status: Accepted (2026-11-20)
+- Problem: Successive conversions each start a Vivliostyle build process and Chromium
+- Options: (a) upgrade the bundled dependency and manage daemons inside pfpdf, (b) use each invocation's directory as the daemon context, (c) let callers supply a compatible CLI and daemon directory
+- Adopted: (c). Use the same CLI for the caller-managed worker and daemon and for pfpdf's client. A dedicated `context` directory keeps the daemon's working directory consistent across conversions. The asset server, intermediate PDF, and final output commit are shared by both modes
+- Rejection reasons: (a) couples dependency and service lifecycle changes to ordinary conversions. (b) ties each daemon to where a conversion starts and may load unrelated project configuration
+- Verification: Check that queue time counts toward the deadline and that cancellation keeps serving assets until the client closes. Compare page counts and extracted text in two one-off and two daemon builds. Check executor and Chromium PID reuse, `launchMs=0` on the second daemon build, and byte-for-byte preservation of an existing PDF when the daemon is unavailable
+- Reconsideration conditions: A future bundled CLI supports the persistent build protocol and pfpdf needs to manage daemon startup or shutdown

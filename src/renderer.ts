@@ -15,6 +15,8 @@ export interface RenderJob {
   browserPath: string | null;
   logLevel: string;
   diagnosticsPath: string;
+  vivliostyleCli?: string | undefined;
+  daemonSocket?: string | undefined;
   /** Child cwd, kept outside the output subtree for Vivliostyle path checks. */
   processCwd?: string | undefined;
   warn: (msg: string) => void;
@@ -38,6 +40,9 @@ export interface DocumentRenderJob extends Omit<RenderJob, 'documentUrl'> {
 /** Serve the prepared document graph and render it with Vivliostyle. */
 export async function renderDocument(job: DocumentRenderJob): Promise<RenderResult> {
   const server = new AssetServer(job.manifest, job.generated);
+  if (job.processCwd !== undefined) {
+    return renderWithAssetServer(server, job, job.controller);
+  }
   // Vivliostyle uses its cwd as the context for remote URL inputs. Keep that
   // context beside the output subtree so Windows never compares paths across
   // the checkout drive and the temporary-workspace drive.
@@ -66,8 +71,11 @@ export async function renderWithAssetServer(
       controller.abort();
       try {
         await renderPromise;
-      } catch {
-        // Preserve the first renderer/readiness failure.
+      } catch (renderError) {
+        if (job.daemonSocket !== undefined && error instanceof Error &&
+          renderError instanceof RenderProcessError && error !== renderError) {
+          throw new RenderProcessError(error.message, renderError.diagnostics);
+        }
       }
       throw error;
     }
@@ -80,7 +88,16 @@ export function rendererChildEnv(): NodeJS.ProcessEnv {
   return process.env;
 }
 
-export function resolveVivliostyleCli(): string {
+export function resolveVivliostyleCli(override: string | null = null): string {
+  if (override !== null) {
+    try {
+      if (!fs.statSync(override).isFile()) throw new Error('expected a regular file');
+      fs.accessSync(override, fs.constants.R_OK);
+    } catch (error) {
+      throw new InputError(`--vivliostyle-cli: ${override}: ${(error as Error).message}`);
+    }
+    return override;
+  }
   const require = createRequire(import.meta.url);
   const pkgPath = require.resolve('@vivliostyle/cli/package.json');
   const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as { bin?: Record<string, string> | string };
@@ -89,9 +106,31 @@ export function resolveVivliostyleCli(): string {
   return path.join(path.dirname(pkgPath), bin);
 }
 
+export function validateDaemonContext(dir: string): string {
+  const context = path.join(dir, 'context');
+  try {
+    if (!fs.statSync(context).isDirectory()) throw new Error('expected a directory');
+    fs.accessSync(context, fs.constants.X_OK);
+  } catch (error) {
+    throw new InputError(`--vivliostyle-daemon-dir: ${context}: ${(error as Error).message}`);
+  }
+  return context;
+}
+
+export function validateDaemonSocket(dir: string, allowMissing = false): string {
+  const socket = path.join(dir, 'daemon.sock');
+  try {
+    const stat = fs.lstatSync(socket, { throwIfNoEntry: !allowMissing });
+    if (stat !== undefined && !stat.isSocket()) throw new Error('expected a Unix socket');
+  } catch (error) {
+    throw new InputError(`--vivliostyle-daemon-dir: ${socket}: ${(error as Error).message}`);
+  }
+  return socket;
+}
+
 export async function renderLocal(job: RenderJob): Promise<RenderResult> {
   const started = Date.now();
-  const cliPath = resolveVivliostyleCli();
+  const cliPath = job.vivliostyleCli ?? resolveVivliostyleCli();
   if (job.browserPath !== null) {
     let st: fs.Stats;
     try {
@@ -126,12 +165,16 @@ export async function renderLocal(job: RenderJob): Promise<RenderResult> {
   if (job.browserPath !== null) {
     args.push('--executable-browser', job.browserPath);
   }
+  if (job.daemonSocket !== undefined) {
+    args.push('--build-daemon', job.daemonSocket);
+  }
 
   job.info(`starting Vivliostyle CLI (timeout ${timeoutSec}s)`);
   const processResult = await runBoundedProcess(process.execPath, args, {
     deadline: job.deadline,
     signal: job.signal,
     cwd: job.processCwd,
+    daemonClient: job.daemonSocket !== undefined,
     startError: 'failed to start Vivliostyle CLI',
     streamOutput: job.logLevel === 'debug' || job.logLevel === 'info',
     onTimeout: () => {
@@ -149,15 +192,20 @@ export async function renderLocal(job: RenderJob): Promise<RenderResult> {
     const summary = processResult.stopReason === 'signal'
       ? 'renderer interrupted by a signal'
       : 'renderer timed out or was terminated by a signal';
-    throw new RuntimeError(processFailureMessage(summary, processResult.output));
+    throw new RenderProcessError(summary, processResult.output);
   }
   if (processResult.code !== 0) {
-    throw new RuntimeError(processFailureMessage(
+    throw new RenderProcessError(
       `Vivliostyle CLI failed with exit code ${processResult.code}`,
       processResult.output,
-    ));
+    );
   }
-  const st = validateRendererOutput(job.outputPath);
+  let st: fs.Stats;
+  try {
+    st = validateRendererOutput(job.outputPath);
+  } catch (error) {
+    throw new RenderProcessError((error as Error).message, processResult.output);
+  }
   return { outputPath: job.outputPath, byteSize: st.size, elapsedMs: Date.now() - started };
 }
 
@@ -174,11 +222,15 @@ function signalProcess(pid: number, signal: NodeJS.Signals): void {
 const MAX_DIAGNOSTIC_BYTES = 8 * 1024 * 1024;
 const STOP_GRACE_MS = 5000;
 const STOP_FALLBACK_MS = 10000;
+// Vivliostyle's daemon client can take up to 12 seconds to cancel.
+const DAEMON_STOP_GRACE_MS = 13000;
+const DAEMON_STOP_FALLBACK_MS = 15000;
 
 export interface BoundedProcessOptions {
   deadline: number;
   signal?: AbortSignal | undefined;
   cwd?: string | undefined;
+  daemonClient?: boolean;
   startError: string;
   streamOutput?: boolean;
   onTimeout?: () => void;
@@ -194,6 +246,12 @@ export interface BoundedProcessResult {
 export function processFailureMessage(summary: string, output: Buffer | string): string {
   const diagnostics = (typeof output === 'string' ? output : output.toString('utf8')).trimEnd();
   return diagnostics.trim() === '' ? summary : `${summary}\n\n${diagnostics}`;
+}
+
+class RenderProcessError extends RuntimeError {
+  constructor(summary: string, readonly diagnostics: Buffer) {
+    super(processFailureMessage(summary, diagnostics));
+  }
 }
 
 export async function runBoundedProcess(
@@ -255,13 +313,18 @@ export async function runBoundedProcess(
       signalProcess(child.pid ?? -1, 'SIGTERM');
       forceTimer = setTimeout(() => {
         signalProcess(child.pid ?? -1, 'SIGKILL');
-      }, STOP_GRACE_MS);
+      }, options.daemonClient === true ? DAEMON_STOP_GRACE_MS : STOP_GRACE_MS);
       fallbackTimer = setTimeout(() => {
         if (settled) return;
         settled = true;
         cleanup();
+        if (options.daemonClient === true) {
+          child.stdout.destroy();
+          child.stderr.destroy();
+          child.unref();
+        }
         resolve(null);
-      }, STOP_FALLBACK_MS);
+      }, options.daemonClient === true ? DAEMON_STOP_FALLBACK_MS : STOP_FALLBACK_MS);
     };
     const deadlineTimer = setTimeout(() => {
       stop('timeout');

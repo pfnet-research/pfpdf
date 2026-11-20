@@ -17,6 +17,8 @@ import { MIN_NODE, runtimeIsSupported } from './runtime.js';
 import {
   rendererChildEnv,
   resolveVivliostyleCli,
+  validateDaemonContext,
+  validateDaemonSocket,
 } from './renderer.js';
 
 interface Check {
@@ -77,12 +79,26 @@ async function runDoctorWithResolver(
     `Node.js ${process.versions.node}${nodeOk ? '' : ` (>= ${MIN_NODE.join('.')} required)`}`,
   );
 
+  let vivliostyleCli: string | undefined;
   try {
-    const cli = resolveVivliostyleCli();
+    const cli = resolveVivliostyleCli(config.vivliostyleCliAbs);
     fs.accessSync(cli, fs.constants.R_OK);
+    vivliostyleCli = cli;
     add('vivliostyle-cli', 'pass', cli);
   } catch (e) {
     add('vivliostyle-cli', 'fail', (e as Error).message);
+  }
+  if (config.vivliostyleDaemonDirAbs !== null) {
+    for (const [id, validate] of [
+      ['vivliostyle-daemon-context', validateDaemonContext],
+      ['vivliostyle-daemon-socket', validateDaemonSocket],
+    ] as const) {
+      try {
+        add(id, 'pass', validate(config.vivliostyleDaemonDirAbs));
+      } catch (error) {
+        add(id, 'fail', (error as Error).message);
+      }
+    }
   }
 
   let preparedTemplate: PreparedTemplate | undefined;
@@ -104,15 +120,19 @@ async function runDoctorWithResolver(
     await addStandaloneLogoCheck(config, repositoryResolver, add);
   }
 
-  const browserPath = config.browserPathAbs ?? await managedBrowserPath();
-  if (browserPath === null) {
-    add('browser', 'warning', 'managed browser is not installed yet; conversion will attempt to download it');
+  if (vivliostyleCli === undefined) {
+    add('browser', 'not-run', 'Vivliostyle CLI check failed');
   } else {
-    try {
-      const browser = await probeBrowser(browserPath);
-      add('browser', browser.status, browser.message);
-    } catch (e) {
-      add('browser', 'fail', `browser diagnostic failed: ${(e as Error).message}`);
+    const browserPath = config.browserPathAbs ?? await managedBrowserPath();
+    if (browserPath === null) {
+      add('browser', 'warning', 'managed browser is not installed yet; conversion will attempt to download it');
+    } else {
+      try {
+        const browser = await probeBrowser(browserPath, vivliostyleCli);
+        add('browser', browser.status, browser.message);
+      } catch (e) {
+        add('browser', 'fail', `browser diagnostic failed: ${(e as Error).message}`);
+      }
     }
   }
 
@@ -292,7 +312,7 @@ function vivliostyleBrowserCacheDir(): string {
   return path.join(base, 'vivliostyle', 'browsers');
 }
 
-async function probeBrowser(browserPath: string): Promise<Pick<Check, 'status' | 'message'>> {
+async function probeBrowser(browserPath: string, vivliostyleCli: string): Promise<Pick<Check, 'status' | 'message'>> {
   try {
     if (!fs.statSync(browserPath).isFile()) throw new Error('not a regular file');
     fs.accessSync(browserPath, fs.constants.X_OK);
@@ -308,6 +328,7 @@ async function probeBrowser(browserPath: string): Promise<Pick<Check, 'status' |
     const launcher = path.join(path.dirname(fileURLToPath(import.meta.url)), 'launcher.js');
     const result = spawnSync(process.execPath, [
       launcher, '--input', input, '--output', output, '--browser-path', browserPath,
+      '--vivliostyle-cli', vivliostyleCli,
       '--template', 'default', '--no-logo',
       '--render-timeout-ms', '10000', '--log-level', 'error',
     ], {

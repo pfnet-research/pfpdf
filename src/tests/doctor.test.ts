@@ -107,3 +107,41 @@ test('doctor keeps browser stderr inside one JSON result and cleans the isolated
   assert.equal(fs.existsSync(cwd), false);
   assert.equal(fs.existsSync(path.dirname(cwd)), false);
 });
+
+test('doctor checks persistent paths and probes the selected CLI with a one-off build', {
+  skip: process.platform !== 'linux' && process.platform !== 'darwin',
+}, (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-doctor-vivliostyle-'));
+  t.after(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+  const selected = path.join(dir, 'selected.cjs');
+  const record = path.join(dir, 'invocation.json');
+  fs.writeFileSync(selected, `
+    require('node:fs').writeFileSync(${JSON.stringify(record)},
+      JSON.stringify({ cwd: process.cwd(), args: process.argv.slice(2) }));
+    console.error('selected CLI browser diagnostic');
+    process.exitCode = 1;
+  `);
+  fs.mkdirSync(path.join(dir, 'context'));
+  fs.writeFileSync(path.join(dir, 'daemon.sock'), 'not a Unix socket');
+  const child = spawnSync(process.execPath, [
+    cliPath, '--doctor', '--vivliostyle-cli', 'selected.cjs',
+    '--vivliostyle-daemon-dir', '.', '--browser-path', process.execPath,
+  ], { cwd: dir, encoding: 'utf8', timeout: 20000 });
+  assert.equal(child.status, 1, child.stderr);
+  const report = JSON.parse(child.stdout) as {
+    schemaVersion: number;
+    checks: Array<{ id: string; status: string; message: string }>;
+  };
+  const checks = new Map(report.checks.map((check) => [check.id, check]));
+  assert.equal(report.schemaVersion, 2);
+  assert.equal(checks.get('vivliostyle-cli')?.status, 'pass');
+  assert.equal(checks.get('vivliostyle-daemon-context')?.status, 'pass');
+  assert.equal(checks.get('vivliostyle-daemon-socket')?.status, 'fail');
+  assert.match(checks.get('vivliostyle-daemon-socket')!.message, /expected a Unix socket/);
+  assert.match(checks.get('browser')!.message, /selected CLI browser diagnostic/);
+  const invocation = JSON.parse(fs.readFileSync(record, 'utf8')) as { cwd: string; args: string[] };
+  assert.equal(path.basename(invocation.cwd), 'vivliostyle-context');
+  assert.equal(invocation.args[0], 'build');
+  assert.ok(invocation.args.includes('--executable-browser'));
+  assert.ok(!invocation.args.includes('--build-daemon'));
+});

@@ -20,6 +20,9 @@ Options:
   --host-fonts             OS 標準のフォントディレクトリーを使用する
   --font-dir PATH          追加のフォントディレクトリー。複数回指定可能
   --browser-path PATH      レンダラーが使うブラウザー
+  --vivliostyle-cli PATH   Vivliostyle の JavaScript エントリーポイント
+  --vivliostyle-daemon-dir DIR
+                           Linux または macOS で起動済みのデーモンを使う
   --render-timeout-ms N    レンダラーの準備から PDF 検査完了まで。既定は 300000
   --keep-work-dir          一時的な作業ディレクトリーを保持する
   --strict-front-matter    未知のフロントマターキーをエラーにする。既定は警告して無視
@@ -73,9 +76,45 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --browser-path /usr/bin/chromium
 ```
 
+### 7.4.1 複数の変換で Vivliostyle を再利用する
+
+Linux と macOS では、対応する Vivliostyle CLI を使うと、変換をまたいで Node.js のビルドプロセスと Chromium を再利用できます。`build-worker`、`build-daemon`、`build --build-daemon` に対応する CLI の JavaScript エントリーポイントを、絶対パスで `cli` に設定します。単発の変換でこの CLI を使う場合は、`--vivliostyle-cli "$cli"` だけを指定します。
+
+所有者だけがアクセスできるディレクトリーと、その中に専用の `context` ディレクトリーを作ります。先にワーカーを起動します。
+
+```bash
+cli=/absolute/path/to/vivliostyle-cli/dist/cli.js
+daemon_dir=$(mktemp -d /tmp/pfpdf-vs.XXXXXXXX)
+chmod 700 "$daemon_dir"
+mkdir -m 700 "$daemon_dir/context"
+printf '%s\n' "$daemon_dir"
+node "$cli" build-worker --socket "$daemon_dir/worker.sock"
+```
+
+ワーカーの準備完了が表示されたら、別のターミナルを開きます。`cli` と `daemon_dir` に同じ絶対パスを設定し、`context` からデーモンを起動します。
+
+```bash
+cd "$daemon_dir/context"
+node "$cli" build-daemon --socket "$daemon_dir/daemon.sock" \
+  --browser-worker "$daemon_dir/worker.sock"
+```
+
+デーモンの準備完了が表示されたら、3 つ目のターミナルで文書のあるディレクトリーから変換します。`cli` と `daemon_dir` には同じ絶対パスを設定します。
+
+```bash
+pfpdf --input first.md --output first.pdf \
+  --vivliostyle-cli "$cli" --vivliostyle-daemon-dir "$daemon_dir"
+pfpdf --input second.md --output second.pdf \
+  --vivliostyle-cli "$cli" --vivliostyle-daemon-dir "$daemon_dir"
+```
+
+Vivliostyle の 2 つのオプションの相対パスは、pfpdf の起動時のディレクトリーを基準に解決します。`--print-effective-config` には両方の設定と設定元が表示されます。`--doctor` は指定した CLI、`context`、ソケットを検査し、ブラウザーの起動確認には指定した CLI での単発ビルドを使います。
+
+変換が終わったら、先にデーモンのターミナルで Ctrl+C を押し、終了を待ちます。次にワーカーのターミナルで Ctrl+C を押し、終了を待ちます。空になったディレクトリーは `rmdir "$daemon_dir/context" "$daemon_dir"` で削除できます。
+
 ## 7.5 タイムアウト
 
-ブラウザーの確認と初回取得、描画開始の準備、PDF の描画・後処理・構造検査にかかる合計時間には、既定で 300,000 ms（5 分）のタイムアウトがあります。大きな文書や低速な初回ダウンロードで不足する場合だけ、1,000 から 3,600,000 ms の範囲で変更します。`0` など無期限にする値は使えません。
+ブラウザーの確認と初回取得、デーモンのキューでの待機、描画開始の準備、PDF の描画・後処理・構造検査にかかる合計時間には、既定で 300,000 ms（5 分）のタイムアウトがあります。大きな文書や低速な初回ダウンロードで不足する場合だけ、1,000 から 3,600,000 ms の範囲で変更します。`0` など無期限にする値は使えません。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \

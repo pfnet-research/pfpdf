@@ -15,7 +15,12 @@ import { ResourceManifest } from './resources.js';
 import { resolveTemplate, buildDocumentHtml, type PreparedTemplate } from './template.js';
 import { resolveFonts } from './fonts.js';
 import { Workspace } from './workspace.js';
-import { renderDocument } from './renderer.js';
+import {
+  renderDocument,
+  resolveVivliostyleCli,
+  validateDaemonContext,
+  validateDaemonSocket,
+} from './renderer.js';
 import { validateOutputPath, ensureOutputParent, commitOutput } from './output.js';
 import { RepositoryResolver } from './repository.js';
 
@@ -169,6 +174,26 @@ export async function runBuild(
   const processStart = new Date();
   const sourceDateEpoch = parseSourceDateEpoch(env['SOURCE_DATE_EPOCH']);
 
+  const vivliostyleCli = resolveVivliostyleCli(config.vivliostyleCliAbs);
+  const daemonDir = config.vivliostyleDaemonDirAbs;
+  const processCwd = daemonDir === null ? undefined : validateDaemonContext(daemonDir);
+  // A missing socket can mean the daemon is stopped. Let its client report
+  // the connection failure with the renderer diagnostics.
+  const daemonSocket = daemonDir === null ? undefined : validateDaemonSocket(daemonDir, true);
+
+  const abortController = new AbortController();
+  let interruptedBy: NodeJS.Signals | null = null;
+  const interrupt = (signal: NodeJS.Signals): void => {
+    interruptedBy ??= signal;
+    abortController.abort();
+  };
+  const onSigint = (): void => {
+    interrupt('SIGINT');
+  };
+  const onSigterm = (): void => {
+    interrupt('SIGTERM');
+  };
+
   validateOutputPath(config.outputAbs!, config.inputAbs!);
   const workspace = Workspace.create();
   try {
@@ -191,63 +216,50 @@ export async function runBuild(
       if (logical.startsWith('generated/')) workspace.writeFile(logical, content);
     }
 
-    const abortController = new AbortController();
-    let interruptedBy: NodeJS.Signals | null = null;
-    const interrupt = (signal: NodeJS.Signals): void => {
-      interruptedBy = signal;
-      abortController.abort();
-    };
-    const onSigint = (): void => {
-      interrupt('SIGINT');
-    };
-    const onSigterm = (): void => {
-      interrupt('SIGTERM');
-    };
-    process.once('SIGINT', onSigint);
-    process.once('SIGTERM', onSigterm);
+    process.on('SIGINT', onSigint);
+    process.on('SIGTERM', onSigterm);
+    const rendererOutput = path.join(workspace.rendererOutputDir, 'output.pdf');
+    const deadline = Date.now() + config.renderTimeoutMs.value;
+    await renderDocument({
+      outputPath: rendererOutput,
+      deadline,
+      browserPath: config.browserPathAbs,
+      vivliostyleCli,
+      daemonSocket,
+      processCwd,
+      logLevel: config.logLevel.value,
+      diagnosticsPath: workspace.filePath('renderer-diagnostics.log'),
+      warn: log.warn,
+      info: log.info,
+      signal: abortController.signal,
+      manifest,
+      generated,
+      workspaceDir: workspace.dir,
+      controller: abortController,
+    });
+    if (interruptedBy !== null) throw new RuntimeError(`build interrupted by ${String(interruptedBy)}`);
+    const size = await commitOutput({
+      rendererOutput,
+      finalOutput: config.outputAbs!,
+      metadata,
+      sourceDateEpoch,
+      processStart,
+      deadline,
+      warn: log.warn,
+      beforeCommit: () => {
+        if (!config.keepWorkDir.value && !workspace.cleanup(false, log.warn)) {
+          throw new RuntimeError('cannot remove the temporary workspace before output commit');
+        }
+        if (interruptedBy !== null) throw new RuntimeError(`build interrupted by ${interruptedBy}`);
+      },
+    });
+    return { outputPath: config.outputAbs!, byteSize: size, elapsedMs: Date.now() - started };
+  } finally {
     try {
-      if (interruptedBy !== null) throw new RuntimeError(`build interrupted by ${String(interruptedBy)}`);
-      const rendererOutput = path.join(workspace.rendererOutputDir, 'output.pdf');
-      const deadline = Date.now() + config.renderTimeoutMs.value;
-      const job = {
-        outputPath: rendererOutput,
-        deadline,
-        browserPath: config.browserPathAbs,
-        logLevel: config.logLevel.value,
-        diagnosticsPath: workspace.filePath('renderer-diagnostics.log'),
-        warn: log.warn,
-        info: log.info,
-        signal: abortController.signal,
-      };
-      await renderDocument({
-        ...job,
-        manifest,
-        generated,
-        workspaceDir: workspace.dir,
-        controller: abortController,
-      });
-      if (interruptedBy !== null) throw new RuntimeError(`build interrupted by ${String(interruptedBy)}`);
-      const size = await commitOutput({
-        rendererOutput,
-        finalOutput: config.outputAbs!,
-        metadata,
-        sourceDateEpoch,
-        processStart,
-        deadline,
-        warn: log.warn,
-        beforeCommit: () => {
-          if (!config.keepWorkDir.value && !workspace.cleanup(false, log.warn)) {
-            throw new RuntimeError('cannot remove the temporary workspace before output commit');
-          }
-          if (interruptedBy !== null) throw new RuntimeError(`build interrupted by ${interruptedBy}`);
-        },
-      });
-      return { outputPath: config.outputAbs!, byteSize: size, elapsedMs: Date.now() - started };
+      workspace.cleanup(config.keepWorkDir.value, log.warn);
     } finally {
       process.removeListener('SIGINT', onSigint);
       process.removeListener('SIGTERM', onSigterm);
     }
-  } finally {
-    workspace.cleanup(config.keepWorkDir.value, log.warn);
   }
 }

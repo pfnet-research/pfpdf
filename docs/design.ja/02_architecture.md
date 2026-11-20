@@ -175,6 +175,9 @@ Options:
   --host-fonts             OS 標準のフォントディレクトリーを使用する
   --font-dir PATH          追加のフォントディレクトリー。複数回指定可能
   --browser-path PATH      レンダラーが使うブラウザー
+  --vivliostyle-cli PATH   Vivliostyle の JavaScript エントリーポイント
+  --vivliostyle-daemon-dir DIR
+                           Linux または macOS で起動済みのデーモンを使う
   --render-timeout-ms N    レンダラーの準備から PDF 検査完了まで。既定は 300000
   --keep-work-dir          一時的な作業ディレクトリーを保持する
   --strict-front-matter    未知のフロントマターキーをエラーにする。既定は警告して無視
@@ -248,6 +251,8 @@ Options:
 `strictFrontMatter` の設定値は真偽値です。適用後の設定には、既定で `{"value": false, "source": "default"}`、`--strict-front-matter` 指定時には `{"value": true, "source": "cli"}` を出力します。このフィールドの追加では、スキーマバージョン `5` を維持します。
 
 適用後の設定を表す JSON のトップレベルは `schemaVersion: 5` と `command` を持ち、`config.<name> = {"value": ..., "source": "cli|front-matter|default"}` を含みます。スキーマ 5 では設定元の `environment` を削除し、`toc` / `logo` がフロントマターを設定元に持てるようにします。テンプレートの値には `repository` 形式があり、ロゴの値は `template` / `none` / `local` / `repository` のいずれかの形式を持ちます。
+
+`vivliostyleCli` と `vivliostyleDaemonDir` はスキーマバージョン `5` の実行設定です。それぞれ、指定されたパスと設定元 `cli`、または `null` と設定元 `default` を記録します。実行時には相対パスを pfpdf の起動時のディレクトリーを基準に解決します。
 
 `--doctor` の出力は `schemaVersion: 2` のままとし、全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。全体の `status` は、1 個でも `fail` があれば `fail`、なければ `warning` があれば `warning`、実行対象が 1 個以上あり、そのすべてが `pass` なら `pass` とします。
 
