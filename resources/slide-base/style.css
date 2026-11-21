@@ -1,0 +1,10 @@
+body { color: #202531; }
+[data-pfpdf-slide="title"], [data-pfpdf-slide="section"] {
+  color: #fff;
+  background: #1c304d;
+  align-content: center;
+}
+.pfpdf-slide-cover-logo { display: block; max-width: 150pt; max-height: 64pt; }
+[data-pfpdf-slide="title"] .pfpdf-slide-title { font-size: 44pt; }
+.pfpdf-slide-audience { color: #a34820; }
+[data-pfpdf-slide="title"] .pfpdf-slide-audience { color: #ffc7aa; }

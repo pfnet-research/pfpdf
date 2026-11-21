@@ -130,3 +130,41 @@ By contrast, relative paths in CLI arguments such as `--input`, `--output`, and 
 Local URLs written statically in Markdown, raw HTML, and CSS are resolved through the resource graph, which tracks resource references. Local paths that a script builds from strings at runtime are not automatically exposed. Declare resources with static `src` / `href` / CSS `url()`, or use HTTP(S) URLs.
 
 Use `/` to separate path components in document URLs, regardless of OS. Write a Windows absolute path as a valid URL such as `file:///C:/docs/image.png`, and a UNC path as `file://server/share/...`. Only paths in CLI arguments may use the native path notation of the OS you are running on.
+
+## 2.6 Slides
+
+Set `slides: true` to produce PDF slides. The default aspect ratio is 16:9.
+
+```markdown
+---
+slides: true
+title: Performance Evaluation
+---
+
+# Methods
+
+## Measurement Conditions
+
+We processed the same input 30 times for each condition.
+
+## Before and After
+
+::: column
+Before: 12 ms.
+
+::: column
+After: 10 ms.
+
+::: note
+Each value is the median of 30 measurements.
+
+::: talk
+Explain the comparison conditions aloud.
+```
+
+- A top-level `#` begins a group. A top-level `##` begins a new page and supplies its title. Use `###` and deeper headings within a page. Use `___` to start a page without a title.
+- The cover uses front matter such as the title, author, and date. An omitted title falls back to the input file or directory name. The cover and table of contents are enabled by default. Use `cover: false` or `toc: false` to omit them.
+- The table of contents comes from `#` headings and is omitted when none are present. `section_covers: true` adds a divider at the start of each group.
+- Write `::: column` for each column, in order from left to right. Use `::: left` and `::: right` when the two sides have distinct roles. `::: note` is visible on the slide. `::: talk` holds presenter notes, which do not appear in the PDF.
+- Each region continues until the next `::: name` or page. Use `::: body` to return to ordinary slide content.
+- Use a comment at the beginning of the page for options such as the title band or a closing slide. Examples include `<!-- pfpdf:band=off -->` and `<!-- pfpdf:layout=closing -->`. The selected template controls their appearance.

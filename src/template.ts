@@ -49,7 +49,9 @@ export function resolveTemplate(
     throw new RuntimeError('repository template must be checked out before template resolution');
   }
   const bundled = template.kind === 'bundled';
-  const dir = bundled ? resourcePath('templates', template.name) : templateDirAbs!;
+  const dir = !bundled ? templateDirAbs!
+    : template.name === 'slide-base' ? resourcePath('slide-base')
+    : resourcePath('templates', template.name);
   const err = bundled
     ? (msg: string) => new RuntimeError(`bundled template is broken: ${msg}`)
     : (msg: string) => new InputError(msg);
@@ -360,6 +362,13 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   }
 
   // Slot: toc / content
+  if (opts.body.slideCount !== undefined) {
+    if (opts.cover !== false && !slots.cover) {
+      throw new InputError('slide mode requires a template cover slot, or cover: false');
+    }
+    (htmlBody.properties ??= {})['data-pfpdf-slides'] = '';
+    if (slots.cover) (slots.cover.properties ??= {})['data-pfpdf-slide'] = 'title';
+  }
   applyCoverVisibility(root, htmlBody, slots, opts.cover !== false, metadata);
 
   const tocEl = opts.toc && opts.body.toc.length > 0 ? tocElement(opts.body.toc, metadata.lang) : null;
@@ -409,6 +418,10 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   // Reserve the diagram's two 1.25em margins within the page area. A block
   // image avoids the extra baseline space of an inline image. Vivliostyle's
   // `vh` follows the page area left by each template's page margins.
+  if (opts.body.slideCount !== undefined) {
+    const baseCss = fs.readFileSync(resourcePath('templates', 'slides.css'), 'utf8');
+    generatedCss.push(['generated/slides.css', baseCss]);
+  }
   const pageCss = `@page { size: ${metadata.pageSize.css}; }\n` +
     `.pfpdf-running-metadata { display: block; height: 0; overflow: hidden; margin: 0; padding: 0; }\n` +
     `.pfpdf-toc-continuation-marker { display: block; height: 0; overflow: hidden; ` +
@@ -425,6 +438,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
     el('meta', { charSet: 'utf-8' }, []),
     el('link', { rel: 'stylesheet', href: 'generated/fonts.css' }, []),
     el('link', { rel: 'stylesheet', href: hljsLogical }, []),
+    ...(opts.body.slideCount === undefined ? [] : [el('link', { rel: 'stylesheet', href: 'generated/slides.css' }, [])]),
     el('link', { rel: 'stylesheet', href: 'generated/style.css' }, []),
     el('link', { rel: 'stylesheet', href: 'generated/vivliostyle.css' }, []),
     el('link', { rel: 'stylesheet', href: 'generated/page.css' }, []),

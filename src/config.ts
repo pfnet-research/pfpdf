@@ -299,6 +299,8 @@ export function resolveConfig(
 /** Apply document settings from front matter when no CLI override exists. */
 export interface FrontMatterConfig {
   template: string | null;
+  slides?: boolean;
+  sectionCovers?: boolean;
   toc: boolean | null;
   cover: boolean | null;
   logo: { kind: 'none' } | { kind: 'local'; path: string; absPath: string } | null;
@@ -307,7 +309,9 @@ export interface FrontMatterConfig {
 export function applyFrontMatterConfig(config: Config, frontMatter: FrontMatterConfig): Config {
   const template = frontMatter.template !== null && config.template.source === 'default'
     ? { value: { kind: 'bundled' as const, name: frontMatter.template }, source: 'front-matter' as const }
-    : config.template;
+    : frontMatter.slides === true && config.template.source === 'default'
+      ? { value: { kind: 'bundled' as const, name: 'slide-base' }, source: 'default' as const }
+      : config.template;
   const toc = frontMatter.toc !== null && config.toc.source === 'default'
     ? { value: frontMatter.toc, source: 'front-matter' as const }
     : config.toc;

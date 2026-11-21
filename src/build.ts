@@ -37,6 +37,7 @@ interface PreparedDocument {
   manifest: ResourceManifest;
   generated: Map<string, Buffer>;
   fontWarnings: string[];
+  expectedPages: number | undefined;
 }
 
 interface PreparedBoundaries {
@@ -105,10 +106,17 @@ async function prepareDocument(
   const fonts = resolveFonts(manifest, config.fontDirsAbs, config.hostFonts.value);
   for (const warning of fonts.warnings) log.warn(warning);
   for (const diagnostic of fonts.diagnostics) log.debug(diagnostic);
+  const slideOptions = input.config.slides === true ? {
+    toc: documentConfig.toc.value,
+    sectionCovers: input.config.sectionCovers === true,
+    confidential: input.metadata.confidential,
+    lang: input.metadata.lang,
+  } : undefined;
   const body = await buildDocumentBody(input.files, manifest, template.reservedIds, {
     warn: log.warn,
     bibliography: input.bibliography,
     lang: input.metadata.lang,
+    ...(slideOptions === undefined ? {} : { slides: slideOptions }),
   });
   const document = buildDocumentHtml({
     metadata: input.metadata,
@@ -116,7 +124,7 @@ async function prepareDocument(
     template,
     manifest,
     logo,
-    toc: documentConfig.toc.value,
+    toc: slideOptions === undefined && documentConfig.toc.value,
     cover: documentConfig.cover.value,
     fontFaceCss: fonts.css,
     warn: log.warn,
@@ -128,7 +136,8 @@ async function prepareDocument(
   for (const [logical, content] of body.generatedFiles) {
     generated.set(logical, Buffer.from(content, 'utf8'));
   }
-  return { html: document.html, metadata: input.metadata, manifest, generated, fontWarnings: fonts.warnings };
+  const expectedPages = body.slideCount === undefined ? undefined : body.slideCount + Number(documentConfig.cover.value);
+  return { html: document.html, metadata: input.metadata, manifest, generated, fontWarnings: fonts.warnings, expectedPages };
 }
 
 /**
@@ -178,7 +187,7 @@ export async function runBuild(
       log.info,
       env,
     );
-    const { html, metadata, manifest, generated } = await prepareDocument(config, env, log, {
+    const { html, metadata, manifest, generated, expectedPages } = await prepareDocument(config, env, log, {
       processStart,
       repositoryResolver,
     });
@@ -231,6 +240,7 @@ export async function runBuild(
         rendererOutput,
         finalOutput: config.outputAbs!,
         metadata,
+        ...(expectedPages === undefined ? {} : { expectedPages }),
         sourceDateEpoch,
         processStart,
         deadline,

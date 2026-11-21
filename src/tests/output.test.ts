@@ -220,3 +220,18 @@ test('multiple authors have a comma-separated PDF Author and distinct ordered XM
   assert.equal(result.getAuthor(), 'Alice & Bob, 山田 太郎, Carol Example Institute');
   assert.match(fs.readFileSync(finalOutput).toString('utf8'), /<dc:creator><rdf:Seq><rdf:li>Alice &amp; Bob<\/rdf:li><rdf:li>山田 太郎<\/rdf:li><rdf:li>Carol Example Institute<\/rdf:li><\/rdf:Seq><\/dc:creator>/);
 });
+
+test('a slide count mismatch does not replace the existing PDF', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-slide-output-'));
+  t.after(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+  const rendererOutput = path.join(dir, 'renderer.pdf');
+  const finalOutput = path.join(dir, 'final.pdf');
+  fs.writeFileSync(rendererOutput, await minimalPdf());
+  fs.writeFileSync(finalOutput, 'existing PDF');
+  await assert.rejects(commitOutput({
+    rendererOutput, finalOutput, metadata, expectedPages: 2,
+    sourceDateEpoch: null, processStart: new Date(), deadline: Date.now() + 10_000,
+    warn: () => {},
+  }), /expected 2 PDF pages, received 1/);
+  assert.equal(fs.readFileSync(finalOutput, 'utf8'), 'existing PDF');
+});

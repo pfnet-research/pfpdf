@@ -10,6 +10,7 @@ export interface CommitOptions {
   rendererOutput: string;
   finalOutput: string;
   metadata: Metadata;
+  expectedPages?: number;
   /** Unix seconds from SOURCE_DATE_EPOCH, or null for the process start instant. */
   sourceDateEpoch: number | null;
   processStart: Date;
@@ -116,6 +117,11 @@ async function structuralCheckAndPostprocess(tmpPath: string, opts: CommitOption
   if (doc.isEncrypted) throw new RuntimeError('renderer output is encrypted');
   const pages = doc.getPageCount();
   if (pages < 1) throw new RuntimeError('renderer output has no pages');
+  if (opts.expectedPages !== undefined && pages !== opts.expectedPages) {
+    throw new RuntimeError(
+      `slide pagination mismatch: expected ${opts.expectedPages} PDF pages, received ${pages}; check for overflowing slides`,
+    );
+  }
 
   // Metadata: plain-text title, ordered author names, /Lang, timestamps.
   const plainTitle = opts.metadata.title.plainText;
