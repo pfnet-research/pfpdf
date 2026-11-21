@@ -1,0 +1,86 @@
+{
+  "template": "compact",
+  "language": "en",
+  "pageCount": 6,
+  "pdf": "sample.en.pdf",
+  "pages": [
+    {
+      "page": 1,
+      "thumb": {
+        "file": "page-01.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-01.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 2,
+      "thumb": {
+        "file": "page-02.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-02.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 3,
+      "thumb": {
+        "file": "page-03.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-03.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 4,
+      "thumb": {
+        "file": "page-04.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-04.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 5,
+      "thumb": {
+        "file": "page-05.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-05.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    },
+    {
+      "page": 6,
+      "thumb": {
+        "file": "page-06.thumb.webp",
+        "width": 480,
+        "height": 679
+      },
+      "full": {
+        "file": "page-06.webp",
+        "width": 1489,
+        "height": 2105
+      }
+    }
+  ]
+}
