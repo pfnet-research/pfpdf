@@ -141,6 +141,64 @@ test('persistent conversion uses the selected CLI, a fixed cwd, and the usual in
   assert.equal(fs.readFileSync(output, 'utf8'), 'existing PDF');
 });
 
+test('standalone discovery uses the advertised CLI and preserves output on failure', {
+  skip: !supportsDaemon,
+  timeout: 20000,
+}, async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-discovery-'));
+  const socketPath = path.join(dir, 'service.sock');
+  const cwd = fs.realpathSync(fs.mkdtempSync(path.join(dir, 'context-')));
+  const cliPath = path.join(dir, 'selected.cjs');
+  const outputPath = path.join(dir, 'out.pdf');
+  fs.writeFileSync(path.join(dir, 'input.md'), '# Persistent build\n\nBody text.');
+  fs.writeFileSync(outputPath, 'existing PDF');
+  fs.writeFileSync(cliPath, `
+    console.error(process.cwd(), ...process.argv.slice(2));
+    process.exitCode = 1;
+  `);
+  let replyVersion = 1;
+  let respond = true;
+  const daemon = net.createServer((socket) => {
+    let request = Buffer.alloc(0);
+    socket.on('data', (chunk: Buffer) => {
+      request = Buffer.concat([request, chunk]);
+      if (request.length < 4 || request.length < 4 + request.readUInt32BE()) return;
+      assert.deepEqual(JSON.parse(request.subarray(4).toString()), { type: 'describe', version: 1 });
+      if (!respond) return;
+      const reply = Buffer.from(JSON.stringify({ type: 'session', version: replyVersion, cliPath, cwd }));
+      const header = Buffer.alloc(4);
+      header.writeUInt32BE(reply.length);
+      socket.write(header);
+      setImmediate(() => { socket.end(reply); });
+    });
+  });
+  t.after(() => {
+    daemon.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const convert = async (timeout = '5000') => {
+    const result = await runBoundedProcess(process.execPath, [
+      launcher, '--input', 'input.md', '--output', 'out.pdf', '--vivliostyle-daemon', 'service.sock',
+      '--render-timeout-ms', timeout, '--log-level', 'error',
+    ], { cwd: dir, deadline: Date.now() + 10000, startError: 'cannot start pfpdf' });
+    assert.equal(result.code, 1, result.output.toString());
+    assert.equal(fs.readFileSync(outputPath, 'utf8'), 'existing PDF');
+    return result.output.toString();
+  };
+  assert.match(await convert(), /daemon discovery failed[\s\S]*ENOENT/);
+  daemon.listen(socketPath);
+  await once(daemon, 'listening');
+  fs.chmodSync(socketPath, 0o600);
+  const discovered = await convert();
+  assert.ok(discovered.includes(`${cwd} build http://127.0.0.1:`), discovered);
+  assert.ok(discovered.includes(`--build-daemon ${socketPath}`), discovered);
+  replyVersion = 2;
+  assert.match(await convert(), /incompatible daemon session protocol/);
+  replyVersion = 1;
+  respond = false;
+  assert.match(await convert('1000'), /discovery timed out|render deadline exceeded/);
+});
+
 for (const stop of ['signal', 'timeout'] as const) {
   test(`persistent renderer keeps serving assets until its client closes after ${stop}`, {
     skip: !supportsDaemon,

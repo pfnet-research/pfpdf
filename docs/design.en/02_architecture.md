@@ -148,7 +148,7 @@ IDs beginning with `pfpdf-file-`, `data-pfpdf-*` attributes, and `window.pfpdf` 
 - User scripts can register work to be awaited before pagination via `window.pfpdf.registerReady(promise)`. Registration must happen by the time document parsing completes; later registrations are errors
 - The coordinator exposes a frozen API object on `window.pfpdf` and assimilates the `registerReady` argument via the equivalent of `Promise.resolve`. No property descriptors or tamper detection guard the namespace against modification by trusted scripts
 - `error` and `unhandledrejection` are build errors until readiness completes. Work triggered by timers or event handlers after completion cannot be reflected in PDF success or failure
-- The renderer confirms readiness success before starting pagination. The `--render-timeout-ms` deadline starts just before the renderer launches its first external process and covers browser verification and acquisition, readiness, PDF generation, post-processing, and structural inspection
+- The renderer confirms readiness success before starting pagination. The `--render-timeout-ms` deadline starts before daemon discovery or renderer launch and covers discovery, queueing, browser verification and acquisition, readiness, PDF generation, post-processing, and structural inspection
 - The mechanism for signaling readiness to the pinned Vivliostyle CLI running as a child process is fixed before release. If upstream offers a pre-pagination hook, its official API is used. Otherwise, a dedicated gate resource that holds up document load, plus a single completion notification from the coordinator to a loopback server, are used. The notification conveys success or failure and a short diagnostic, and the gate is released only on success. The host-side coordinator records rejections, resource errors, and timeouts, failing the build even if the upstream child returns code `0`. No release is made unless this connection is demonstrated with the pinned browser
 
 This is not a contract to fully detect remote resources other than HTML `img` elements, CSS background images or images inside nested documents, or asynchronous work the user's script did not register. Destinations added or changed after the image check are also outside the guarantee. For reproducible documents, use local resources and always register any asynchronous work that affects pagination.
@@ -176,6 +176,8 @@ Options:
   --font-dir PATH          additional font directory. May be repeated
   --browser-path PATH      browser used by the renderer
   --vivliostyle-cli PATH   Vivliostyle JavaScript entry point
+  --vivliostyle-daemon SOCKET
+                           use a running standalone daemon on Linux or macOS
   --vivliostyle-daemon-dir DIR
                            use a running daemon on Linux or macOS
   --render-timeout-ms N    from renderer preparation to PDF inspection completion. Default is 300000
@@ -252,7 +254,7 @@ An unspecified logo is the `template` state that uses the slot's default `src`; 
 
 The effective configuration JSON has `schemaVersion: 5` and `command` at the top level, with `config.<name> = {"value": ..., "source": "cli|front-matter|default"}`. Schema 5 removes the `environment` source and lets `toc` / `logo` have a front matter source. Templates have a `repository` variant, and logos have `template` / `none` / `local` / `repository` variants.
 
-`vivliostyleCli` and `vivliostyleDaemonDir` are runtime settings under schema version `5`. Each records the supplied path with source `cli` or `null` with source `default`. Execution resolves relative paths from the pfpdf startup directory.
+`vivliostyleCli`, `vivliostyleDaemon`, and `vivliostyleDaemonDir` are runtime settings under schema version `5`. Each records the supplied path with source `cli` or `null` with source `default`. Execution resolves relative paths from the pfpdf startup directory.
 
 The `--doctor` output remains at `schemaVersion: 2` and has an overall `status` plus `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}`. The overall `status` is `fail` if any check fails, otherwise `warning` if any check warns, and `pass` if at least one check ran and all passed.
 

@@ -35,6 +35,7 @@ export interface Config {
   fontDirs: ResolvedValue<string[]>;
   browserPath: ResolvedValue<string | null>;
   vivliostyleCli: ResolvedValue<string | null>;
+  vivliostyleDaemon: ResolvedValue<string | null>;
   vivliostyleDaemonDir: ResolvedValue<string | null>;
   renderTimeoutMs: ResolvedValue<number>;
   keepWorkDir: ResolvedValue<boolean>;
@@ -48,6 +49,7 @@ export interface Config {
   fontDirsAbs: string[];
   browserPathAbs: string | null;
   vivliostyleCliAbs: string | null;
+  vivliostyleDaemonAbs: string | null;
   vivliostyleDaemonDirAbs: string | null;
   cwd: string;
 }
@@ -59,7 +61,7 @@ interface RawCli {
 const VALUE_OPTIONS = new Set([
   '--input', '--output', '--title', '--template', '--template-preset', '--logo',
   '--font-dir', '--browser-path',
-  '--vivliostyle-cli', '--vivliostyle-daemon-dir',
+  '--vivliostyle-cli', '--vivliostyle-daemon', '--vivliostyle-daemon-dir',
   '--render-timeout-ms', '--log-level',
 ]);
 const FLAG_OPTIONS = new Set([
@@ -68,7 +70,7 @@ const FLAG_OPTIONS = new Set([
 ]);
 const PATH_OPTIONS = new Set([
   '--input', '--output', '--template', '--template-preset', '--logo', '--font-dir', '--browser-path',
-  '--vivliostyle-cli', '--vivliostyle-daemon-dir',
+  '--vivliostyle-cli', '--vivliostyle-daemon', '--vivliostyle-daemon-dir',
 ]);
 
 const CONFLICT_PAIRS: Array<[string, string]> = [
@@ -76,6 +78,8 @@ const CONFLICT_PAIRS: Array<[string, string]> = [
   ['--cover', '--no-cover'],
   ['--logo', '--no-logo'],
   ['--template', '--template-preset'],
+  ['--vivliostyle-daemon', '--vivliostyle-cli'],
+  ['--vivliostyle-daemon', '--vivliostyle-daemon-dir'],
 ];
 
 function rejectNul(name: string, value: string): string {
@@ -227,7 +231,11 @@ export function resolveConfig(
     : { value: false, source: 'default' };
   const browserPath = str('--browser-path');
   const vivliostyleCli = str('--vivliostyle-cli');
+  const vivliostyleDaemon = str('--vivliostyle-daemon');
   const vivliostyleDaemonDir = str('--vivliostyle-daemon-dir');
+  if (vivliostyleDaemon.value !== null && process.platform !== 'linux' && process.platform !== 'darwin') {
+    throw new InputError('--vivliostyle-daemon is supported only on Linux and macOS');
+  }
   if (vivliostyleDaemonDir.value !== null) {
     if (process.platform !== 'linux' && process.platform !== 'darwin') {
       throw new InputError('--vivliostyle-daemon-dir is supported only on Linux and macOS');
@@ -299,6 +307,7 @@ export function resolveConfig(
     fontDirs,
     browserPath,
     vivliostyleCli,
+    vivliostyleDaemon,
     vivliostyleDaemonDir,
     renderTimeoutMs,
     keepWorkDir,
@@ -311,6 +320,7 @@ export function resolveConfig(
     fontDirsAbs: fontDirs.value.map((p) => path.resolve(cwd, p)),
     browserPathAbs: abs(browserPath.value),
     vivliostyleCliAbs: abs(vivliostyleCli.value),
+    vivliostyleDaemonAbs: abs(vivliostyleDaemon.value),
     vivliostyleDaemonDirAbs: abs(vivliostyleDaemonDir.value),
     cwd,
   };
@@ -372,6 +382,7 @@ export function effectiveConfigJson(config: Config): string {
       fontDirs: entry(config.fontDirs),
       browserPath: entry(config.browserPath),
       vivliostyleCli: entry(config.vivliostyleCli),
+      vivliostyleDaemon: entry(config.vivliostyleDaemon),
       vivliostyleDaemonDir: entry(config.vivliostyleDaemonDir),
       renderTimeoutMs: entry(config.renderTimeoutMs),
       keepWorkDir: entry(config.keepWorkDir),
@@ -412,6 +423,8 @@ Options:
   --font-dir PATH          extra font directory (repeatable)
   --browser-path PATH      browser used by the renderer
   --vivliostyle-cli PATH   use the specified Vivliostyle JavaScript entry point
+  --vivliostyle-daemon SOCKET
+                           use a running standalone Vivliostyle daemon (Linux/macOS)
   --vivliostyle-daemon-dir DIR
                            use a running Vivliostyle daemon (Linux/macOS; requires --vivliostyle-cli)
   --render-timeout-ms N    overall renderer time limit in ms (default: 300000)

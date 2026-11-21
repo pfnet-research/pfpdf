@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { StringDecoder } from 'node:string_decoder';
 import { InputError, RuntimeError } from './errors.js';
 import { AssetServer } from './assetserver.js';
+import { describeDaemon } from './daemon.js';
 import type { ResourceManifest } from './resources.js';
 
 export interface RenderJob {
@@ -17,6 +18,7 @@ export interface RenderJob {
   diagnosticsPath: string;
   vivliostyleCli?: string | undefined;
   daemonSocket?: string | undefined;
+  standaloneSocket?: string | undefined;
   /** Child cwd, kept outside the output subtree for Vivliostyle path checks. */
   processCwd?: string | undefined;
   warn: (msg: string) => void;
@@ -40,7 +42,7 @@ export interface DocumentRenderJob extends Omit<RenderJob, 'documentUrl'> {
 /** Serve the prepared document graph and render it with Vivliostyle. */
 export async function renderDocument(job: DocumentRenderJob): Promise<RenderResult> {
   const server = new AssetServer(job.manifest, job.generated);
-  if (job.processCwd !== undefined) {
+  if (job.processCwd !== undefined || job.standaloneSocket !== undefined) {
     return renderWithAssetServer(server, job, job.controller);
   }
   // Vivliostyle uses its cwd as the context for remote URL inputs. Keep that
@@ -72,7 +74,7 @@ export async function renderWithAssetServer(
       try {
         await renderPromise;
       } catch (renderError) {
-        if (job.daemonSocket !== undefined && error instanceof Error &&
+        if ((job.daemonSocket !== undefined || job.standaloneSocket !== undefined) && error instanceof Error &&
           renderError instanceof RenderProcessError && error !== renderError) {
           throw new RenderProcessError(error.message, renderError.diagnostics);
         }
@@ -130,7 +132,18 @@ export function validateDaemonSocket(dir: string, allowMissing = false): string 
 
 export async function renderLocal(job: RenderJob): Promise<RenderResult> {
   const started = Date.now();
-  const cliPath = job.vivliostyleCli ?? resolveVivliostyleCli();
+  let session: Awaited<ReturnType<typeof describeDaemon>> | undefined;
+  if (job.standaloneSocket !== undefined) {
+    try {
+      session = await describeDaemon(job.standaloneSocket, job.deadline, job.signal);
+    } catch (error) {
+      const diagnostics = Buffer.from(`${(error as Error).message}\n`);
+      writeDiagnostics(job.diagnosticsPath, diagnostics);
+      throw new RenderProcessError('Vivliostyle daemon discovery failed', diagnostics);
+    }
+  }
+  const cliPath = session?.cliPath ?? job.vivliostyleCli ?? resolveVivliostyleCli();
+  const daemonSocket = job.standaloneSocket ?? job.daemonSocket;
   if (job.browserPath !== null) {
     let st: fs.Stats;
     try {
@@ -165,16 +178,16 @@ export async function renderLocal(job: RenderJob): Promise<RenderResult> {
   if (job.browserPath !== null) {
     args.push('--executable-browser', job.browserPath);
   }
-  if (job.daemonSocket !== undefined) {
-    args.push('--build-daemon', job.daemonSocket);
+  if (daemonSocket !== undefined) {
+    args.push('--build-daemon', daemonSocket);
   }
 
   job.info(`starting Vivliostyle CLI (timeout ${timeoutSec}s)`);
   const processResult = await runBoundedProcess(process.execPath, args, {
     deadline: job.deadline,
     signal: job.signal,
-    cwd: job.processCwd,
-    daemonClient: job.daemonSocket !== undefined,
+    cwd: session?.cwd ?? job.processCwd,
+    daemonClient: daemonSocket !== undefined,
     startError: 'failed to start Vivliostyle CLI',
     streamOutput: job.logLevel === 'debug' || job.logLevel === 'info',
     onTimeout: () => {
@@ -182,11 +195,7 @@ export async function renderLocal(job: RenderJob): Promise<RenderResult> {
     },
   });
 
-  try {
-    fs.writeFileSync(job.diagnosticsPath, processResult.output, { mode: 0o600 });
-  } catch {
-    // diagnostics are best effort
-  }
+  writeDiagnostics(job.diagnosticsPath, processResult.output);
 
   if (processResult.code === null) {
     const summary = processResult.stopReason === 'signal'
@@ -207,6 +216,14 @@ export async function renderLocal(job: RenderJob): Promise<RenderResult> {
     throw new RenderProcessError((error as Error).message, processResult.output);
   }
   return { outputPath: job.outputPath, byteSize: st.size, elapsedMs: Date.now() - started };
+}
+
+function writeDiagnostics(destination: string, output: Buffer): void {
+  try {
+    fs.writeFileSync(destination, output, { mode: 0o600 });
+  } catch {
+    // diagnostics are best effort
+  }
 }
 
 function signalProcess(pid: number, signal: NodeJS.Signals): void {

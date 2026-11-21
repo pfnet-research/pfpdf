@@ -77,6 +77,25 @@ test('front matter can explicitly disable the logo', () => {
   assert.equal(config.logoAbs, null);
 });
 
+test('standalone daemon resolves the socket and rejects the manual options', () => {
+  const args = ['--print-effective-config', '--vivliostyle-daemon', './private/daemon.sock'];
+  for (const option of ['--vivliostyle-cli', '--vivliostyle-daemon-dir']) {
+    assert.throws(() => resolveConfig([...args, option, './path'], cwd), /may not be combined/);
+  }
+  if (process.platform !== 'linux' && process.platform !== 'darwin') {
+    assert.throws(() => resolveConfig(args, cwd), /Linux and macOS/);
+    return;
+  }
+  const config = resolveConfig(args, cwd);
+  assert.equal(config.vivliostyleDaemonAbs, path.resolve(cwd, 'private/daemon.sock'));
+  const result = JSON.parse(effectiveConfigJson(config)) as {
+    schemaVersion: number;
+    config: Pick<typeof config, 'vivliostyleDaemon'>;
+  };
+  assert.equal(result.schemaVersion, 5);
+  assert.deepEqual(result.config.vivliostyleDaemon, { value: './private/daemon.sock', source: 'cli' });
+});
+
 test('effective configuration uses schema version 5 and records front matter', () => {
   const config = applyFrontMatterConfig(
     resolveConfig(['--input', 'a.md', '--output', 'a.pdf'], cwd),

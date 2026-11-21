@@ -21,6 +21,8 @@ Options:
   --font-dir PATH          Additional font directory. Can be specified multiple times
   --browser-path PATH      Browser used by the renderer
   --vivliostyle-cli PATH   Vivliostyle JavaScript entry point
+  --vivliostyle-daemon SOCKET
+                           use a running standalone daemon on Linux or macOS
   --vivliostyle-daemon-dir DIR
                            Use a running daemon on Linux or macOS
   --render-timeout-ms N    Time limit from renderer preparation through PDF inspection; default: 300000 ms
@@ -78,7 +80,27 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
 
 ### 7.4.1 Reuse Vivliostyle across conversions
 
-On Linux and macOS, a compatible Vivliostyle CLI can keep its Node.js build process and Chromium running between conversions. Use a CLI build that supports `build-worker`, `build-daemon`, and `build --build-daemon`. Set `cli` to its absolute JavaScript entry point. You can also pass `--vivliostyle-cli "$cli"` by itself for a one-off build.
+On Linux and macOS, a compatible Vivliostyle CLI can keep its Node.js build process and Chromium running between conversions. Set `cli` to the absolute path of a CLI build that supports `build-daemon --standalone`.
+
+```bash
+cli=/absolute/path/to/vivliostyle-cli/dist/cli.js
+daemon_dir=$(mktemp -d /tmp/pfpdf-vs.XXXXXXXX)
+printf '%s\n' "$daemon_dir"
+node "$cli" build-daemon --standalone --socket "$daemon_dir/daemon.sock"
+```
+
+After the daemon reports that it is ready, set `daemon_dir` to the printed path in another terminal. Run each conversion from its document directory.
+
+```bash
+pfpdf --input first.md --output first.pdf --vivliostyle-daemon "$daemon_dir/daemon.sock"
+pfpdf --input second.md --output second.pdf --vivliostyle-daemon "$daemon_dir/daemon.sock"
+```
+
+pfpdf resolves relative socket paths from its startup directory. The socket directory and socket must be accessible only to the current user. `--print-effective-config` shows the configured socket, and `--doctor` checks the connection and protocol. With `--browser-path`, the doctor also runs a one-off browser launch check. Press Ctrl+C in the daemon terminal when finished, then remove the empty socket directory with `rmdir "$daemon_dir"`.
+
+### 7.4.2 Start the worker and daemon manually
+
+Use a CLI build that supports `build-worker`, `build-daemon`, and `build --build-daemon` to manage the services yourself. Select the CLI with `--vivliostyle-cli` and the daemon directory with `--vivliostyle-daemon-dir`. Use these options separately from `--vivliostyle-daemon`. You can also pass `--vivliostyle-cli "$cli"` by itself for a one-off build.
 
 Create a directory accessible only to your user, with a dedicated `context` subdirectory. Start the worker first.
 
@@ -114,14 +136,14 @@ When finished, press Ctrl+C in the daemon terminal first and wait for it to exit
 
 ## 7.5 Timeouts
 
-The default timeout of 300,000 ms (five minutes) covers browser verification and initial download, any wait in the daemon queue, waiting for the document to be ready, PDF rendering, post-processing, and structural inspection. If a large document or slow initial download needs more time, choose a value from 1,000 to 3,600,000 ms. Unlimited values such as `0` are not accepted.
+The default timeout of 300,000 ms (five minutes) covers daemon discovery and queueing, browser verification and initial download, waiting for the document to be ready, PDF rendering, post-processing, and structural inspection. If a large document or slow initial download needs more time, choose a value from 1,000 to 3,600,000 ms. Unlimited values such as `0` are not accepted.
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --render-timeout-ms 600000
 ```
 
-The deadline runs from just before the renderer launches its first external process until PDF post-processing and structural inspection complete. It does not restart at each processing phase. On timeout, child processes are stopped, existing output is preserved, and exit code `1` is returned.
+The deadline starts before contacting the daemon or launching the renderer and runs until PDF post-processing and structural inspection complete. It does not restart at each processing phase. On timeout, child processes are stopped, existing output is preserved, and exit code `1` is returned.
 
 ## 7.6 Reproducible builds
 

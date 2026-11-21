@@ -174,7 +174,10 @@ export async function runBuild(
   const processStart = new Date();
   const sourceDateEpoch = parseSourceDateEpoch(env['SOURCE_DATE_EPOCH']);
 
-  const vivliostyleCli = resolveVivliostyleCli(config.vivliostyleCliAbs);
+  const standaloneSocket = config.vivliostyleDaemonAbs ?? undefined;
+  const vivliostyleCli = standaloneSocket === undefined
+    ? resolveVivliostyleCli(config.vivliostyleCliAbs)
+    : undefined;
   const daemonDir = config.vivliostyleDaemonDirAbs;
   const processCwd = daemonDir === null ? undefined : validateDaemonContext(daemonDir);
   // A missing socket can mean the daemon is stopped. Let its client report
@@ -226,6 +229,7 @@ export async function runBuild(
       browserPath: config.browserPathAbs,
       vivliostyleCli,
       daemonSocket,
+      standaloneSocket,
       processCwd,
       logLevel: config.logLevel.value,
       diagnosticsPath: workspace.filePath('renderer-diagnostics.log'),

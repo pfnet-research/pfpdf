@@ -148,7 +148,7 @@ pfpdf は信頼済みのローカル文書を処理するツールとし、ロ�
 - 利用者のスクリプトは `window.pfpdf.registerReady(promise)` で、ページ分割前に待つ処理を登録できる。登録は文書の解析完了までに行い、それ以降の登録はエラーにする
 - `ReadinessCoordinator` は `window.pfpdf` に凍結済みの API オブジェクトを公開し、`registerReady` の引数を `Promise.resolve` 相当で同化する。信頼済みスクリプトによる名前空間の改変を防ぐプロパティーディスクリプターや、改変検出は設けない
 - `error` と `unhandledrejection` は描画開始の準備完了まではビルドエラーとする。完了後にタイマーやイベントハンドラーが起こす処理までは、PDF の成否へ反映できない
-- レンダラーは描画開始の準備が成功したことを確認してから、ページ分割を開始する。`--render-timeout-ms` の期限は、レンダラーが最初の外部プロセスを起動する直前から、ブラウザーの確認と取得、描画開始の準備、PDF の生成・後処理・構造検査の全体へ適用する
+- レンダラーは描画開始の準備が成功したことを確認してから、ページ分割を開始する。`--render-timeout-ms` の期限は、デーモンへの接続やレンダラーの起動の直前から適用し、デーモンへの接続とキューでの待機、ブラウザーの確認と取得、描画開始の準備、PDF の生成・後処理・構造検査を含める
 - バージョン固定済みの Vivliostyle CLI を子プロセスとして呼ぶ際に、準備完了を伝える方法をリリース前に固定する。上流にページ分割前のフックがある場合は、その正式 API を使う。ない場合は、文書の読み込み完了を保留する専用リソースと、`ReadinessCoordinator` からループバックサーバーへの単一の完了通知を使う。通知は成功・失敗と短い診断を伝え、読み込みの保留は成功時だけ解除する。ホスト側の `ReadinessCoordinator` が Promise の拒否、リソースエラー、タイムアウトを記録し、上流の子プロセスがコード `0` を返してもビルドを失敗させる。この接続をバージョン固定済みのブラウザーで実証できない限り、リリースしない
 
 HTML の `img` 以外のリモートリソース、CSS 背景画像や入れ子になった文書内の画像、利用者のスクリプトが登録しなかった非同期処理まで完全に検出する契約ではありません。画像の検査後に追加・変更された参照先も、検査を保証する対象には含めません。再現可能な文書ではローカルリソースを使い、ページ分割に影響する非同期処理を必ず登録します。
@@ -176,6 +176,8 @@ Options:
   --font-dir PATH          追加のフォントディレクトリー。複数回指定可能
   --browser-path PATH      レンダラーが使うブラウザー
   --vivliostyle-cli PATH   Vivliostyle の JavaScript エントリーポイント
+  --vivliostyle-daemon SOCKET
+                           Linux または macOS で起動済みのスタンドアロンデーモンを使う
   --vivliostyle-daemon-dir DIR
                            Linux または macOS で起動済みのデーモンを使う
   --render-timeout-ms N    レンダラーの準備から PDF 検査完了まで。既定は 300000
@@ -252,7 +254,7 @@ Options:
 
 適用後の設定を表す JSON のトップレベルは `schemaVersion: 5` と `command` を持ち、`config.<name> = {"value": ..., "source": "cli|front-matter|default"}` を含みます。スキーマ 5 では設定元の `environment` を削除し、`toc` / `logo` がフロントマターを設定元に持てるようにします。テンプレートの値には `repository` 形式があり、ロゴの値は `template` / `none` / `local` / `repository` のいずれかの形式を持ちます。
 
-`vivliostyleCli` と `vivliostyleDaemonDir` はスキーマバージョン `5` の実行設定です。それぞれ、指定されたパスと設定元 `cli`、または `null` と設定元 `default` を記録します。実行時には相対パスを pfpdf の起動時のディレクトリーを基準に解決します。
+`vivliostyleCli`、`vivliostyleDaemon`、`vivliostyleDaemonDir` はスキーマバージョン `5` の実行設定です。それぞれ、指定されたパスと設定元 `cli`、または `null` と設定元 `default` を記録します。実行時には相対パスを pfpdf の起動時のディレクトリーを基準に解決します。
 
 `--doctor` の出力は `schemaVersion: 2` のままとし、全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。全体の `status` は、1 個でも `fail` があれば `fail`、なければ `warning` があれば `warning`、実行対象が 1 個以上あり、そのすべてが `pass` なら `pass` とします。
 

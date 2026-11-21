@@ -21,6 +21,8 @@ Options:
   --font-dir PATH          追加のフォントディレクトリー。複数回指定可能
   --browser-path PATH      レンダラーが使うブラウザー
   --vivliostyle-cli PATH   Vivliostyle の JavaScript エントリーポイント
+  --vivliostyle-daemon SOCKET
+                           Linux または macOS で起動済みのスタンドアロンデーモンを使う
   --vivliostyle-daemon-dir DIR
                            Linux または macOS で起動済みのデーモンを使う
   --render-timeout-ms N    レンダラーの準備から PDF 検査完了まで。既定は 300000
@@ -78,7 +80,27 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
 
 ### 7.4.1 複数の変換で Vivliostyle を再利用する
 
-Linux と macOS では、対応する Vivliostyle CLI を使うと、変換をまたいで Node.js のビルドプロセスと Chromium を再利用できます。`build-worker`、`build-daemon`、`build --build-daemon` に対応する CLI の JavaScript エントリーポイントを、絶対パスで `cli` に設定します。単発の変換でこの CLI を使う場合は、`--vivliostyle-cli "$cli"` だけを指定します。
+Linux と macOS では、対応する Vivliostyle CLI を使うと、変換をまたいで Node.js のビルドプロセスと Chromium を再利用できます。`build-daemon --standalone` に対応する CLI の絶対パスを `cli` に設定します。
+
+```bash
+cli=/absolute/path/to/vivliostyle-cli/dist/cli.js
+daemon_dir=$(mktemp -d /tmp/pfpdf-vs.XXXXXXXX)
+printf '%s\n' "$daemon_dir"
+node "$cli" build-daemon --standalone --socket "$daemon_dir/daemon.sock"
+```
+
+デーモンの準備完了が表示されたら、別のターミナルで表示されたパスを `daemon_dir` に設定します。変換は文書ごとに、その文書のディレクトリーから実行します。
+
+```bash
+pfpdf --input first.md --output first.pdf --vivliostyle-daemon "$daemon_dir/daemon.sock"
+pfpdf --input second.md --output second.pdf --vivliostyle-daemon "$daemon_dir/daemon.sock"
+```
+
+ソケットの相対パスは、pfpdf の起動時のディレクトリーを基準に解決します。ソケットとそのディレクトリーには現在のユーザーだけがアクセスできる必要があります。`--print-effective-config` は設定されたソケットを表示し、`--doctor` は接続とプロトコルの互換性を確認します。`--browser-path` も指定した場合は、単発のビルドでブラウザーの起動も確認します。変換が終わったら、デーモンのターミナルで Ctrl+C を押し、空になったディレクトリーを `rmdir "$daemon_dir"` で削除します。
+
+### 7.4.2 ワーカーとデーモンを手動で起動する
+
+`build-worker`、`build-daemon`、`build --build-daemon` に対応する CLI では、サービスを手動で管理できます。`--vivliostyle-cli` で CLI を、`--vivliostyle-daemon-dir` でデーモンディレクトリーを指定します。これらのオプションと `--vivliostyle-daemon` は併用できません。単発の変換でこの CLI を使う場合は、`--vivliostyle-cli "$cli"` だけを指定します。
 
 所有者だけがアクセスできるディレクトリーと、その中に専用の `context` ディレクトリーを作ります。先にワーカーを起動します。
 
@@ -114,14 +136,14 @@ Vivliostyle の 2 つのオプションの相対パスは、pfpdf の起動時�
 
 ## 7.5 タイムアウト
 
-ブラウザーの確認と初回取得、デーモンのキューでの待機、描画開始の準備、PDF の描画・後処理・構造検査にかかる合計時間には、既定で 300,000 ms（5 分）のタイムアウトがあります。大きな文書や低速な初回ダウンロードで不足する場合だけ、1,000 から 3,600,000 ms の範囲で変更します。`0` など無期限にする値は使えません。
+デーモンへの接続とキューでの待機、ブラウザーの確認と初回取得、描画開始の準備、PDF の描画・後処理・構造検査にかかる合計時間には、既定で 300,000 ms（5 分）のタイムアウトがあります。大きな文書や低速な初回ダウンロードで不足する場合だけ、1,000 から 3,600,000 ms の範囲で変更します。`0` など無期限にする値は使えません。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --render-timeout-ms 600000
 ```
 
-期限は、レンダラーが最初の外部プロセスを起動する直前から、PDF の後処理・構造検査が完了するまでに適用されます。処理の段階が変わっても、最初から数え直しません。タイムアウトした場合は子プロセスを停止し、既存出力を保持して終了コード `1` を返します。
+期限は、デーモンへの接続やレンダラーの起動の直前から、PDF の後処理・構造検査が完了するまでに適用されます。処理の段階が変わっても、最初から数え直しません。タイムアウトした場合は子プロセスを停止し、既存出力を保持して終了コード `1` を返します。
 
 ## 7.6 再現可能なビルド
 

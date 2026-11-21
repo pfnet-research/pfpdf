@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { getInstalledBrowsers } from '@puppeteer/browsers';
 import { applyFrontMatterConfig, type Config } from './config.js';
+import { describeDaemon } from './daemon.js';
 import { buildHtml, prepareConfiguredLogo, prepareConfiguredTemplate, type Logger } from './build.js';
 import { resolveFonts } from './fonts.js';
 import { ResourceManifest } from './resources.js';
@@ -80,13 +81,29 @@ async function runDoctorWithResolver(
   );
 
   let vivliostyleCli: string | undefined;
-  try {
-    const cli = resolveVivliostyleCli(config.vivliostyleCliAbs);
-    fs.accessSync(cli, fs.constants.R_OK);
-    vivliostyleCli = cli;
-    add('vivliostyle-cli', 'pass', cli);
-  } catch (e) {
-    add('vivliostyle-cli', 'fail', (e as Error).message);
+  const standaloneSocket = config.vivliostyleDaemonAbs;
+  if (standaloneSocket !== null) {
+    try {
+      const session = await describeDaemon(
+        standaloneSocket,
+        Date.now() + Math.min(10_000, config.renderTimeoutMs.value),
+      );
+      vivliostyleCli = session.cliPath;
+      add('vivliostyle-daemon-socket', 'pass', `compatible daemon at ${standaloneSocket}`);
+      add('vivliostyle-cli', 'pass', session.cliPath);
+    } catch (error) {
+      add('vivliostyle-daemon-socket', 'fail', (error as Error).message);
+      add('vivliostyle-cli', 'not-run', 'daemon discovery failed');
+    }
+  } else {
+    try {
+      const cli = resolveVivliostyleCli(config.vivliostyleCliAbs);
+      fs.accessSync(cli, fs.constants.R_OK);
+      vivliostyleCli = cli;
+      add('vivliostyle-cli', 'pass', cli);
+    } catch (e) {
+      add('vivliostyle-cli', 'fail', (e as Error).message);
+    }
   }
   if (config.vivliostyleDaemonDirAbs !== null) {
     for (const [id, validate] of [
@@ -120,7 +137,9 @@ async function runDoctorWithResolver(
     await addStandaloneLogoCheck(config, repositoryResolver, add);
   }
 
-  if (vivliostyleCli === undefined) {
+  if (standaloneSocket !== null && config.browserPathAbs === null) {
+    add('browser', 'not-run', 'browser is managed by the daemon');
+  } else if (vivliostyleCli === undefined && standaloneSocket === null) {
     add('browser', 'not-run', 'Vivliostyle CLI check failed');
   } else {
     const browserPath = config.browserPathAbs ?? await managedBrowserPath();
@@ -128,7 +147,7 @@ async function runDoctorWithResolver(
       add('browser', 'warning', 'managed browser is not installed yet; conversion will attempt to download it');
     } else {
       try {
-        const browser = await probeBrowser(browserPath, vivliostyleCli);
+        const browser = await probeBrowser(browserPath, vivliostyleCli ?? resolveVivliostyleCli());
         add('browser', browser.status, browser.message);
       } catch (e) {
         add('browser', 'fail', `browser diagnostic failed: ${(e as Error).message}`);

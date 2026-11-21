@@ -24,9 +24,15 @@ The `Renderer` interface accepts an immutable `RenderJob`. The job contains the 
 
 ### 5.2.1 Persistent builds
 
+`--vivliostyle-daemon SOCKET` uses a running standalone daemon on Linux and macOS. Resolve the socket from pfpdf's startup directory and require an owner-only Unix socket in an owner-only directory. Send a version 1 `describe` message in a length-prefixed JSON frame. The daemon returns a `session` with an absolute CLI path and an isolated working directory. Use those paths to launch the usual `build --build-daemon SOCKET` client. The render deadline includes discovery and queueing. Connection or protocol failures produce diagnostics and exit code `1`, preserving any existing PDF.
+
+`--doctor` uses the same discovery handshake to check the connection and compatibility. With `--browser-path`, it also runs the isolated one-off browser probe. The socket option is mutually exclusive with the manual options below.
+
+#### Manually managed services
+
 `--vivliostyle-daemon-dir DIR` is supported on Linux and macOS and requires `--vivliostyle-cli PATH`. Both paths resolve from pfpdf's startup directory. The caller creates an owner-only directory and its dedicated `context` subdirectory, starts `node "$cli" build-worker --socket "$daemon_dir/worker.sock"`, and then starts `node "$cli" build-daemon --socket "$daemon_dir/daemon.sock" --browser-worker "$daemon_dir/worker.sock"` with `context` as its working directory. Keep `context` separate from document inputs and Vivliostyle project configuration.
 
-Each pfpdf conversion uses the same explicit CLI and daemon directory. pfpdf launches the client with `DIR/context` as its working directory and adds `--build-daemon DIR/daemon.sock` to the usual build arguments. The same loopback document URL, temporary PDF path, and output validation apply. The caller stops the daemon and waits for it to exit before stopping the worker. The tutorial in section 7.4.1 includes the commands for two conversions.
+Each pfpdf conversion uses the same explicit CLI and daemon directory. pfpdf launches the client with `DIR/context` as its working directory and adds `--build-daemon DIR/daemon.sock` to the usual build arguments. The same loopback document URL, temporary PDF path, and output validation apply. The caller stops the daemon and waits for it to exit before stopping the worker. Tutorial section 7.4.2 has the commands.
 
 The render deadline includes time in the daemon queue. On timeout or interruption, pfpdf sends `SIGTERM` to the client. The client has up to 12 seconds to cancel and close its connection. pfpdf keeps serving the document until the client closes, forces termination with `SIGKILL` after 13 seconds if necessary, and stops waiting for the client after 15 seconds.
 

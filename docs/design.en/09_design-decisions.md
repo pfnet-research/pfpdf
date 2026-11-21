@@ -663,3 +663,12 @@ Each decision follows this format:
 - Rejection reasons: (a) couples dependency and service lifecycle changes to ordinary conversions. (b) ties each daemon to where a conversion starts and may load unrelated project configuration
 - Verification: Check that queue time counts toward the deadline and that cancellation keeps serving assets until the client closes. Compare page counts and extracted text in two one-off and two daemon builds. Check executor and Chromium PID reuse, `launchMs=0` on the second daemon build, and byte-for-byte preservation of an existing PDF when the daemon is unavailable
 - Reconsideration conditions: A future bundled CLI supports the persistent build protocol and pfpdf needs to manage daemon startup or shutdown
+
+
+## DD-59: Discover standalone Vivliostyle sessions through the daemon socket
+
+- Problem: Starting a worker, creating a context directory, and repeating the CLI and directory paths adds setup to each series of conversions
+- Options: (a) direct discovery over the existing socket, (b) write connection metadata to a separate file, (c) manage the daemon in pfpdf
+- Adopted: (a). Vivliostyle manages the worker and private working directory. pfpdf gets the CLI and working directory from the socket and invokes the existing client with its original build arguments. The same deadline covers discovery and rendering
+- Rejection reasons: (b) adds a file whose lifetime would need to track the daemon. (c) couples service lifecycle management to pfpdf conversions
+- Verification: Check socket permissions and protocol compatibility, reuse the executor and Chromium from separate input directories, and verify cancellation and PDF preservation on failure
