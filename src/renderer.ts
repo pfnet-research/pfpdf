@@ -143,7 +143,7 @@ export async function renderLocal(job: RenderJob): Promise<RenderResult> {
     }
   }
   const cliPath = session?.cliPath ?? job.vivliostyleCli ?? resolveVivliostyleCli();
-  const daemonSocket = job.standaloneSocket ?? job.daemonSocket;
+  const daemonSocket = session?.socketPath ?? job.daemonSocket;
   if (job.browserPath !== null) {
     let st: fs.Stats;
     try {

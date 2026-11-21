@@ -145,8 +145,10 @@ test('standalone discovery uses the advertised CLI and preserves output on failu
   skip: !supportsDaemon,
   timeout: 20000,
 }, async (t) => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-discovery-'));
-  const socketPath = path.join(dir, 'service.sock');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfd-'));
+  const socketDir = fs.mkdtempSync(path.join(fs.realpathSync(dir), 's-'));
+  const socketPath = path.join(socketDir, 'd.sock');
+  fs.symlinkSync(socketDir, path.join(dir, 'alias'));
   const cwd = fs.realpathSync(fs.mkdtempSync(path.join(dir, 'context-')));
   const cliPath = path.join(dir, 'selected.cjs');
   const outputPath = path.join(dir, 'out.pdf');
@@ -178,7 +180,7 @@ test('standalone discovery uses the advertised CLI and preserves output on failu
   });
   const convert = async (timeout = '5000') => {
     const result = await runBoundedProcess(process.execPath, [
-      launcher, '--input', 'input.md', '--output', 'out.pdf', '--vivliostyle-daemon', 'service.sock',
+      launcher, '--input', 'input.md', '--output', 'out.pdf', '--vivliostyle-daemon', 'alias/d.sock',
       '--render-timeout-ms', timeout, '--log-level', 'error',
     ], { cwd: dir, deadline: Date.now() + 10000, startError: 'cannot start pfpdf' });
     assert.equal(result.code, 1, result.output.toString());
@@ -188,7 +190,20 @@ test('standalone discovery uses the advertised CLI and preserves output on failu
   assert.match(await convert(), /daemon discovery failed[\s\S]*ENOENT/);
   daemon.listen(socketPath);
   await once(daemon, 'listening');
+  fs.chmodSync(socketPath, 0o666);
+  assert.match(await convert(), /expected an owner-only Unix socket/);
   fs.chmodSync(socketPath, 0o600);
+  fs.chmodSync(dir, 0o777);
+  try {
+    const shared = await convert();
+    if (process.platform === 'darwin') {
+      assert.match(shared, /unsafe ancestor of the daemon socket directory/);
+    } else {
+      assert.ok(shared.includes(`--build-daemon ${socketPath}`), shared);
+    }
+  } finally {
+    fs.chmodSync(dir, 0o700);
+  }
   const discovered = await convert();
   assert.ok(discovered.includes(`${cwd} build http://127.0.0.1:`), discovered);
   assert.ok(discovered.includes(`--build-daemon ${socketPath}`), discovered);

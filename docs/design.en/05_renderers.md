@@ -26,6 +26,8 @@ The `Renderer` interface accepts an immutable `RenderJob`. The job contains the 
 
 `--vivliostyle-daemon SOCKET` uses a running standalone daemon on Linux and macOS. Resolve the socket from pfpdf's startup directory and require an owner-only Unix socket in an owner-only directory. Send a version 1 `describe` message in a length-prefixed JSON frame. The daemon returns a `session` with an absolute CLI path and an isolated working directory. Use those paths to launch the usual `build --build-daemon SOCKET` client. The render deadline includes discovery and queueing. Connection or protocol failures produce diagnostics and exit code `1`, preserving any existing PDF.
 
+Discovery and the build client use the same canonical socket path. On Linux the client pins the socket directory through `/proc/self/fd` when available and the resulting path fits. Otherwise, including on macOS, the socket directory's ancestors must be owned by the current user or root. A group- or world-writable ancestor must have the sticky bit, as `/tmp` typically does.
+
 `--doctor` uses the same discovery handshake to check the connection and compatibility. With `--browser-path`, it also runs the isolated one-off browser probe. The socket option is mutually exclusive with the manual options below.
 
 #### Manually managed services
