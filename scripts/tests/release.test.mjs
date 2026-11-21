@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import childProcess from 'node:child_process';
+import { syncBuiltinESMExports } from 'node:module';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -13,6 +15,7 @@ import {
   validateReleaseSource,
   validateGitHubReleaseAssets,
   verifyReleaseArtifacts,
+  verifyPublishedPackage,
 } from '../release-lib.mjs';
 
 function fixture() {
@@ -185,4 +188,101 @@ test('release artifact metadata covers the exact PDF set and detects changes', (
   );
   fs.appendFileSync(path.join(pdfDir, RELEASE_PDF_NAMES[0]), 'changed');
   assert.throws(() => verifyReleaseArtifacts({ metadataPath }), /SHA-256 mismatch/);
+});
+
+function publishedFixture(t, view) {
+  const root = fixture();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const pdfDir = path.join(root, 'pdfs');
+  fs.mkdirSync(pdfDir);
+  for (const name of RELEASE_PDF_NAMES) fs.writeFileSync(path.join(pdfDir, name), `%PDF-${name}`);
+  const metadataPath = path.join(root, 'release-metadata.json');
+  createReleaseArtifacts({
+    root,
+    tag: 'v1.2.3',
+    sha: 'b'.repeat(40),
+    packJsonPath: packReport(root),
+    pdfDir,
+    browserVersion: 'Chromium fixture',
+    outputPath: metadataPath,
+    checksumsPath: path.join(root, 'SHA256SUMS'),
+  });
+  const calls = [];
+  const mock = t.mock.method(childProcess, 'spawnSync', (_executable, args) => {
+    // runNpm may invoke npm directly or Node with npm-cli.js as its first argument.
+    const command = args[0].endsWith('npm-cli.js') ? args.slice(1) : args;
+    calls.push(command);
+    if (command[0] === 'view') {
+      assert.ok(command.includes('--prefer-online'));
+      return view();
+    }
+    assert.equal(command[0], 'exec');
+    assert.ok(command.includes('--package=@example/pfpdf@1.2.3'));
+    if (command.includes('--version')) return { status: 0, stdout: '1.2.3\n', stderr: '' };
+    const outputIndex = command.indexOf('--output');
+    assert.ok(outputIndex >= 0, 'published package must render a PDF');
+    fs.writeFileSync(command[outputIndex + 1], '%PDF-smoke');
+    return { status: 0, stdout: '', stderr: '' };
+  });
+  syncBuiltinESMExports();
+  t.after(() => {
+    mock.mock.restore();
+    syncBuiltinESMExports();
+  });
+  return { metadataPath, calls };
+}
+
+const notYetPublished = { status: 1, stdout: '', stderr: 'npm error code E404' };
+const published = {
+  status: 0,
+  stdout: JSON.stringify({ version: '1.2.3', 'dist.shasum': 'a'.repeat(40), 'dist.integrity': 'sha512-fixture' }),
+  stderr: '',
+};
+
+test('published verification waits beyond the former limit and still runs the PDF smoke test', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let queries = 0;
+  const { metadataPath, calls } = publishedFixture(t, () => {
+    queries += 1;
+    return queries < 61 ? notYetPublished : published;
+  });
+  const result = verifyPublishedPackage({ metadataPath });
+  assert.equal(queries, 1);
+  for (let attempt = 1; attempt < 61; attempt += 1) {
+    t.mock.timers.tick(10_000);
+    await Promise.resolve();
+    assert.equal(queries, attempt + 1);
+  }
+  assert.equal((await result).pdfBytes, 10);
+  assert.equal(calls.filter((args) => args[0] === 'exec').length, 2);
+});
+
+test('published verification fails closed after the bounded propagation wait', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { metadataPath, calls } = publishedFixture(t, () => notYetPublished);
+  const rejected = assert.rejects(verifyPublishedPackage({ metadataPath }), /not become visible after 61 attempts/);
+  for (let attempt = 1; attempt < 61; attempt += 1) {
+    t.mock.timers.tick(10_000);
+    await Promise.resolve();
+  }
+  await rejected;
+  assert.equal(calls.length, 61);
+  assert.ok(calls.every((args) => args[0] === 'view'));
+});
+
+test('published verification immediately rejects different bytes', async (t) => {
+  const { metadataPath, calls } = publishedFixture(t, () => ({
+    ...published,
+    stdout: JSON.stringify({ version: '1.2.3', 'dist.shasum': 'c'.repeat(40), 'dist.integrity': 'sha512-fixture' }),
+  }));
+  await assert.rejects(verifyPublishedPackage({ metadataPath }), /different bytes/);
+  assert.equal(calls.length, 1);
+});
+
+test('published verification does not retry registry errors other than 404', async (t) => {
+  const { metadataPath, calls } = publishedFixture(t, () => ({
+    status: 1, stdout: '', stderr: 'npm error code E403',
+  }));
+  await assert.rejects(verifyPublishedPackage({ metadataPath }), /cannot query npm registry/);
+  assert.equal(calls.length, 1);
 });

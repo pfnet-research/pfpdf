@@ -369,7 +369,7 @@ export function testPackedPackage({ metadataPath }) {
 function npmView(metadata) {
   const spec = `${metadata.npm.name}@${metadata.npm.version}`;
   const result = runNpm([
-    'view', spec, 'version', 'dist.shasum', 'dist.integrity', '--json',
+    'view', spec, 'version', 'dist.shasum', 'dist.integrity', '--json', '--prefer-online',
   ], { allowFailure: true });
   if (result.status !== 0) {
     const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
@@ -417,7 +417,9 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function verifyPublishedPackage({ metadataPath, attempts = 18, delayMs = 10_000 }) {
+// Allow ten minutes of propagation waits within the twenty-minute publish job,
+// leaving time for registry requests and the installed-package PDF smoke test.
+export async function verifyPublishedPackage({ metadataPath, attempts = 61, delayMs = 10_000 }) {
   const metadata = verifyReleaseArtifacts({ metadataPath });
   let status = null;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
