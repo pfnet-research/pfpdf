@@ -36,7 +36,8 @@ function splitAtDirectives(file: SourceFile, node: Paragraph | Heading): RootCon
   let lineStart = true;
   for (const [index, child] of node.children.entries()) {
     if (child.type !== 'text') {
-      children.push(child);
+      // A hard break that would open a piece is the trailing space of a directive line.
+      if (child.type !== 'break' || children.length > 0) children.push(child);
       lineStart = child.type === 'break';
       continue;
     }
@@ -60,7 +61,8 @@ function splitAtDirectives(file: SourceFile, node: Paragraph | Heading): RootCon
     };
     let from = 0;
     for (const [i, line] of lines.entries()) {
-      const wholeLine = (i > 0 || lineStart) && (i < lines.length - 1 || index === node.children.length - 1);
+      const next = node.children[index + 1];
+      const wholeLine = (i > 0 || lineStart) && (i < lines.length - 1 || next === undefined || next.type === 'break');
       const name = wholeLine ? directive.exec(line)?.[1] : undefined;
       if (name === undefined) continue;
       pushLines(from, i);
@@ -281,8 +283,7 @@ function parseSlideOptions(node: ElementContent, file: SourceFile): Record<strin
   if (node.type !== 'comment') return result;
   for (const token of node.value.replace(/^\s*pfpdf:/, '').split(/\s+/).filter(Boolean)) {
     const match = /^([a-z][a-z0-9-]*)=(.+)$/.exec(token);
-    // `slide` would collide with the attribute that carries the layout name.
-    if (!match || match[1] === 'slide') {
+    if (!match) {
       const line = (node.position?.start.line ?? 1) + file.lineOffset;
       throw new InputError(`${file.path}:${line}: invalid slide option: ${token} (expected key=value)`);
     }

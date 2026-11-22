@@ -101,6 +101,9 @@ test('speaker notes stay private across Setext headings and code spans', async (
   assert.doesNotMatch(setext.html, /Secret|:::/);
   const code = await render('## A\n\nVisible\n\n::: talk\nSecret `code\n::: body\nstill code` secret tail\n\n## B\n\nNext');
   assert.doesNotMatch(code.html, /[Ss]ecret|still code/);
+  const spaces = await render('## A\n\nVisible\n\n::: talk  \nSecret note\n\n## B\n\n::: column  \nLeft');
+  assert.doesNotMatch(spaces.html, /Secret|:::|<br>/);
+  assert.match(spaces.html, /data-pfpdf-region="column">\s*<p>Left<\/p>/);
   const shown = await render('## A\n\nShown `code\n::: talk\nstill code` tail\n\n## ::: talk');
   assert.match(shown.html, /<code>code ::: talk still code<\/code> tail/);
   assert.match(shown.html, /<h2[^>]*>::: talk<\/h2>/);
@@ -117,14 +120,13 @@ test('option values reach the template whole, and malformed options are errors',
   const body = await render('## A\n\n<!-- pfpdf:gap=1.5rem align=top_left ratio=2:1 span2=wide -->\n\nText');
   assert.match(body.html, /data-pfpdf-gap="1.5rem" data-pfpdf-align="top_left" data-pfpdf-ratio="2:1" data-pfpdf-span2="wide"/);
   await assert.rejects(render('## A\n\n<!-- pfpdf:layout=x wide -->\n\nText'), /slides\.md:3: invalid slide option: wide/);
-  await assert.rejects(render('## A\n\n<!-- pfpdf:slide=x -->\n\nText'), /invalid slide option: slide=x/);
 });
 
 test('a content-only custom template and the bundled slide preset both build slides', async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-slides-'));
   t.after(() => { fs.rmSync(dir, { recursive: true, force: true }); });
   const input = path.join(dir, 'deck.md');
-  fs.writeFileSync(input, '---\nslides: true\ntitle: Deck\nlang: en\n---\n## First\n\nText\n');
+  fs.writeFileSync(input, '---\nslides: true\ntitle: Deck\nlang: en\n---\n## First\n\n<!-- pfpdf:slot=hero -->\n\nText\n');
   const custom = path.join(dir, 'custom');
   fs.mkdirSync(custom);
   fs.writeFileSync(path.join(custom, 'style.css'), '');
@@ -133,7 +135,8 @@ test('a content-only custom template and the bundled slide preset both build sli
   const log = { warn: (): void => {}, info: (): void => {}, debug: (): void => {} };
   const env = { ...process.env, SOURCE_DATE_EPOCH: '0' };
   const plain = await buildHtml(resolveConfig(['--input', input, '--output', 'out.pdf', '--template', custom], dir), env, log);
-  assert.match(plain.html, /data-pfpdf-slide="content"/);
+  assert.match(plain.html, /data-pfpdf-slide="content" data-pfpdf-slot="hero"/);
+  assert.doesNotMatch(plain.html, /data-pfpdf-slot="content"/);
   assert.doesNotMatch(plain.html, /data-pfpdf-slide="title"/);
   const preset = await buildHtml(resolveConfig(['--input', input, '--output', 'out.pdf', '--template-preset', 'slide-base'], dir), env, log);
   assert.match(preset.html, /data-pfpdf-slide="title"/);

@@ -457,9 +457,9 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
     el('script', {}, [text(readinessFinishScript())]),
   );
 
-  // Remove slot attributes from the final document.
+  // Remove the template's slot markers from the final document.
   visit(root, 'element', (e: Element) => {
-    if (!e.properties) return;
+    if (!e.properties || !templateElements.has(e)) return;
     for (const key of Object.keys(e.properties)) {
       if (propertyToAttribute(key) === 'data-pfpdf-slot') delete e.properties[key];
     }
