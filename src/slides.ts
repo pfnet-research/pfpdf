@@ -17,6 +17,7 @@ export interface SlideOptions {
 const directive = /^ {0,3}::: ([a-z][a-z-]*)[ \t]*$/;
 const regions = new Set(['column', 'left', 'right', 'note', 'talk', 'body']);
 const directiveComment = /^pfpdf-region:(column|left|right|note|talk|body)$/;
+const tableStyleComment = /^pfpdf-table:([a-z][a-z0-9-]*)$/;
 
 /** Split top-level paragraph directives without changing source coordinates. */
 export function prepareSlideDirectives(file: SourceFile, tree: MdastRoot): void {
@@ -111,7 +112,15 @@ function decorateSlide(slide: SlideElement, children: ElementContent[], modifier
   let columns: Element | undefined;
   let columnCount = 0;
   let split = false;
+  let tableStyle: string | undefined;
   for (const child of children) {
+    const tableMarker = child.type === 'comment' ? tableStyleComment.exec(child.value.trim()) : null;
+    if (tableMarker) { tableStyle = tableMarker[1]; continue; }
+    if (child.type === 'element' && child.tagName === 'table' && tableStyle) {
+      child.properties ??= {};
+      child.properties['data-pfpdf-table'] = tableStyle;
+    }
+    if (significant(child) || child.type === 'comment') tableStyle = undefined;
     const marker = child.type === 'comment' ? directiveComment.exec(child.value.trim()) : null;
     if (!marker) { region.children.push(child); continue; }
     const name = marker[1]!;

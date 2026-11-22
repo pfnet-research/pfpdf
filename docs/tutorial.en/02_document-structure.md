@@ -168,3 +168,4 @@ Explain the comparison conditions aloud.
 - Write `::: column` for each column, in order from left to right. Use `::: left` and `::: right` when the two sides have distinct roles. `::: note` is visible on the slide. `::: talk` holds presenter notes, which do not appear in the PDF.
 - Each region continues until the next `::: name` or page. Use `::: body` to return to ordinary slide content.
 - Use a comment at the beginning of the page for options such as the title band or a closing slide. Examples include `<!-- pfpdf:band=off -->` and `<!-- pfpdf:layout=closing -->`. The selected template controls their appearance.
+- To style one table, place a comment such as `<!-- pfpdf-table:phase -->` directly before it. The template defines the style names and their appearance.

@@ -76,3 +76,24 @@ test('leading visual modifiers attach to the next title without an empty page', 
 test('a misspelled region fails before speaker text can enter a slide', async () => {
   await assert.rejects(render('## First\n\n::: tal\nPrivate notes'), /unknown slide region: tal/);
 });
+
+test('a table style applies only to the immediately following table on the same slide', async () => {
+  const table = '| Heading |\n| --- |\n| Text |';
+  const body = await render([
+    '## First',
+    'Text before the tables.',
+    '<!-- pfpdf-table:phase -->',
+    table,
+    table,
+    '<!-- pfpdf-table:unused -->',
+    'A paragraph separates the comment and the table.',
+    table,
+    '<!-- pfpdf-table:unused -->',
+    '## Second',
+    table,
+  ].join('\n\n'));
+  assert.equal(body.slideCount, 2);
+  assert.equal((body.html.match(/<table(?:>| )/g) ?? []).length, 4);
+  assert.equal((body.html.match(/<table data-pfpdf-table="phase">/g) ?? []).length, 1);
+  assert.doesNotMatch(body.html, /unused|pfpdf-table:/);
+});
