@@ -1,6 +1,6 @@
 /** ConfigResolver: built-in defaults < front matter < CLI arguments. */
 import path from 'node:path';
-import { BUNDLED_TEMPLATE_NAMES } from './bundled-templates.js';
+import { isBundledTemplate } from './bundled-templates.js';
 import { InputError } from './errors.js';
 import { validateTitle } from './input.js';
 import { parseRepositoryLocator } from './repository.js';
@@ -145,14 +145,14 @@ function resolveTemplateSetting(
 }
 
 function bundledTemplate(name: string, source: string): { kind: 'bundled'; name: string } {
-  if (!BUNDLED_TEMPLATE_NAMES.includes(name)) {
+  if (!isBundledTemplate(name)) {
     throw new InputError(`${source}: unknown bundled template: ${name}`);
   }
   return { kind: 'bundled', name };
 }
 
 function parseTemplateSource(value: string, source: string): Config['template']['value'] {
-  if (BUNDLED_TEMPLATE_NAMES.includes(value)) return { kind: 'bundled', name: value };
+  if (isBundledTemplate(value)) return { kind: 'bundled', name: value };
   if (value.startsWith('git::')) {
     parseRepositoryLocator(value, source);
     return { kind: 'repository', locator: value };
@@ -299,6 +299,8 @@ export function resolveConfig(
 /** Apply document settings from front matter when no CLI override exists. */
 export interface FrontMatterConfig {
   template: string | null;
+  slides?: boolean;
+  sectionCovers?: boolean;
   toc: boolean | null;
   cover: boolean | null;
   logo: { kind: 'none' } | { kind: 'local'; path: string; absPath: string } | null;
@@ -307,7 +309,9 @@ export interface FrontMatterConfig {
 export function applyFrontMatterConfig(config: Config, frontMatter: FrontMatterConfig): Config {
   const template = frontMatter.template !== null && config.template.source === 'default'
     ? { value: { kind: 'bundled' as const, name: frontMatter.template }, source: 'front-matter' as const }
-    : config.template;
+    : frontMatter.slides === true && config.template.source === 'default'
+      ? { value: { kind: 'bundled' as const, name: 'slide-base' }, source: 'default' as const }
+      : config.template;
   const toc = frontMatter.toc !== null && config.toc.source === 'default'
     ? { value: frontMatter.toc, source: 'front-matter' as const }
     : config.toc;

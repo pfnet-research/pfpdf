@@ -130,3 +130,44 @@ By contrast, relative paths in CLI arguments such as `--input`, `--output`, and 
 Local URLs written statically in Markdown, raw HTML, and CSS are resolved through the resource graph, which tracks resource references. Local paths that a script builds from strings at runtime are not automatically exposed. Declare resources with static `src` / `href` / CSS `url()`, or use HTTP(S) URLs.
 
 Use `/` to separate path components in document URLs, regardless of OS. Write a Windows absolute path as a valid URL such as `file:///C:/docs/image.png`, and a UNC path as `file://server/share/...`. Only paths in CLI arguments may use the native path notation of the OS you are running on.
+
+## 2.6 Slides
+
+Set `slides: true` to produce PDF slides. The default aspect ratio is 16:9.
+
+```markdown
+---
+slides: true
+title: Performance Evaluation
+---
+
+# Methods
+
+## Measurement Conditions
+
+We processed the same input 30 times for each condition.
+
+## Before and After
+
+::: column
+Before: 12 ms.
+
+::: column
+After: 10 ms.
+
+::: note
+Each value is the median of 30 measurements.
+
+::: talk
+Explain the comparison conditions aloud.
+```
+
+- A top-level `#` begins a group. A top-level `##` begins a new page and supplies its title. Use `###` and deeper headings within a page. Use `___` to start a page without a title.
+- The cover uses front matter such as the title, author, and date. An omitted title falls back to the input file or directory name. The cover and table of contents are enabled by default. Use `cover: false` or `toc: false` to omit them. A template without a cover slot produces no cover.
+- The table of contents comes from `#` headings and is omitted when none are present. `section_covers: true` adds a divider at the start of each group. The table of contents continues on a new page after every five entries.
+- `::: name` starts a region, which continues until the next `::: name` or page. Adjacent regions with the same name form one group and, by default, sit side by side from left to right. The `::: column` regions in the example work this way. Names may contain lowercase letters, digits, and `-`.
+- Write `::: name` on its own line at the top level of the document. Blank lines before and after it are the safe choice. Directly below a list, a block quote, or a table, a line without a preceding blank line is treated as a continuation of that block. To show a line that reads `::: name` as text, put it in code.
+- The selected template defines region names and their appearance. The bundled slide template `slide-base` supports `column` for columns, `left` and `right` for two sides with distinct roles, and `note` for a note that is visible on the slide.
+- pfpdf itself defines only two names. `::: talk` holds presenter notes, which do not appear in the PDF. `::: body` returns to ordinary slide content.
+- To choose how a page looks, write `key=value` options in a comment at the beginning of the page. Examples include `<!-- pfpdf:layout=closing -->` and `<!-- pfpdf:layout=section tone=dark -->`. A value is any text without whitespace and is passed to the template unchanged. The template defines the available keys and values. An option that is not in the `key=value` form is an error.
+- A page without a title or content is created only when `layout` is specified, as in `<!-- pfpdf:layout=blank -->`.

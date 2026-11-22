@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fromHtml } from 'hast-util-from-html';
 import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
-import { BUNDLED_TEMPLATE_NAMES } from './bundled-templates.js';
+import { isBundledTemplate } from './bundled-templates.js';
 import type { FrontMatterConfig } from './config.js';
 import { InputError } from './errors.js';
 import { inferDocumentLanguage } from './language.js';
@@ -117,7 +117,7 @@ export interface FrontMatterOptions {
 
 const ALLOWED_KEYS = new Set([
   'title', 'author', 'series', 'date', 'page_size', 'confidential', 'lang', 'dir',
-  'bibliography', 'template', 'toc', 'cover', 'logo',
+  'bibliography', 'template', 'toc', 'cover', 'logo', 'slides', 'section_covers',
 ]);
 
 interface SourceLine {
@@ -223,11 +223,19 @@ function resolveFrontMatterConfig(
   if (value !== undefined && typeof value !== 'string') {
     throw new InputError('front matter template: expected a string');
   }
-  if (typeof value === 'string' && !BUNDLED_TEMPLATE_NAMES.includes(value)) {
+  if (typeof value === 'string' && !isBundledTemplate(value)) {
     throw new InputError(`front matter template: unknown bundled template: ${value}`);
   }
   if (typeof value === 'string') template = value;
 
+  const slides = raw.get('slides');
+  if (slides !== undefined && typeof slides !== 'boolean') {
+    throw new InputError('front matter slides: expected a YAML boolean');
+  }
+  const sectionCovers = raw.get('section_covers');
+  if (sectionCovers !== undefined && typeof sectionCovers !== 'boolean') {
+    throw new InputError('front matter section_covers: expected a YAML boolean');
+  }
   const tocValue = raw.get('toc');
   if (tocValue !== undefined && typeof tocValue !== 'boolean') {
     throw new InputError('front matter toc: expected a YAML boolean');
@@ -258,7 +266,14 @@ function resolveFrontMatterConfig(
   } else if (logoValue !== undefined) {
     throw new InputError('front matter logo: expected a path string or false');
   }
-  return { template, toc: tocValue ?? null, cover: coverValue ?? null, logo };
+  return {
+    template,
+    toc: tocValue ?? null,
+    cover: coverValue ?? null,
+    logo,
+    ...(slides === undefined ? {} : { slides }),
+    ...(sectionCovers === undefined ? {} : { sectionCovers }),
+  };
 }
 
 /** Read document configuration for configuration diagnostics. */
@@ -451,7 +466,11 @@ export function resolveInput(
   // selected front matter value is validated once below.
   if (cliTitle !== null) validateOverriddenTitle(frontMatterTitle);
   const rawTitle = cliTitle ?? frontMatterTitle;
-  const title = rawTitle === null ? inferDocumentTitle(files, inputName) : normalizeTitle(rawTitle);
+  const title = rawTitle !== null
+    ? normalizeTitle(rawTitle)
+    : config.slides === true
+      ? { lines: [inputName], plainText: inputName }
+      : inferDocumentTitle(files, inputName);
 
   const author = normalizeAuthors(raw.get('author'));
   const series = requireString('series');
@@ -464,7 +483,7 @@ export function resolveInput(
   const confidential = confidentialRaw === true;
 
   const pageSizeRaw = requireString('page_size');
-  const pageSize = pageSizeRaw === null ? parsePageSize('A4') : parsePageSize(pageSizeRaw);
+  const pageSize = parsePageSize(pageSizeRaw ?? (config.slides === true ? '960pt 540pt' : 'A4'));
 
   const lang = canonicalizeLang(requireString('lang') ?? inferDocumentLanguage(files, title.plainText));
 

@@ -146,6 +146,9 @@ When the resolved document language is `ja` or a variant tag, remove only source
 
 Preserve Latin word boundaries, Japanese/Latin boundaries, explicit spaces, soft breaks with authored trailing spaces, hard breaks, and paragraph boundaries. Code, math, images, and footnote references are boundaries; paragraphs containing raw HTML and raw HTML blocks are unchanged. Preserve authored newline character references such as `&#10;` / `&NewLine;` too. Headings, IDs, URLs, and source positions are unchanged. Non-Japanese document languages retain GFM soft breaks.
 
+
+With `slides: true`, top-level ATX headings and named regions also determine slide boundaries and layout. Ordinary documents continue to use GFM and the existing pfpdf extensions. See the Slides section of the tutorial for an example.
+
 ## 3.4 Handling raw HTML
 
 Inline and block-level raw HTML pass through to preserve the flexibility that Markdown alone cannot provide. pfpdf follows GFM parsing rules but does not apply GitHub.com's post-conversion sanitization or GFM's "Disallowed Raw HTML" tag filter. Authors may use `table`, `div`, `section`, `figure`, `style`, and `script` where needed. Input is treated as trusted code, and local file access is not sandboxed (see Chapter 08).

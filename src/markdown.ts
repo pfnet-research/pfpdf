@@ -30,6 +30,7 @@ import { joinJapaneseSoftBreaks } from './soft-breaks.js';
 import { renderMermaidToHast } from './mermaid.js';
 import { preparePageFootnotes } from './page-footnotes.js';
 import { createMarkdownParser } from './markdown-parser.js';
+import { assembleSlides, prepareSlideDirectives, type SlideOptions } from './slides.js';
 
 export interface TocEntry {
   depth: number;
@@ -41,6 +42,8 @@ export interface TocEntry {
 export interface DocumentBody {
   /** One <section> element per source file. */
   sections: Element[];
+  /** Authored and generated slide pages, excluding the template cover. */
+  slideCount?: number;
   toc: TocEntry[];
   generatedCss: Array<[string, string]>;
   generatedFiles: Array<[string, string]>;
@@ -128,9 +131,9 @@ export async function buildDocumentBody(
   files: SourceFile[],
   manifest: ResourceManifest,
   reservedIds: string[],
-  opts: { warn: (msg: string) => void; bibliography?: BibliographyFile[]; lang?: string },
+  opts: { warn: (msg: string) => void; bibliography?: BibliographyFile[]; lang?: string; slides?: SlideOptions },
 ): Promise<DocumentBody> {
-  const parses = parseSources(files);
+  const parses = parseSources(files, opts.slides !== undefined);
   if (opts.lang === 'ja' || opts.lang?.startsWith('ja-')) {
     for (const parse of parses) joinJapaneseSoftBreaks(parse.file, parse.mdast);
   }
@@ -153,14 +156,17 @@ export async function buildDocumentBody(
   const generatedCss = rewriteSourceLinks(parses, sectionsRaw, manifest);
   const generatedFiles = externalizeMermaidSvgs(sectionsRaw, parses);
   await decorateSources(parses, sectionsRaw, opts.warn);
-  const sections = assembleSections(sectionsRaw);
-  return { sections, toc, generatedCss, generatedFiles };
+  const sections = opts.slides
+    ? assembleSlides(parses, sectionsRaw, allocator, opts.slides)
+    : assembleSections(sectionsRaw);
+  return { sections, toc, generatedCss, generatedFiles, ...(opts.slides ? { slideCount: sections.length } : {}) };
 }
 
-export function parseSources(files: SourceFile[]): ParsedSource[] {
+export function parseSources(files: SourceFile[], slides = false): ParsedSource[] {
   return files.map((file) => {
     const processor = createMarkdownParser();
     const mdast = processor.parse(file.content);
+    if (slides) prepareSlideDirectives(file, mdast);
     const imageDefinitions = new Map<string, string>();
     visit(mdast, 'definition', (definition) => {
       const id = definition.identifier.toUpperCase();

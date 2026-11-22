@@ -1,0 +1,27 @@
+body { color: #202531; }
+[data-pfpdf-slide="title"], [data-pfpdf-slide="section"] {
+  color: #fff;
+  background: #1c304d;
+  align-content: center;
+}
+.pfpdf-slide-cover-logo { display: block; max-width: 150pt; max-height: 64pt; }
+[data-pfpdf-slide="title"] .pfpdf-slide-title { font-size: 44pt; }
+.pfpdf-slide-audience { color: #ffc7aa; font-size: 9pt; }
+body[data-pfpdf-confidential] .pfpdf-slide::after {
+  content: "Confidential";
+  position: absolute;
+  left: 36pt;
+  bottom: 12pt;
+  color: #a34820;
+  font-size: 9pt;
+}
+/* Region names used by this template. */
+[data-pfpdf-region="note"] { margin-top: 12pt; font-size: 10pt; }
+.pfpdf-slide-body:has(> [data-pfpdf-region="left"], > [data-pfpdf-region="right"]) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 18pt;
+}
+.pfpdf-slide-body:has(> [data-pfpdf-region="left"], > [data-pfpdf-region="right"]) > * { grid-column: 1 / -1; }
+.pfpdf-slide-body > [data-pfpdf-region="left"] { grid-column: 1; }
+.pfpdf-slide-body > [data-pfpdf-region="right"] { grid-column: 2; }
