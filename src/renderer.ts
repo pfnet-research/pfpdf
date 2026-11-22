@@ -89,6 +89,49 @@ export function rendererChildEnv(): NodeJS.ProcessEnv {
   return process.env;
 }
 
+const vivliostyleManifest = path.join('node_modules', '@vivliostyle', 'cli', 'package.json');
+
+function linkedWorkspaceRoot(project: string): string | undefined {
+  let name: string;
+  let realProject: string;
+  try {
+    const scope = path.basename(path.dirname(project));
+    const fallback = scope.startsWith('@') ? `${scope}/${path.basename(project)}` : path.basename(project);
+    const manifest = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8')) as { name?: unknown };
+    name = typeof manifest.name === 'string' && manifest.name !== '' ? manifest.name : fallback;
+    realProject = fs.realpathSync(project);
+  } catch {
+    return undefined;
+  }
+  if (!/^(?:@[^/\\:]+\/)?[^/\\:]+$/.test(name) || name === '.' || name.endsWith('/.') ||
+    name === '..' || name.endsWith('/..')) return undefined;
+
+  // npm links installed workspace packages in the root's node_modules.
+  for (let dir = project; path.dirname(dir) !== dir;) {
+    dir = path.dirname(dir);
+    try {
+      if (fs.realpathSync(path.join(dir, 'node_modules', name)) !== realProject) continue;
+      const { workspaces } = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')) as { workspaces?: unknown };
+      if (workspaces) return dir;
+    } catch {
+      // Keep looking for the npm workspace's installed link.
+    }
+  }
+  return undefined;
+}
+
+function installedVivliostyleManifest(cwd: string): string | undefined {
+  for (let dir = cwd; ; dir = path.dirname(dir)) {
+    const manifest = path.join(dir, vivliostyleManifest);
+    if (fs.existsSync(manifest)) return manifest;
+    if (path.dirname(dir) === dir) return undefined;
+    if (fs.existsSync(path.join(dir, 'package.json'))) {
+      const workspaceRoot = linkedWorkspaceRoot(dir);
+      return workspaceRoot === undefined ? undefined : path.join(workspaceRoot, vivliostyleManifest);
+    }
+  }
+}
+
 export function resolveVivliostyleCli(override: string | null = null, cwd = process.cwd()): string {
   if (override !== null) {
     try {
@@ -99,27 +142,21 @@ export function resolveVivliostyleCli(override: string | null = null, cwd = proc
     }
     return override;
   }
-  let dir = cwd;
-  let manifest: string;
-  while (true) {
-    manifest = path.join(dir, 'node_modules', '@vivliostyle', 'cli', 'package.json');
-    if (fs.existsSync(manifest)) break;
-    const parent = path.dirname(dir);
-    if (fs.existsSync(path.join(dir, 'package.json')) || parent === dir) break;
-    dir = parent;
-  }
-  try {
-    const { bin } = JSON.parse(fs.readFileSync(manifest, 'utf8')) as { bin?: Record<string, string> | string };
-    const entry = typeof bin === 'string' ? bin : bin?.vivliostyle;
-    if (entry) {
-      const cli = path.resolve(path.dirname(manifest), entry);
-      if (fs.statSync(cli).isFile()) {
-        fs.accessSync(cli, fs.constants.R_OK);
-        return cli;
+  const manifest = installedVivliostyleManifest(cwd);
+  if (manifest !== undefined) {
+    try {
+      const { bin } = JSON.parse(fs.readFileSync(manifest, 'utf8')) as { bin?: Record<string, string> | string };
+      const entry = typeof bin === 'string' ? bin : bin?.vivliostyle;
+      if (entry) {
+        const cli = path.resolve(path.dirname(manifest), entry);
+        if (fs.statSync(cli).isFile()) {
+          fs.accessSync(cli, fs.constants.R_OK);
+          return cli;
+        }
       }
+    } catch {
+      // Report the same setup instructions if the installation is incomplete.
     }
-  } catch {
-    // Report the same setup instructions if the installation is incomplete.
   }
   const { devDependencies } = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
     devDependencies: Record<string, string>;

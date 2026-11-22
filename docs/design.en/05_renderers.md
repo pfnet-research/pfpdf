@@ -13,6 +13,7 @@ The `Renderer` interface accepts an immutable `RenderJob`. The job contains the 
 - Invoke the Vivliostyle CLI as a Node.js child process, maintaining a clear boundary from the pfpdf main process
 - Pass the document URL of the `AssetServer` as input; do not generate a separate workspace `file:` URL
 - Launch the selected Vivliostyle entry point using the Node.js at `process.execPath`. For one-off builds, `--vivliostyle-cli PATH` selects a built JavaScript entry point relative to pfpdf's startup directory. Otherwise, start at that directory and look for `@vivliostyle/cli` in `node_modules` up to the nearest npm project root. Read the entry point from the package's `bin` field
+- If the npm project is an installed workspace member, also check the enclosing workspace root for a hoisted renderer
 - A pfpdf production installation leaves Vivliostyle CLI installation to the caller. If local discovery fails, conversion prints setup instructions to stderr and exits with code `1`. `--doctor` returns the same instructions in its `vivliostyle-cli` check and exits with code `1`
 - Use the browser managed by the selected Vivliostyle CLI, or the executable specified with `--browser-path`. The Vivliostyle CLI handles browser acquisition and caching
 - Do not assemble shell strings; launch child processes with an argument array and `shell: false`

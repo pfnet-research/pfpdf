@@ -22,6 +22,28 @@ test('pinned Vivliostyle CLI entry point resolves to a file', () => {
   assert.equal(fs.statSync(resolveVivliostyleCli()).isFile(), true);
 });
 
+test('a workspace can use its hoisted renderer while an independent nested project cannot', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-npm-project-'));
+  t.after(() => { fs.rmSync(root, { recursive: true, force: true }); });
+  const workspace = path.join(root, 'packages', 'publication');
+  const nestedProject = path.join(workspace, 'another-project');
+  const docs = path.join(workspace, 'docs');
+  const cli = path.join(root, 'node_modules', '@vivliostyle', 'cli', 'entry.js');
+  const link = path.join(root, 'node_modules', '@example', 'publication');
+  for (const dir of [docs, nestedProject, path.dirname(cli), path.dirname(link)]) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(path.join(root, 'package.json'), '{"workspaces":["packages/*"]}');
+  fs.writeFileSync(path.join(workspace, 'package.json'), '{"name":"@example/publication"}');
+  fs.writeFileSync(path.join(nestedProject, 'package.json'), '{"name":"another-project"}');
+  fs.writeFileSync(path.join(path.dirname(cli), 'package.json'), '{"bin":{"vivliostyle":"entry.js"}}');
+  fs.writeFileSync(cli, '');
+  fs.symlinkSync(workspace, link, 'junction');
+
+  assert.equal(resolveVivliostyleCli(null, docs), cli);
+  assert.throws(() => resolveVivliostyleCli(null, nestedProject), /npm install @vivliostyle\/cli@11\.1\.0/);
+});
+
 test('bounded child process classifies timeout and abort consistently', async () => {
   const timeout = await runBoundedProcess(
     process.execPath,
