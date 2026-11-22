@@ -178,8 +178,6 @@ Options:
   --vivliostyle-cli PATH   Vivliostyle JavaScript entry point
   --vivliostyle-daemon SOCKET
                            use a running standalone daemon on Linux or macOS
-  --vivliostyle-daemon-dir DIR
-                           use a running daemon on Linux or macOS
   --render-timeout-ms N    from renderer preparation to PDF inspection completion. Default is 300000
   --keep-work-dir          keep the temporary working directory
   --strict-front-matter    reject unknown front matter keys; default: warn and ignore
@@ -254,7 +252,7 @@ An unspecified logo is the `template` state that uses the slot's default `src`; 
 
 The effective configuration JSON has `schemaVersion: 5` and `command` at the top level, with `config.<name> = {"value": ..., "source": "cli|front-matter|default"}`. Schema 5 removes the `environment` source and lets `toc` / `logo` have a front matter source. Templates have a `repository` variant, and logos have `template` / `none` / `local` / `repository` variants.
 
-`vivliostyleCli`, `vivliostyleDaemon`, and `vivliostyleDaemonDir` are runtime settings under schema version `5`. Each records the supplied path with source `cli` or `null` with source `default`. Execution resolves relative paths from the pfpdf startup directory.
+`vivliostyleCli` and `vivliostyleDaemon` are runtime settings under schema version `5`. Each records the supplied path with source `cli` or `null` with source `default`. Execution resolves relative paths from the pfpdf startup directory.
 
 The `--doctor` output remains at `schemaVersion: 2` and has an overall `status` plus `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}`. The overall `status` is `fail` if any check fails, otherwise `warning` if any check warns, and `pass` if at least one check ran and all passed.
 

@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -235,7 +236,7 @@ export function createReleaseArtifacts({
     pdfs,
     toolchain: {
       node: process.version,
-      vivliostyle: packageJson.devDependencies?.['@vivliostyle/cli'] ?? null,
+      vivliostyle: packageJson.dependencies?.['@vivliostyle/cli'] ?? null,
       chromium: browserVersion.trim(),
       fonts: fontPackages,
     },
@@ -320,78 +321,69 @@ function browserCliArgs() {
   return process.env.BROWSER_PATH ? ['--browser-path', process.env.BROWSER_PATH] : [];
 }
 
-function smokeTestInstallation({ root, metadata, spec, stage }) {
-  const project = path.join(root, 'build', 'release-verification', stage);
-  const modules = path.join(project, 'node_modules');
-  fs.mkdirSync(project, { recursive: true });
-  fs.rmSync(modules, { recursive: true, force: true });
-  fs.rmSync(path.join(project, 'package-lock.json'), { force: true });
-  fs.writeFileSync(path.join(project, 'package.json'), '{"private":true}\n');
-  runNpm([
-    'install', '--omit=dev', '--no-audit', '--no-fund', '--save-exact', spec,
-  ], { cwd: project });
-
-  const bin = path.join(modules, '.bin', process.platform === 'win32' ? 'pfpdf.cmd' : 'pfpdf');
-  invariant(fs.existsSync(bin), 'the production installation has no pfpdf executable');
-  const installedLock = readJson(path.join(modules, '.package-lock.json'));
+function verificationDirectory(root, verificationDir, stage) {
+  const base = verificationDir ?? path.join(path.dirname(root), 'pfpdf-release-verification');
+  fs.mkdirSync(base, { recursive: true });
+  const checkout = fs.realpathSync(root);
+  const verification = fs.realpathSync(base);
+  const fromCheckout = path.relative(checkout, verification);
   invariant(
-    !Object.keys(installedLock.packages).some((name) => name.endsWith('node_modules/@vivliostyle/cli')),
-    'the production installation includes Vivliostyle CLI',
+    fromCheckout === '..' || fromCheckout.startsWith(`..${path.sep}`) || path.isAbsolute(fromCheckout),
+    'release verification directory must be outside the checkout',
   );
-  const installedPackage = path.join(modules, ...metadata.npm.name.split('/'));
-  const launcher = path.join(installedPackage, 'dist', 'launcher.js');
-  const runPfpdf = (args, options = {}) => run(process.execPath, [launcher, ...args], { cwd: project, ...options });
-  const version = runPfpdf(['--version']);
-  invariant(version.stdout.trim() === metadata.npm.version, 'installed executable reports the wrong version');
-
-  const input = path.join(project, 'input.md');
-  const output = path.join(project, 'output.pdf');
-  fs.writeFileSync(input, '---\ntitle: Release smoke test\n---\n\n# Test\n\nHello from pfpdf.\n');
-  fs.rmSync(output, { force: true });
-  const args = ['--input', input, '--output', output, ...browserCliArgs()];
-  const missing = runPfpdf(args, { allowFailure: true });
-  const doctor = runPfpdf(['--doctor'], { allowFailure: true });
-  invariant(missing.status === 1 && !fs.existsSync(output), 'conversion must fail without Vivliostyle CLI');
-  invariant(doctor.status === 1, '--doctor must fail without Vivliostyle CLI');
-  const check = JSON.parse(doctor.stdout).checks.find(({ id }) => id === 'vivliostyle-cli');
-  invariant(
-    check?.status === 'fail' && missing.stderr.includes(check.message)
-      && check.message.includes(`npm install @vivliostyle/cli@${metadata.toolchain.vivliostyle}`)
-      && check.message.includes('--vivliostyle-cli'),
-    'conversion and --doctor must give matching Vivliostyle CLI setup instructions',
-  );
-
-  const cliDir = path.join(root, 'node_modules', '@vivliostyle', 'cli');
-  const cliManifest = readJson(path.join(cliDir, 'package.json'));
-  invariant(cliManifest.version === metadata.toolchain.vivliostyle, 'installed test Vivliostyle CLI version does not match the release metadata');
-  const cli = path.join(cliDir, cliManifest.bin.vivliostyle);
-  runPfpdf([...args, '--vivliostyle-cli', cli], {
-    env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' },
-  });
-  const pdf = fs.readFileSync(output);
-  invariant(pdf.subarray(0, 5).toString('ascii') === '%PDF-', 'installed package did not produce a PDF');
-  return { installedPackage, pdfBytes: pdf.length };
+  const directory = path.join(verification, stage);
+  fs.mkdirSync(directory);
+  return directory;
 }
 
-export function testPackedPackage({ root, metadataPath }) {
+function smokeTestConversion(runPfpdf, directory, version) {
+  const cwd = path.join(directory, 'documents');
+  fs.mkdirSync(cwd);
+  const env = { ...process.env, SOURCE_DATE_EPOCH: '1750000000' };
+  delete env.NODE_PATH;
+  delete env.NODE_OPTIONS;
+  const installed = runPfpdf(['--version'], { cwd, env });
+  invariant(installed.stdout.trim() === version, 'pfpdf executable reports the wrong version');
+
+  fs.writeFileSync(path.join(cwd, 'input.md'), '---\ntitle: Release smoke test\n---\n\n# Test\n\nHello from pfpdf.\n');
+  runPfpdf(['--input', 'input.md', '--output', 'output.pdf', ...browserCliArgs()], { cwd, env });
+  const pdf = fs.readFileSync(path.join(cwd, 'output.pdf'));
+  invariant(pdf.subarray(0, 5).toString('ascii') === '%PDF-', 'pfpdf did not produce a PDF');
+  return pdf.length;
+}
+
+export function testPackedPackage({ root, metadataPath, verificationDir }) {
   const metadata = verifyReleaseArtifacts({ metadataPath });
   const { tarball } = releaseArtifactPaths(metadataPath, metadata);
-  const { installedPackage, pdfBytes } = smokeTestInstallation({ root, metadata, spec: tarball, stage: 'packed' });
-
-  const lockProject = path.join(root, 'build', 'release-verification', 'shrinkwrap');
-  fs.mkdirSync(lockProject, { recursive: true });
-  for (const file of ['package.json', 'npm-shrinkwrap.json']) {
-    fs.copyFileSync(path.join(installedPackage, file), path.join(lockProject, file));
-  }
-  runNpm(['ci', '--omit=dev', '--no-audit', '--no-fund'], { cwd: lockProject });
-  runNpm(['ls', '--omit=dev', '--all', '--json'], { cwd: lockProject });
-  compareInstalledDependencyLock({
-    shrinkwrapPath: path.join(lockProject, 'npm-shrinkwrap.json'),
-    installedLockPath: path.join(lockProject, 'node_modules', '.package-lock.json'),
+  const directory = verificationDirectory(root, verificationDir, 'packed');
+  run('tar', ['-xzf', tarball, '-C', directory]);
+  const packageRoot = path.join(directory, 'package');
+  runNpm(['ci', '--omit=dev', '--no-audit', '--no-fund'], { cwd: packageRoot });
+  runNpm(['ls', '--omit=dev', '--all', '--json'], { cwd: packageRoot });
+  const modules = path.join(packageRoot, 'node_modules');
+  const { packageCount } = compareInstalledDependencyLock({
+    shrinkwrapPath: path.join(packageRoot, 'npm-shrinkwrap.json'),
+    installedLockPath: path.join(modules, '.package-lock.json'),
     packageName: metadata.npm.name,
     packageVersion: metadata.npm.version,
   });
-  return { platform: process.platform, arch: process.arch, version: metadata.npm.version, pdfBytes };
+
+  const launcher = path.join(packageRoot, 'dist', 'launcher.js');
+  const cliManifest = fs.realpathSync(createRequire(launcher).resolve('@vivliostyle/cli/package.json'));
+  invariant(cliManifest === path.join(modules, '@vivliostyle', 'cli', 'package.json'),
+    'packed pfpdf resolved Vivliostyle CLI outside its production tree');
+  invariant(readJson(cliManifest).version === metadata.toolchain.vivliostyle,
+    'packed Vivliostyle CLI version does not match release metadata');
+  const puppeteer = fs.realpathSync(createRequire(cliManifest).resolve('puppeteer-core/package.json'));
+  invariant(puppeteer.startsWith(modules + path.sep),
+    'packed Vivliostyle CLI resolved Puppeteer outside the production tree');
+
+  const pdfBytes = smokeTestConversion(
+    (args, options) => run(process.execPath, [launcher, ...args], options),
+    directory,
+    metadata.npm.version,
+  );
+  return { platform: process.platform, arch: process.arch, version: metadata.npm.version, packageCount, pdfBytes };
 }
 
 function npmView(metadata) {
@@ -433,7 +425,7 @@ export function writeReleaseSummary({ metadataPath, outputPath }) {
     + `- npm: \`${metadata.npm.name}@${metadata.npm.version}\`\n`
     + `- npm tarball SHA-256: \`${metadata.npm.sha256}\`\n`
     + `- npm files: ${metadata.npm.fileCount}\n`
-    + `- Vivliostyle CLI (development pin): \`${metadata.toolchain.vivliostyle}\`\n`
+    + `- Vivliostyle CLI: \`${metadata.toolchain.vivliostyle}\`\n`
     + `- Chromium: \`${metadata.toolchain.chromium}\`\n\n`
     + '| PDF | SHA-256 | bytes |\n|---|---|---:|\n'
     + `${pdfRows}\n\n`;
@@ -445,7 +437,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function verifyPublishedPackage({ root, metadataPath, attempts = 18, delayMs = 10_000 }) {
+export async function verifyPublishedPackage({ root, metadataPath, verificationDir, attempts = 18, delayMs = 10_000 }) {
   const metadata = verifyReleaseArtifacts({ metadataPath });
   let status = null;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
@@ -456,7 +448,12 @@ export async function verifyPublishedPackage({ root, metadataPath, attempts = 18
   invariant(status?.published === true, `npm package did not become visible after ${attempts} attempts`);
 
   const spec = `${metadata.npm.name}@${metadata.npm.version}`;
-  const { pdfBytes } = smokeTestInstallation({ root, metadata, spec, stage: 'published' });
+  const directory = verificationDirectory(root, verificationDir, 'published');
+  const pdfBytes = smokeTestConversion(
+    (args, options) => runNpm(['exec', '--yes', `--package=${spec}`, '--', 'pfpdf', ...args], options),
+    directory,
+    metadata.npm.version,
+  );
   return { package: spec, version: metadata.npm.version, pdfBytes };
 }
 
@@ -520,7 +517,7 @@ function releaseVerificationNotes(metadata) {
     + `- npm package: \`${metadata.npm.name}@${metadata.npm.version}\` (public registry smoke test passed)\n`
     + `- npm tarball SHA-256: \`${metadata.npm.sha256}\`\n`
     + `- Build Node.js: \`${metadata.toolchain.node}\`\n`
-    + `- Vivliostyle CLI (development pin): \`${metadata.toolchain.vivliostyle}\`\n`
+    + `- Vivliostyle CLI: \`${metadata.toolchain.vivliostyle}\`\n`
     + `- Chromium: \`${metadata.toolchain.chromium}\`\n`
     + `- Bundled font package versions: \`${fontVersions}\`\n\n`
     + `### PDF SHA-256\n\n${pdfLines}\n`;

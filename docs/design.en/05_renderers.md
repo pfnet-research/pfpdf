@@ -12,9 +12,7 @@ The `Renderer` interface accepts an immutable `RenderJob`. The job contains the 
 
 - Invoke the Vivliostyle CLI as a Node.js child process, maintaining a clear boundary from the pfpdf main process
 - Pass the document URL of the `AssetServer` as input; do not generate a separate workspace `file:` URL
-- Launch the selected Vivliostyle entry point using the Node.js at `process.execPath`. For one-off builds, `--vivliostyle-cli PATH` selects a built JavaScript entry point relative to pfpdf's startup directory. Otherwise, start at that directory and look for `@vivliostyle/cli` in `node_modules` up to the nearest npm project root. Read the entry point from the package's `bin` field
-- If the npm project is an installed workspace member, also check the enclosing workspace root for a hoisted renderer
-- A pfpdf production installation leaves Vivliostyle CLI installation to the caller. If local discovery fails, conversion prints setup instructions to stderr and exits with code `1`. `--doctor` returns the same instructions in its `vivliostyle-cli` check and exits with code `1`
+- For one-off builds, resolve the pinned Vivliostyle CLI using Node.js package resolution from pfpdf's installation. Read the entry point from the package's `bin` field. `--vivliostyle-cli PATH` selects a built JavaScript entry point relative to pfpdf's startup directory. Launch either entry point using the Node.js at `process.execPath`
 - Use the browser managed by the selected Vivliostyle CLI, or the executable specified with `--browser-path`. The Vivliostyle CLI handles browser acquisition and caching
 - Do not assemble shell strings; launch child processes with an argument array and `shell: false`
 - Do not unnecessarily disable the sandbox provided upstream
@@ -30,17 +28,9 @@ The `Renderer` interface accepts an immutable `RenderJob`. The job contains the 
 
 Discovery and the build client use the same canonical socket path. On Linux the client pins the socket directory through `/proc/self/fd` when available and the resulting path fits. Otherwise, including on macOS, the socket directory's ancestors must be owned by the current user or root. A group- or world-writable ancestor must have the sticky bit, as `/tmp` typically does.
 
-`--doctor` uses the same discovery handshake to check the connection and compatibility. With `--browser-path`, it also runs the isolated one-off browser probe. The socket option is mutually exclusive with the manual options below.
+`--doctor` uses the same `describe` handshake to check the connection and protocol. An unavailable socket or incompatible response fails the socket check. A passing check covers session discovery only. With `--browser-path`, doctor also runs an independent one-off browser probe.
 
-#### Manually managed services
-
-`--vivliostyle-daemon-dir DIR` is supported on Linux and macOS and requires `--vivliostyle-cli PATH`. Both paths resolve from pfpdf's startup directory. The caller creates an owner-only directory and its dedicated `context` subdirectory, starts `node "$cli" build-worker --socket "$daemon_dir/worker.sock"`, and then starts `node "$cli" build-daemon --socket "$daemon_dir/daemon.sock" --browser-worker "$daemon_dir/worker.sock"` with `context` as its working directory. Keep `context` separate from document inputs and Vivliostyle project configuration.
-
-Each pfpdf conversion uses the same explicit CLI and daemon directory. pfpdf launches the client with `DIR/context` as its working directory and adds `--build-daemon DIR/daemon.sock` to the usual build arguments. The same loopback document URL, temporary PDF path, and output validation apply. The caller stops the daemon and waits for it to exit before stopping the worker. Tutorial section 7.4.2 has the commands.
-
-The render deadline includes time in the daemon queue. On timeout or interruption, pfpdf sends `SIGTERM` to the client. The client has up to 12 seconds to cancel and close its connection. pfpdf keeps serving the document until the client closes, forces termination with `SIGKILL` after 13 seconds if necessary, and stops waiting for the client after 15 seconds.
-
-A missing or incorrectly typed CLI or context, or a nonsocket entry at `daemon.sock`, is a path error (exit code `2`). An absent socket in a valid daemon directory, a refused connection, and rendering failures produce renderer diagnostics and exit code `1`. Both exit codes preserve an existing PDF. `--doctor` checks the existence and type of the selected CLI, context, and socket. Its browser probe uses a one-off build with the selected CLI.
+For one-off builds, the first `SIGINT` or `SIGTERM` requests cancellation. Repeating the same signal uses the operating system's default termination behavior. Persistent builds keep both handlers installed during cancellation. pfpdf sends `SIGTERM` to the build client and continues serving document assets while the client cancels its job. If necessary, pfpdf sends `SIGKILL` after 13 seconds and stops waiting after 15 seconds. A cancelled job leaves existing output intact.
 
 ## 5.3 Output validation and commit
 

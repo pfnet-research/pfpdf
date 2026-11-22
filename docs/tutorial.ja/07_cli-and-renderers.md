@@ -23,8 +23,6 @@ Options:
   --vivliostyle-cli PATH   Vivliostyle の JavaScript エントリーポイント
   --vivliostyle-daemon SOCKET
                            Linux または macOS で起動済みのスタンドアロンデーモンを使う
-  --vivliostyle-daemon-dir DIR
-                           Linux または macOS で起動済みのデーモンを使う
   --render-timeout-ms N    レンダラーの準備から PDF 検査完了まで。既定は 300000
   --keep-work-dir          一時的な作業ディレクトリーを保持する
   --strict-front-matter    未知のフロントマターキーをエラーにする。既定は警告して無視
@@ -51,7 +49,7 @@ Options:
 `--print-effective-config` は、適用後の設定と各値の設定元を、バージョン付きスキーマを持つ JSON オブジェクトとして表示します。`--input` も指定すると、フロントマターの `template` / `toc` / `cover` / `logo` を反映し、設定元を `front-matter` と表示します。
 
 ```bash
-npx pfpdf --input docs --print-effective-config
+npm exec -- pfpdf --input docs --print-effective-config
 ```
 
 ## 7.3 終了コード
@@ -68,27 +66,20 @@ npx pfpdf --input docs --print-effective-config
 
 ## 7.4 レンダラー
 
-既定では、コマンドを実行した npm プロジェクトにインストールされた Vivliostyle CLI を使います。01 章の手順に従って両方のパッケージをインストールしてください。改変版を使う場合は、pfpdf をインストールし、ビルド済みの `dist/cli.js` のパスを指定します。
+既定では、pfpdf のインストール先にある Vivliostyle CLI 11.5.0 で単発変換します。初回は CLI がブラウザーを取得し、以降はキャッシュを利用します。既存の互換ブラウザーを使う場合は `--browser-path` で指定します。
+
+単発変換で別の CLI を使う場合は、ビルド済みの JavaScript エントリーポイントを指定します。相対パスは pfpdf の起動ディレクトリーを基準に解決します。
 
 ```bash
-npm install @pfnet-research/pfpdf
-npx pfpdf --input docs --output docs.pdf \
-  --vivliostyle-cli ../vivliostyle-cli/dist/cli.js
-```
-
-Vivliostyle CLI が見つからない場合、変換と `--doctor` はインストール手順とパスの指定方法を表示し、終了コード `1` を返します。
-
-- ブラウザーは初回に自動取得され、以降はキャッシュされます
-- 既にある互換ブラウザーを使いたい場合は `--browser-path` で指定します
-
-```bash
-npx pfpdf --input docs --output docs.pdf \
-  --browser-path /usr/bin/chromium
+npm exec -- pfpdf --input docs --output docs.pdf \
+  --vivliostyle-cli ../vivliostyle-cli/dist/cli.js --browser-path /usr/bin/chromium
 ```
 
 ### 7.4.1 複数の変換で Vivliostyle を再利用する
 
-Linux と macOS では、対応する Vivliostyle CLI を使うと、変換をまたいで Node.js のビルドプロセスと Chromium を再利用できます。`build-daemon --standalone` に対応する CLI の絶対パスを `cli` に設定します。
+Linux と macOS では常駐モードを利用できます。`build-daemon --standalone`、セッション情報を取得する `describe` プロトコル、`build --build-daemon` に対応する Vivliostyle CLI を別途ビルドしてください。これらの機能は Vivliostyle CLI のコミット [`ee08133c`](https://github.com/naoto-aoki-fy/vivliostyle-cli/commit/ee08133c3c538ae9ab5d48ffc00d1552151e9bdd) で確認しました。
+
+ビルド済みのエントリーポイントの絶対パスを指定してデーモンを起動します。ソケットとそのディレクトリーには、現在のユーザーだけがアクセスできる必要があります。
 
 ```bash
 cli=/absolute/path/to/vivliostyle-cli/dist/cli.js
@@ -97,57 +88,25 @@ printf '%s\n' "$daemon_dir"
 node "$cli" build-daemon --standalone --socket "$daemon_dir/daemon.sock"
 ```
 
-デーモンの準備完了が表示されたら、別のターミナルで表示されたパスを `daemon_dir` に設定します。変換は文書ごとに、その文書のディレクトリーから実行します。
+デーモンの準備完了が表示されたら、別のターミナルで表示されたパスを `daemon_dir` に設定します。pfpdf をローカルインストールした場合は、その npm プロジェクトから次のコマンドを実行します。`--input` と `--output` には別のディレクトリーのパスも指定できます。pfpdf に `PATH` が通っている場合は、任意の文書ディレクトリーから直接実行できます。
 
 ```bash
-pfpdf --input first.md --output first.pdf --vivliostyle-daemon "$daemon_dir/daemon.sock"
-pfpdf --input second.md --output second.pdf --vivliostyle-daemon "$daemon_dir/daemon.sock"
+npm exec -- pfpdf --input first.md --output first.pdf --vivliostyle-daemon "$daemon_dir/daemon.sock"
+npm exec -- pfpdf --input second.md --output second.pdf --vivliostyle-daemon "$daemon_dir/daemon.sock"
 ```
 
-ソケットの相対パスは、pfpdf の起動時のディレクトリーを基準に解決します。ソケットとそのディレクトリーには現在のユーザーだけがアクセスできる必要があります。`--print-effective-config` は設定されたソケットを表示し、`--doctor` は接続とプロトコルの互換性を確認します。`--browser-path` も指定した場合は、単発のビルドでブラウザーの起動も確認します。変換が終わったら、デーモンのターミナルで Ctrl+C を押し、空になったディレクトリーを `rmdir "$daemon_dir"` で削除します。
+pfpdf はデーモンの `describe` 応答から CLI のエントリーポイントと作業ディレクトリーを取得します。その CLI を `build --build-daemon` で起動し、Vivliostyle のビルドプロセスとブラウザーを再利用します。`--vivliostyle-cli` は単発変換で指定します。
 
-### 7.4.2 ワーカーとデーモンを手動で起動する
+`--print-effective-config` は設定されたソケットを表示します。`--doctor --vivliostyle-daemon SOCKET` は接続とプロトコルを検証し、デーモンが停止中の場合や非互換な応答を受け取った場合は `fail` を返します。ソケットが `pass` ならセッション情報の取得に成功しています。PDF の出力は実際に変換して確認してください。`--doctor` に `--browser-path` も指定すると、別途、単発ビルドでブラウザーを検査します。
 
-`build-worker`、`build-daemon`、`build --build-daemon` に対応する CLI では、サービスを手動で管理できます。`--vivliostyle-cli` で CLI を、`--vivliostyle-daemon-dir` でデーモンディレクトリーを指定します。これらのオプションと `--vivliostyle-daemon` は併用できません。単発の変換でこの CLI を使う場合は、`--vivliostyle-cli "$cli"` だけを指定します。
-
-所有者だけがアクセスできるディレクトリーと、その中に専用の `context` ディレクトリーを作ります。先にワーカーを起動します。
-
-```bash
-cli=/absolute/path/to/vivliostyle-cli/dist/cli.js
-daemon_dir=$(mktemp -d /tmp/pfpdf-vs.XXXXXXXX)
-chmod 700 "$daemon_dir"
-mkdir -m 700 "$daemon_dir/context"
-printf '%s\n' "$daemon_dir"
-node "$cli" build-worker --socket "$daemon_dir/worker.sock"
-```
-
-ワーカーの準備完了が表示されたら、別のターミナルを開きます。`cli` と `daemon_dir` に同じ絶対パスを設定し、`context` からデーモンを起動します。
-
-```bash
-cd "$daemon_dir/context"
-node "$cli" build-daemon --socket "$daemon_dir/daemon.sock" \
-  --browser-worker "$daemon_dir/worker.sock"
-```
-
-デーモンの準備完了が表示されたら、3 つ目のターミナルで文書のあるディレクトリーから変換します。`cli` と `daemon_dir` には同じ絶対パスを設定します。
-
-```bash
-pfpdf --input first.md --output first.pdf \
-  --vivliostyle-cli "$cli" --vivliostyle-daemon-dir "$daemon_dir"
-pfpdf --input second.md --output second.pdf \
-  --vivliostyle-cli "$cli" --vivliostyle-daemon-dir "$daemon_dir"
-```
-
-Vivliostyle の 2 つのオプションの相対パスは、pfpdf の起動時のディレクトリーを基準に解決します。`--print-effective-config` には両方の設定と設定元が表示されます。`--doctor` は指定した CLI、`context`、ソケットを検査し、ブラウザーの起動確認には指定した CLI での単発ビルドを使います。
-
-変換が終わったら、先にデーモンのターミナルで Ctrl+C を押し、終了を待ちます。次にワーカーのターミナルで Ctrl+C を押し、終了を待ちます。空になったディレクトリーは `rmdir "$daemon_dir/context" "$daemon_dir"` で削除できます。
+変換が終わったら、デーモンのターミナルで Ctrl+C を押し、空になったディレクトリーを `rmdir "$daemon_dir"` で削除します。
 
 ## 7.5 タイムアウト
 
 デーモンへの接続とキューでの待機、ブラウザーの確認と初回取得、描画開始の準備、PDF の描画・後処理・構造検査にかかる合計時間には、既定で 300,000 ms（5 分）のタイムアウトがあります。大きな文書や低速な初回ダウンロードで不足する場合だけ、1,000 から 3,600,000 ms の範囲で変更します。`0` など無期限にする値は使えません。
 
 ```bash
-npx pfpdf --input docs --output docs.pdf \
+npm exec -- pfpdf --input docs --output docs.pdf \
   --render-timeout-ms 600000
 ```
 
@@ -162,7 +121,7 @@ CI などで同じ入力から同じ結果を得たい場合は、環境変数 `
 
 ```bash
 SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) \
-  npx pfpdf --input docs --output docs.pdf
+  npm exec -- pfpdf --input docs --output docs.pdf
 ```
 
 ## 7.7 デバッグ

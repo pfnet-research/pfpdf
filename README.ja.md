@@ -14,7 +14,7 @@ pfpdfは、Markdown文書から日本語組版に対応したPDFを生成する�
 
 ## 最初のPDF
 
-Node.js 22.12.0以上とnpmを用意します。
+Node.js 22.12.0以上とnpmを用意します。下の`npx`コマンドでpfpdfを取得して実行できます。
 
 次の内容を`document.md`に保存します。先頭の`---`で囲んだ設定欄（フロントマター）で、タイトルとテンプレートを指定しています。
 
@@ -29,33 +29,26 @@ template: pfn
 これは**pfpdf**で作るPDFです。
 ```
 
-`document.md`を保存したディレクトリーで、pfpdfと標準版のVivliostyle CLIを同じnpmプロジェクトにインストールして実行します。
+`document.md`を保存したディレクトリーで、次のコマンドを実行します。
 
 ```bash
-npm install @pfnet-research/pfpdf @vivliostyle/cli@11.5.0
-npx pfpdf --input document.md --output document.pdf
+npx @pfnet-research/pfpdf@latest --input document.md --output document.pdf
 ```
 
-インストールと初回のChromium取得にはインターネット接続が必要です。Chromiumのダウンロードには数百MBの通信が発生することがあります。2回目以降は保存済みのブラウザーを再利用します。
-
-改変版を使う場合は、pfpdfをインストールし、ビルド済みの`dist/cli.js`を指定します。
-
-```bash
-npm install @pfnet-research/pfpdf
-npx pfpdf --input document.md --output document.pdf \
-  --vivliostyle-cli ../vivliostyle-cli/dist/cli.js
-```
+初回はnpmパッケージと描画用ブラウザーのChromiumを取得するため、インターネット接続が必要です。Chromiumのダウンロードには数百MBの通信が発生することがあります。2回目以降は保存済みのブラウザーを再利用します。PDFの描画には[Vivliostyle CLI](https://github.com/vivliostyle/vivliostyle-cli)を使います。
 
 生成された`document.pdf`を開くと、タイトルの入った表紙、目次、本文を確認できます。
 
-CIや再現性が必要なビルドでは、インストール時にpfpdfのバージョンを固定し、コミットしたロックファイルを使って`npm ci`を実行してください。
+CIや繰り返し実行するビルド手順では、`@latest`を`@0.2.1`のような指定に置き換え、バージョンを固定してください。
+
+単発変換に使う Vivliostyle CLI 11.5.0 は pfpdf の依存関係として導入されます。`--vivliostyle-cli` でビルド済みの CLI を選ぶ方法や、`--vivliostyle-daemon` で起動済みのスタンドアロンデーモンに接続する方法は、[CLI とレンダラー](docs/tutorial.ja/07_cli-and-renderers.md#74-レンダラー)を参照してください。
 
 ## 複数ファイルの結合
 
 章ごとにファイルを分ける場合は、`chapters/`などのディレクトリーにまとめ、`--input`に指定します。
 
 ```bash
-npx pfpdf --input chapters --output report.pdf
+npx @pfnet-research/pfpdf@latest --input chapters --output report.pdf
 ```
 
 直下の`.md`ファイル（拡張子は小文字）をファイル名順に結合します。`00_title.md`、`01_intro.md`、`02_results.md`のように番号を付けると、読む順序を指定できます。共通の設定は、最初のファイルの先頭にフロントマターとしてまとめて書いてください。章の間のリンク、改ページ、画像のパスは[文書の構成](docs/tutorial.ja/02_document-structure.md)を参照してください。
@@ -82,7 +75,7 @@ CIでは、次の4環境で実際のブラウザーを使ったPDF生成を検�
 LinuxではChromiumの実行にシステムライブラリーも必要です。変換に失敗したときは、次のコマンドで環境を診断してください。
 
 ```bash
-npx pfpdf --doctor
+npx @pfnet-research/pfpdf@latest --doctor
 ```
 
 Node.js、ブラウザー、フォントなどの問題と対処方法が表示されます。Linuxの環境設定や、その他の変換エラーへの対処は[トラブルシューティング](docs/tutorial.ja/08_troubleshooting.md)を参照してください。

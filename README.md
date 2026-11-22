@@ -19,7 +19,8 @@ shows sample output from all seven bundled templates.
 
 ## Create your first PDF
 
-You need Node.js 22.12.0 or later and npm.
+You need Node.js 22.12.0 or later and npm. The `npx` command below downloads and
+runs pfpdf.
 
 Save the following as `document.md`. The settings between `---` delimiters
 (front matter) specify the title, template, and document language.
@@ -36,32 +37,26 @@ lang: en
 This PDF is generated with **pfpdf**.
 ```
 
-Install pfpdf and the standard Vivliostyle CLI in the same npm project. Run both
-commands from the directory containing `document.md`.
+Run this command in the directory containing `document.md`:
 
 ```bash
-npm install @pfnet-research/pfpdf @vivliostyle/cli@11.5.0
-npx pfpdf --input document.md --output document.pdf
+npx @pfnet-research/pfpdf@latest --input document.md --output document.pdf
 ```
 
-Installation and the initial Chromium download require an internet connection.
-The browser download can be several hundred megabytes. Later runs reuse the
-cached browser.
-
-To use a modified Vivliostyle build, install pfpdf and pass the built
-`dist/cli.js` directly.
-
-```bash
-npm install @pfnet-research/pfpdf
-npx pfpdf --input document.md --output document.pdf \
-  --vivliostyle-cli ../vivliostyle-cli/dist/cli.js
-```
+The first run needs an internet connection to fetch the npm package and Chromium,
+the browser used for PDF rendering. The browser download can be several hundred
+megabytes; later runs reuse the cached browser. Rendering uses
+[Vivliostyle CLI](https://github.com/vivliostyle/vivliostyle-cli).
 
 Open `document.pdf` to check the result: it contains a cover with the title, a
 table of contents, and the body text.
 
-For CI or repeatable builds, pin pfpdf to a specific version at installation and
-use `npm ci` with the committed lockfile.
+For CI or build steps you run repeatedly, pin the package version by replacing
+`@latest` with a version such as `@0.2.1`.
+
+pfpdf installs Vivliostyle CLI 11.5.0 for one-off conversions. Use
+`--vivliostyle-cli` to select a built CLI or `--vivliostyle-daemon` to connect to a
+running standalone daemon. [CLI and renderers](docs/tutorial.en/07_cli-and-renderers.md#74-renderer)
 
 ## Combine chapters
 
@@ -69,7 +64,7 @@ To write chapters in separate files, put them in a directory such as `chapters/`
 and pass that directory to `--input`:
 
 ```bash
-npx pfpdf --input chapters --output report.pdf
+npx @pfnet-research/pfpdf@latest --input chapters --output report.pdf
 ```
 
 pfpdf combines `.md` files directly inside the directory in filename order; the
@@ -106,7 +101,7 @@ Linux also needs system libraries for Chromium. If conversion fails, run the
 environment check:
 
 ```bash
-npx pfpdf --doctor
+npx @pfnet-research/pfpdf@latest --doctor
 ```
 
 The check reports problems with Node.js, the browser, and fonts, along with

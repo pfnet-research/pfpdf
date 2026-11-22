@@ -23,8 +23,6 @@ Options:
   --vivliostyle-cli PATH   Vivliostyle JavaScript entry point
   --vivliostyle-daemon SOCKET
                            use a running standalone daemon on Linux or macOS
-  --vivliostyle-daemon-dir DIR
-                           Use a running daemon on Linux or macOS
   --render-timeout-ms N    Time limit from renderer preparation through PDF inspection; default: 300000 ms
   --keep-work-dir          Keep the temporary working directory
   --strict-front-matter    Reject unknown front matter keys; default: warn and ignore
@@ -51,7 +49,7 @@ Runtime settings such as the browser, font directories, timeout, logging, and wo
 `--print-effective-config` outputs the effective settings and the source of each value as a JSON object with a versioned schema. When `--input` is also specified, it reflects front matter `template` / `toc` / `cover` / `logo` values and reports their source as `front-matter`.
 
 ```bash
-npx pfpdf --input docs --print-effective-config
+npm exec -- pfpdf --input docs --print-effective-config
 ```
 
 ## 7.3 Exit codes
@@ -68,27 +66,20 @@ pfpdf never reports success for a partial PDF. It creates a temporary file in th
 
 ## 7.4 Renderer
 
-By default, pfpdf uses the Vivliostyle CLI installed in the npm project where you run the command. Install both packages as described in Chapter 01. To use a modified Vivliostyle CLI, install pfpdf and pass the path to the built `dist/cli.js`.
+By default, pfpdf runs a one-off conversion using Vivliostyle CLI 11.5.0 from its own installation. The CLI fetches and caches its browser on first use. Pass `--browser-path` to use an existing compatible browser.
+
+To select a different CLI for one-off conversions, pass its built JavaScript entry point. Relative paths are resolved from the directory where pfpdf starts.
 
 ```bash
-npm install @pfnet-research/pfpdf
-npx pfpdf --input docs --output docs.pdf \
-  --vivliostyle-cli ../vivliostyle-cli/dist/cli.js
-```
-
-When pfpdf cannot find the CLI, conversion and `--doctor` return exit code `1` with instructions to install it or specify its path.
-
-- The browser is fetched automatically on first run and cached thereafter
-- To use an existing compatible browser, specify it with `--browser-path`
-
-```bash
-npx pfpdf --input docs --output docs.pdf \
-  --browser-path /usr/bin/chromium
+npm exec -- pfpdf --input docs --output docs.pdf \
+  --vivliostyle-cli ../vivliostyle-cli/dist/cli.js --browser-path /usr/bin/chromium
 ```
 
 ### 7.4.1 Reuse Vivliostyle across conversions
 
-On Linux and macOS, a compatible Vivliostyle CLI can keep its Node.js build process and Chromium running between conversions. Set `cli` to the absolute path of a CLI build that supports `build-daemon --standalone`.
+Persistent mode is available on Linux and macOS. Use a separately built Vivliostyle CLI that supports `build-daemon --standalone`, the `describe` session protocol, and `build --build-daemon`. These features were verified with Vivliostyle CLI commit [`ee08133c`](https://github.com/naoto-aoki-fy/vivliostyle-cli/commit/ee08133c3c538ae9ab5d48ffc00d1552151e9bdd).
+
+Start the daemon with the absolute path to its built entry point. The socket and its directory must be accessible only to your user.
 
 ```bash
 cli=/absolute/path/to/vivliostyle-cli/dist/cli.js
@@ -97,57 +88,25 @@ printf '%s\n' "$daemon_dir"
 node "$cli" build-daemon --standalone --socket "$daemon_dir/daemon.sock"
 ```
 
-After the daemon reports that it is ready, set `daemon_dir` to the printed path in another terminal. Run each conversion from its document directory.
+After the daemon reports that it is ready, set `daemon_dir` to the printed path in another terminal. If you installed pfpdf locally, run the following commands from that npm project. You can point `--input` and `--output` to documents in another directory. If pfpdf is already on your `PATH`, you can call it directly from any document directory.
 
 ```bash
-pfpdf --input first.md --output first.pdf --vivliostyle-daemon "$daemon_dir/daemon.sock"
-pfpdf --input second.md --output second.pdf --vivliostyle-daemon "$daemon_dir/daemon.sock"
+npm exec -- pfpdf --input first.md --output first.pdf --vivliostyle-daemon "$daemon_dir/daemon.sock"
+npm exec -- pfpdf --input second.md --output second.pdf --vivliostyle-daemon "$daemon_dir/daemon.sock"
 ```
 
-pfpdf resolves relative socket paths from its startup directory. The socket directory and socket must be accessible only to the current user. `--print-effective-config` shows the configured socket, and `--doctor` checks the connection and protocol. With `--browser-path`, the doctor also runs a one-off browser launch check. Press Ctrl+C in the daemon terminal when finished, then remove the empty socket directory with `rmdir "$daemon_dir"`.
+pfpdf discovers the CLI entry point and working directory from the daemon's `describe` response. It launches that CLI with `build --build-daemon`, allowing Vivliostyle to reuse the build process and browser. Pass `--vivliostyle-cli` only for one-off conversions.
 
-### 7.4.2 Start the worker and daemon manually
+`--print-effective-config` shows the configured socket. `--doctor --vivliostyle-daemon SOCKET` verifies the connection and protocol, reporting `fail` for a stopped daemon or an incompatible reply. A passing socket check covers session discovery only. Run a conversion to verify PDF output. Adding `--browser-path` to `--doctor` runs a separate one-off browser probe.
 
-Use a CLI build that supports `build-worker`, `build-daemon`, and `build --build-daemon` to manage the services yourself. Select the CLI with `--vivliostyle-cli` and the daemon directory with `--vivliostyle-daemon-dir`. Use these options separately from `--vivliostyle-daemon`. You can also pass `--vivliostyle-cli "$cli"` by itself for a one-off build.
-
-Create a directory accessible only to your user, with a dedicated `context` subdirectory. Start the worker first.
-
-```bash
-cli=/absolute/path/to/vivliostyle-cli/dist/cli.js
-daemon_dir=$(mktemp -d /tmp/pfpdf-vs.XXXXXXXX)
-chmod 700 "$daemon_dir"
-mkdir -m 700 "$daemon_dir/context"
-printf '%s\n' "$daemon_dir"
-node "$cli" build-worker --socket "$daemon_dir/worker.sock"
-```
-
-After the worker reports that it is ready, open another terminal. Set `cli` and `daemon_dir` to the same absolute paths and start the daemon from `context`.
-
-```bash
-cd "$daemon_dir/context"
-node "$cli" build-daemon --socket "$daemon_dir/daemon.sock" \
-  --browser-worker "$daemon_dir/worker.sock"
-```
-
-After the daemon reports that it is ready, run conversions from your document directory in a third terminal. Set the same `cli` and `daemon_dir` again.
-
-```bash
-pfpdf --input first.md --output first.pdf \
-  --vivliostyle-cli "$cli" --vivliostyle-daemon-dir "$daemon_dir"
-pfpdf --input second.md --output second.pdf \
-  --vivliostyle-cli "$cli" --vivliostyle-daemon-dir "$daemon_dir"
-```
-
-Both Vivliostyle options resolve relative paths from the directory where pfpdf starts. `--print-effective-config` lists both settings and their sources. `--doctor` checks the selected CLI, `context`, and the socket, and uses a one-off build of that CLI for the browser launch check.
-
-When finished, press Ctrl+C in the daemon terminal first and wait for it to exit. Then press Ctrl+C in the worker terminal and wait for it to exit. Remove the empty directories with `rmdir "$daemon_dir/context" "$daemon_dir"`.
+Press Ctrl+C in the daemon terminal when finished, then remove the empty directory with `rmdir "$daemon_dir"`.
 
 ## 7.5 Timeouts
 
 The default timeout of 300,000 ms (five minutes) covers daemon discovery and queueing, browser verification and initial download, waiting for the document to be ready, PDF rendering, post-processing, and structural inspection. If a large document or slow initial download needs more time, choose a value from 1,000 to 3,600,000 ms. Unlimited values such as `0` are not accepted.
 
 ```bash
-npx pfpdf --input docs --output docs.pdf \
+npm exec -- pfpdf --input docs --output docs.pdf \
   --render-timeout-ms 600000
 ```
 
@@ -162,7 +121,7 @@ The PDF metadata timestamps are separate from the display `date` in front matter
 
 ```bash
 SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) \
-  npx pfpdf --input docs --output docs.pdf
+  npm exec -- pfpdf --input docs --output docs.pdf
 ```
 
 ## 7.7 Debugging

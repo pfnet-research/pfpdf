@@ -15,12 +15,7 @@ import type { PreparedTemplate } from './template.js';
 import { RepositoryResolver } from './repository.js';
 import { resolveInput, type ResolvedInput } from './input.js';
 import { MIN_NODE, runtimeIsSupported } from './runtime.js';
-import {
-  rendererChildEnv,
-  resolveVivliostyleCli,
-  validateDaemonContext,
-  validateDaemonSocket,
-} from './renderer.js';
+import { rendererChildEnv, resolveVivliostyleCli } from './renderer.js';
 
 interface Check {
   id: string;
@@ -89,7 +84,11 @@ async function runDoctorWithResolver(
         Date.now() + Math.min(10_000, config.renderTimeoutMs.value),
       );
       vivliostyleCli = session.cliPath;
-      add('vivliostyle-daemon-socket', 'pass', `compatible daemon at ${standaloneSocket}`);
+      add(
+        'vivliostyle-daemon-socket',
+        'pass',
+        `standalone describe handshake succeeded at ${standaloneSocket} (connection and protocol only)`,
+      );
       add('vivliostyle-cli', 'pass', session.cliPath);
     } catch (error) {
       add('vivliostyle-daemon-socket', 'fail', (error as Error).message);
@@ -97,23 +96,11 @@ async function runDoctorWithResolver(
     }
   } else {
     try {
-      const cli = resolveVivliostyleCli(config.vivliostyleCliAbs, config.cwd);
+      const cli = resolveVivliostyleCli(config.vivliostyleCliAbs);
       vivliostyleCli = cli;
       add('vivliostyle-cli', 'pass', cli);
     } catch (e) {
       add('vivliostyle-cli', 'fail', (e as Error).message);
-    }
-  }
-  if (config.vivliostyleDaemonDirAbs !== null) {
-    for (const [id, validate] of [
-      ['vivliostyle-daemon-context', validateDaemonContext],
-      ['vivliostyle-daemon-socket', validateDaemonSocket],
-    ] as const) {
-      try {
-        add(id, 'pass', validate(config.vivliostyleDaemonDirAbs));
-      } catch (error) {
-        add(id, 'fail', (error as Error).message);
-      }
     }
   }
 

@@ -34,7 +34,7 @@ template: pfn
 Pass `--template` when you temporarily want a different appearance. The CLI selection overrides front matter.
 
 ```bash
-npx pfpdf --input docs --output docs.pdf --template pfn
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
 ```
 
 Front matter can select bundled templates only. CLI `--template SOURCE` treats an exact match for a bundled preset name as that preset, and any other value as a local directory or Git locator. Use `--template-preset` to explicitly select a bundled preset. The built-in `default` is overridden by front matter, which is overridden by CLI arguments.
@@ -66,7 +66,7 @@ logo: assets/logo.png
 `logo: false` hides the logo, including any template default. Use CLI `--logo` to retrieve a logo from a Git locator or to temporarily override the selection.
 
 ```bash
-npx pfpdf --input docs --output docs.pdf \
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --template pfn --logo assets/logo.png
 ```
 
@@ -77,7 +77,7 @@ npx pfpdf --input docs --output docs.pdf \
 
 ```make
 docs.pdf: $(wildcard docs/*.md)
-	npx pfpdf --input docs --output $@ \
+	npx --yes @pfnet-research/pfpdf@0.4.0 --input docs --output $@ \
 	  --template pfn --logo assets/logo.png
 ```
 
@@ -93,7 +93,7 @@ my-template/
 ```
 
 ```bash
-npx pfpdf --input docs --output docs.pdf --template ./my-template
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template ./my-template
 ```
 
 - Custom templates are treated as trusted local code and can run raw HTML and scripts
@@ -133,14 +133,14 @@ To provide a default logo, add a `src` attribute to the `logo` slot, such as `sr
 A template can be retrieved directly from a subdirectory in a Git repository, and a logo from a file. `//` separates the repository URL from its internal path, and `ref` selects the revision.
 
 ```bash
-npx pfpdf --input docs --output docs.pdf \
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --template 'git::https://github.com/example/pdf-assets.git//templates/corporate?ref=0123456789abcdef0123456789abcdef01234567'
 ```
 
 This example overrides the default with a logo from another repository.
 
 ```bash
-npx pfpdf --input docs --output docs.pdf \
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --template pfn \
   --logo 'git::ssh://git@example.com/pdf-assets.git//logos/brand/main.svg?ref=v2.0.0'
 ```
@@ -167,10 +167,10 @@ To use fonts installed on the OS, enable them explicitly through the CLI.
 
 ```bash
 # Search the OS standard font directories
-npx pfpdf --input docs --output docs.pdf --host-fonts
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --host-fonts
 
 # Add only specific directories (also works without --host-fonts)
-npx pfpdf --input docs --output docs.pdf --font-dir ~/my-fonts
+npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --font-dir ~/my-fonts
 ```
 
 - `--font-dir` can be specified multiple times

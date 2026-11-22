@@ -5,7 +5,7 @@
 問題が起きたら、最初に `--doctor` を実行してください。
 
 ```bash
-npx pfpdf --doctor
+npx @pfnet-research/pfpdf@latest --doctor
 ```
 
 Node.js のバージョン、ブラウザーの有無、フォント、出力先の権限などを検査し、問題を対処方法とともに報告します。`--input` / `--output` を付けて実行すると、その文書のリソースと書き込み先も検査します。結果は、バージョン付きスキーマの JSON オブジェクト 1 個として標準出力（stdout）へ出すため、CI でも解析できます。通常のログは標準エラー出力（stderr）へ出します。
@@ -28,7 +28,7 @@ pfpdf は起動直後に Node.js のバージョンを検査し、対応範囲�
 
 ## 8.3 ブラウザーのダウンロードが失敗する
 
-初回実行時には、選択した Vivliostyle CLI のブラウザーマネージャーが Chromium を取得します。
+初回実行時の Chromium は、同梱の Vivliostyle CLI とそのブラウザーマネージャーの標準機構で取得します。
 
 - プロキシーやカスタム CA が必要な環境では、Vivliostyle CLI / Puppeteer の手順に従って設定してください
 - 既に互換性のあるブラウザーがある場合は、`--browser-path` で明示できます

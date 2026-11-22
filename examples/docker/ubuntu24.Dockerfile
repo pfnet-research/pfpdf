@@ -22,8 +22,6 @@ COPY resources/ ./resources/
 RUN npm run build
 
 ENV HOME=/tmp XDG_CACHE_HOME=/cache
-WORKDIR /work
-RUN mkdir -p node_modules/@vivliostyle \
-    && ln -s /opt/pfpdf/node_modules/@vivliostyle/cli node_modules/@vivliostyle/cli
 USER 10001:10001
+WORKDIR /work
 ENTRYPOINT ["node", "/opt/pfpdf/dist/launcher.js"]

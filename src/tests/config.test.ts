@@ -77,11 +77,10 @@ test('front matter can explicitly disable the logo', () => {
   assert.equal(config.logoAbs, null);
 });
 
-test('standalone daemon resolves the socket and rejects the manual options', () => {
+test('standalone daemon resolves the socket and rejects the one-off CLI override', () => {
   const args = ['--print-effective-config', '--vivliostyle-daemon', './private/daemon.sock'];
-  for (const option of ['--vivliostyle-cli', '--vivliostyle-daemon-dir']) {
-    assert.throws(() => resolveConfig([...args, option, './path'], cwd), /may not be combined/);
-  }
+  assert.throws(() => resolveConfig([...args, '--vivliostyle-cli', './path'], cwd), /may not be combined/);
+  assert.throws(() => resolveConfig(['--doctor', '--vivliostyle-daemon-dir', './path'], cwd), /unknown option/);
   if (process.platform !== 'linux' && process.platform !== 'darwin') {
     assert.throws(() => resolveConfig(args, cwd), /Linux and macOS/);
     return;
@@ -109,36 +108,21 @@ test('effective configuration uses schema version 5 and records front matter', (
   assert.equal(result.config.toc.source, 'front-matter');
 });
 
-test('Vivliostyle paths resolve from startup cwd and retain their sources in schema 5', () => {
+test('the one-off Vivliostyle override resolves from startup cwd and retains its source', () => {
   const defaults = resolveConfig(['--print-effective-config'], cwd);
   assert.deepEqual(defaults.vivliostyleCli, { value: null, source: 'default' });
-  assert.deepEqual(defaults.vivliostyleDaemonDir, { value: null, source: 'default' });
+  assert.deepEqual(defaults.vivliostyleDaemon, { value: null, source: 'default' });
   const cli = './Vivliostyle checkout/dist/cli.js';
-  const daemonDir = './render sessions';
-  const args = ['--print-effective-config', '--vivliostyle-cli', cli];
-  assert.equal(resolveConfig(args, cwd).vivliostyleCliAbs, path.resolve(cwd, cli));
-  if (process.platform !== 'linux' && process.platform !== 'darwin') {
-    assert.throws(() => resolveConfig([...args, '--vivliostyle-daemon-dir', daemonDir], cwd), /Linux and macOS/);
-    return;
-  }
-  const config = resolveConfig([...args, '--vivliostyle-daemon-dir', daemonDir], cwd);
+  const config = resolveConfig(['--print-effective-config', '--vivliostyle-cli', cli], cwd);
   assert.equal(config.vivliostyleCliAbs, path.resolve(cwd, cli));
-  assert.equal(config.vivliostyleDaemonDirAbs, path.resolve(cwd, daemonDir));
   const result = JSON.parse(effectiveConfigJson(config)) as {
-    schemaVersion: number;
-    config: Pick<typeof config, 'vivliostyleCli' | 'vivliostyleDaemonDir'>;
+    config: Pick<typeof config, 'vivliostyleCli'>;
   };
-  assert.equal(result.schemaVersion, 5);
   assert.deepEqual(result.config.vivliostyleCli, { value: cli, source: 'cli' });
-  assert.deepEqual(result.config.vivliostyleDaemonDir, { value: daemonDir, source: 'cli' });
-  assert.throws(
-    () => resolveConfig(['--doctor', '--vivliostyle-daemon-dir', daemonDir], cwd),
-    /requires --vivliostyle-cli/,
-  );
 });
 
 test('Vivliostyle path options reject empty, missing, and repeated values', () => {
-  for (const option of ['--vivliostyle-cli', '--vivliostyle-daemon-dir']) {
+  for (const option of ['--vivliostyle-cli', '--vivliostyle-daemon']) {
     assert.throws(() => resolveConfig(['--doctor', option], cwd), /missing value/);
     assert.throws(() => resolveConfig(['--doctor', option, ''], cwd), /empty path/);
     assert.throws(() => resolveConfig(['--doctor', option, 'a', option, 'b'], cwd), /may not be repeated/);

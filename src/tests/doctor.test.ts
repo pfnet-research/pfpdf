@@ -1,11 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { once } from 'node:events';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { browserFailureDetail } from '../doctor.js';
+import { resolveConfig } from '../config.js';
+import { browserFailureDetail, runDoctor } from '../doctor.js';
 
 const cliPath = fileURLToPath(new URL('../launcher.js', import.meta.url));
 
@@ -108,9 +111,7 @@ test('doctor keeps browser stderr inside one JSON result and cleans the isolated
   assert.equal(fs.existsSync(path.dirname(cwd)), false);
 });
 
-test('doctor checks persistent paths and probes the selected CLI with a one-off build', {
-  skip: process.platform !== 'linux' && process.platform !== 'darwin',
-}, (t) => {
+test('doctor probes an explicit CLI with a one-off build', (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-doctor-vivliostyle-'));
   t.after(() => { fs.rmSync(dir, { recursive: true, force: true }); });
   const selected = path.join(dir, 'selected.cjs');
@@ -121,11 +122,9 @@ test('doctor checks persistent paths and probes the selected CLI with a one-off 
     console.error('selected CLI browser diagnostic');
     process.exitCode = 1;
   `);
-  fs.mkdirSync(path.join(dir, 'context'));
-  fs.writeFileSync(path.join(dir, 'daemon.sock'), 'not a Unix socket');
   const child = spawnSync(process.execPath, [
     cliPath, '--doctor', '--vivliostyle-cli', 'selected.cjs',
-    '--vivliostyle-daemon-dir', '.', '--browser-path', process.execPath,
+    '--browser-path', process.execPath,
   ], { cwd: dir, encoding: 'utf8', timeout: 20000 });
   assert.equal(child.status, 1, child.stderr);
   const report = JSON.parse(child.stdout) as {
@@ -135,13 +134,60 @@ test('doctor checks persistent paths and probes the selected CLI with a one-off 
   const checks = new Map(report.checks.map((check) => [check.id, check]));
   assert.equal(report.schemaVersion, 2);
   assert.equal(checks.get('vivliostyle-cli')?.status, 'pass');
-  assert.equal(checks.get('vivliostyle-daemon-context')?.status, 'pass');
-  assert.equal(checks.get('vivliostyle-daemon-socket')?.status, 'fail');
-  assert.match(checks.get('vivliostyle-daemon-socket')!.message, /expected a Unix socket/);
   assert.match(checks.get('browser')!.message, /selected CLI browser diagnostic/);
   const invocation = JSON.parse(fs.readFileSync(record, 'utf8')) as { cwd: string; args: string[] };
   assert.equal(path.basename(invocation.cwd), 'vivliostyle-context');
   assert.equal(invocation.args[0], 'build');
   assert.ok(invocation.args.includes('--executable-browser'));
   assert.ok(!invocation.args.includes('--build-daemon'));
+});
+
+test('doctor distinguishes a stopped daemon, incompatible protocol, and a successful describe check', {
+  skip: process.platform !== 'linux' && process.platform !== 'darwin',
+}, async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-doctor-daemon-'));
+  t.after(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+  const socketPath = path.join(dir, 'daemon.sock');
+  const advertisedCli = path.join(dir, 'cli.cjs');
+  fs.writeFileSync(advertisedCli, 'throw new Error("doctor must only use describe");');
+  const config = resolveConfig(['--doctor', '--vivliostyle-daemon', socketPath], dir);
+  const check = async () => {
+    const { exitCode, json } = await runDoctor(config);
+    const report = JSON.parse(json) as {
+      checks: Array<{ id: string; status: string; message: string }>;
+    };
+    const checks = new Map(report.checks.map((entry) => [entry.id, entry]));
+    return { exitCode, checks, socket: checks.get('vivliostyle-daemon-socket')! };
+  };
+  const stopped = await check();
+  assert.equal(stopped.exitCode, 1);
+  assert.equal(stopped.socket.status, 'fail');
+  assert.match(stopped.socket.message, /ENOENT/);
+
+  let version = 2;
+  const daemon = net.createServer((connection) => {
+    connection.once('data', () => {
+      const reply = Buffer.from(JSON.stringify({ type: 'session', version, cliPath: advertisedCli, cwd: dir }));
+      const header = Buffer.alloc(4);
+      header.writeUInt32BE(reply.length);
+      connection.end(Buffer.concat([header, reply]));
+    });
+  });
+  t.after(() => { daemon.close(); });
+  daemon.listen(socketPath);
+  await once(daemon, 'listening');
+  fs.chmodSync(socketPath, 0o600);
+  const incompatible = await check();
+  assert.equal(incompatible.exitCode, 1);
+  assert.equal(incompatible.socket.status, 'fail');
+  assert.match(incompatible.socket.message, /incompatible daemon session protocol/);
+  assert.equal(incompatible.checks.get('vivliostyle-cli')?.status, 'not-run');
+
+  version = 1;
+  const compatible = await check();
+  assert.equal(compatible.exitCode, 0);
+  assert.equal(compatible.socket.status, 'pass');
+  assert.match(compatible.socket.message, /connection and protocol only/);
+  assert.equal(compatible.checks.get('vivliostyle-cli')?.message, advertisedCli);
+  assert.equal(compatible.checks.get('browser')?.status, 'not-run');
 });

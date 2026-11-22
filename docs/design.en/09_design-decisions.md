@@ -656,27 +656,8 @@ Each decision follows this format:
 
 ## DD-58: Opt in to an externally managed Vivliostyle daemon
 
-- Status: Accepted (2026-11-20)
-- Problem: Successive conversions each start a Vivliostyle build process and Chromium
-- Options: (a) upgrade the bundled dependency and manage daemons inside pfpdf, (b) use each invocation's directory as the daemon context, (c) let callers supply a compatible CLI and daemon directory
-- Adopted: (c). Use the same CLI for the caller-managed worker and daemon and for pfpdf's client. A dedicated `context` directory keeps the daemon's working directory consistent across conversions. The asset server, intermediate PDF, and final output commit are shared by both modes
-- Rejection reasons: (a) couples dependency and service lifecycle changes to ordinary conversions. (b) ties each daemon to where a conversion starts and may load unrelated project configuration
-- Verification: Check that queue time counts toward the deadline and that cancellation keeps serving assets until the client closes. Compare page counts and extracted text in two one-off and two daemon builds. Check executor and Chromium PID reuse, `launchMs=0` on the second daemon build, and byte-for-byte preservation of an existing PDF when the daemon is unavailable
-- Reconsideration conditions: A future bundled CLI supports the persistent build protocol and pfpdf needs to manage daemon startup or shutdown
-
-
-## DD-59: Discover standalone Vivliostyle sessions through the daemon socket
-
-- Problem: Starting a worker, creating a context directory, and repeating the CLI and directory paths adds setup to each series of conversions
-- Options: (a) direct discovery over the existing socket, (b) write connection metadata to a separate file, (c) manage the daemon in pfpdf
-- Adopted: (a). Vivliostyle manages the worker and private working directory. pfpdf gets the CLI and working directory from the socket and invokes the existing client with its original build arguments. The same deadline covers discovery and rendering
-- Rejection reasons: (b) adds a file whose lifetime would need to track the daemon. (c) couples service lifecycle management to pfpdf conversions
-- Verification: Check socket permissions and protocol compatibility, reuse the executor and Chromium from separate input directories, and verify cancellation and PDF preservation on failure
-
-## DD-60: Install Vivliostyle CLI separately
-
-- Problem: Installing pfpdf with a modified Vivliostyle build still downloads the standard CLI and its dependencies
-- Options: (a) keep Vivliostyle CLI as a production dependency, (b) declare it as a peer dependency, (c) pin it for development and let users select a separate installation or build
-- Adopted: (c). Use the project-local CLI by default, a built entry point when explicitly specified, and the advertised CLI for standalone daemons
-- Rejection reasons: (a) installs a second renderer for users of a modified build. (b) makes renderer installation depend on npm peer resolution
-- Verification: Install the tarball as a production dependency, check missing-renderer diagnostics, and generate PDFs with both the standard CLI and a modified build
+- Problem: Each one-off conversion starts the Vivliostyle build process and Chromium
+- Options: (a) manage persistent services inside pfpdf, (b) require callers to supply the CLI and a manually prepared working directory, (c) let callers select a standalone daemon by socket
+- Adopted: (c). Keep Vivliostyle CLI as a production dependency for routine one-off conversions and allow an explicit override. For persistent conversions, use `describe` to discover the standalone daemon's CLI and working directory and invoke its existing build client
+- Rejection reasons: (a) ties the service lifecycle to pfpdf. (b) adds manual setup and makes each invocation responsible for keeping the CLI and working directory consistent with the daemon
+- Verification: Compare page counts and extracted text, check executor and browser PID reuse, and cancel a queued conversion while another conversion runs. Check that the existing PDF is preserved and that a subsequent conversion succeeds on the same daemon

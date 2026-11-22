@@ -5,7 +5,7 @@ pinned in `package-lock.json`.
 
 | Component | Role | License | Source |
 |---|---|---|---|
-| Vivliostyle CLI (`@vivliostyle/cli`) | External PDF renderer, pinned for development and testing | AGPL-3.0 | https://github.com/vivliostyle/vivliostyle-cli |
+| Vivliostyle CLI (`@vivliostyle/cli`) | PDF rendering (child process) | AGPL-3.0 | https://github.com/vivliostyle/vivliostyle-cli |
 | Chromium | Browser engine managed by Vivliostyle CLI | BSD-3-Clause and others | https://www.chromium.org/ |
 | MathJax (`mathjax-full`) | TeX math rendering (build-time SVG) | Apache-2.0 | https://github.com/mathjax/MathJax-src |
 | Mermaid / isomorphic-mermaid | Mermaid diagram rendering (build-time SVG) | MIT | https://github.com/mermaid-js/mermaid / https://github.com/tani/isomorphic-mermaid |

@@ -15,12 +15,7 @@ import { ResourceManifest } from './resources.js';
 import { resolveTemplate, buildDocumentHtml, type PreparedTemplate } from './template.js';
 import { resolveFonts } from './fonts.js';
 import { Workspace } from './workspace.js';
-import {
-  renderDocument,
-  resolveVivliostyleCli,
-  validateDaemonContext,
-  validateDaemonSocket,
-} from './renderer.js';
+import { renderDocument, resolveVivliostyleCli } from './renderer.js';
 import { validateOutputPath, ensureOutputParent, commitOutput } from './output.js';
 import { RepositoryResolver } from './repository.js';
 
@@ -176,13 +171,8 @@ export async function runBuild(
 
   const standaloneSocket = config.vivliostyleDaemonAbs ?? undefined;
   const vivliostyleCli = standaloneSocket === undefined
-    ? resolveVivliostyleCli(config.vivliostyleCliAbs, config.cwd)
+    ? resolveVivliostyleCli(config.vivliostyleCliAbs)
     : undefined;
-  const daemonDir = config.vivliostyleDaemonDirAbs;
-  const processCwd = daemonDir === null ? undefined : validateDaemonContext(daemonDir);
-  // A missing socket can mean the daemon is stopped. Let its client report
-  // the connection failure with the renderer diagnostics.
-  const daemonSocket = daemonDir === null ? undefined : validateDaemonSocket(daemonDir, true);
 
   const abortController = new AbortController();
   let interruptedBy: NodeJS.Signals | null = null;
@@ -219,8 +209,13 @@ export async function runBuild(
       if (logical.startsWith('generated/')) workspace.writeFile(logical, content);
     }
 
-    process.on('SIGINT', onSigint);
-    process.on('SIGTERM', onSigterm);
+    if (standaloneSocket === undefined) {
+      process.once('SIGINT', onSigint);
+      process.once('SIGTERM', onSigterm);
+    } else {
+      process.on('SIGINT', onSigint);
+      process.on('SIGTERM', onSigterm);
+    }
     const rendererOutput = path.join(workspace.rendererOutputDir, 'output.pdf');
     const deadline = Date.now() + config.renderTimeoutMs.value;
     await renderDocument({
@@ -228,9 +223,7 @@ export async function runBuild(
       deadline,
       browserPath: config.browserPathAbs,
       vivliostyleCli,
-      daemonSocket,
       standaloneSocket,
-      processCwd,
       logLevel: config.logLevel.value,
       diagnosticsPath: workspace.filePath('renderer-diagnostics.log'),
       warn: log.warn,

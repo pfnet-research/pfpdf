@@ -178,8 +178,6 @@ Options:
   --vivliostyle-cli PATH   Vivliostyle の JavaScript エントリーポイント
   --vivliostyle-daemon SOCKET
                            Linux または macOS で起動済みのスタンドアロンデーモンを使う
-  --vivliostyle-daemon-dir DIR
-                           Linux または macOS で起動済みのデーモンを使う
   --render-timeout-ms N    レンダラーの準備から PDF 検査完了まで。既定は 300000
   --keep-work-dir          一時的な作業ディレクトリーを保持する
   --strict-front-matter    未知のフロントマターキーをエラーにする。既定は警告して無視
@@ -254,7 +252,7 @@ Options:
 
 適用後の設定を表す JSON のトップレベルは `schemaVersion: 5` と `command` を持ち、`config.<name> = {"value": ..., "source": "cli|front-matter|default"}` を含みます。スキーマ 5 では設定元の `environment` を削除し、`toc` / `logo` がフロントマターを設定元に持てるようにします。テンプレートの値には `repository` 形式があり、ロゴの値は `template` / `none` / `local` / `repository` のいずれかの形式を持ちます。
 
-`vivliostyleCli`、`vivliostyleDaemon`、`vivliostyleDaemonDir` はスキーマバージョン `5` の実行設定です。それぞれ、指定されたパスと設定元 `cli`、または `null` と設定元 `default` を記録します。実行時には相対パスを pfpdf の起動時のディレクトリーを基準に解決します。
+`vivliostyleCli`、`vivliostyleDaemon` はスキーマバージョン `5` の実行設定です。それぞれ、指定されたパスと設定元 `cli`、または `null` と設定元 `default` を記録します。実行時には相対パスを pfpdf の起動時のディレクトリーを基準に解決します。
 
 `--doctor` の出力は `schemaVersion: 2` のままとし、全体の `status` と `checks[] = {"id": ..., "status": "pass|warning|fail|not-run", "message": ...}` を持ちます。全体の `status` は、1 個でも `fail` があれば `fail`、なければ `warning` があれば `warning`、実行対象が 1 個以上あり、そのすべてが `pass` なら `pass` とします。
 

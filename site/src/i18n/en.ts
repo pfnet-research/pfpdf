@@ -9,7 +9,7 @@ export const en = {
   hero: {
     subcopy:
       'pfpdf typesets Japanese documents with Vivliostyle and Chromium. It supports GFM, math, code highlighting, BibTeX citations, and cover pages.',
-    installNote: 'Use Node.js 22.12.0 or later and npm. Run both commands from the same npm project.',
+    installNote: 'You need Node.js 22.12.0 or later and npm. npx fetches and runs pfpdf without a separate pfpdf installation.',
     getStarted: 'Get Started',
     browseTemplates: 'Browse Templates',
     viewOnGitHub: 'View on GitHub',
@@ -47,7 +47,7 @@ export const en = {
       },
       {
         title: 'Automatic browser download',
-        body: 'Vivliostyle CLI downloads and manages Chromium by default. Use --browser-path to select an existing compatible browser.',
+        body: 'By default, the bundled Vivliostyle CLI downloads and manages Chromium. Use --browser-path to select an existing compatible browser.',
       },
       {
         title: 'PDF generation tested in 4 environments',
@@ -64,11 +64,10 @@ export const en = {
     title: 'Quick start',
     steps: [
       { title: 'Write Markdown', body: 'Write Markdown in a .md file. Optionally set the title, author, and template in front matter at the start of the file.' },
-      { title: 'Install and run pfpdf', body: 'Install both packages as shown above. Run npx pfpdf from the same project, with --input set to the .md file and --output to the desired PDF path.' },
+      { title: 'Run npx @pfnet-research/pfpdf', body: 'Set --input to the .md file and --output to the path where you want to save the PDF, then run the command.' },
       { title: 'Get a print-quality PDF', body: 'By default, the PDF includes a cover page, table of contents, and page numbers. Check the file at the location you set with --output.' },
     ],
-    directoryNote: 'Pass a directory to --input to combine the .md files directly inside it into one PDF in filename order.',
-    modifiedNote: 'For a modified Vivliostyle build, install pfpdf and pass the built dist/cli.js with --vivliostyle-cli.',
+    directoryNote: 'Pass a directory to --input to combine the .md files directly inside it into one PDF in filename order. The second example pins the version for CI:',
     chromiumNote:
       'The first run requires an internet connection; downloading Chromium for PDF rendering may transfer several hundred MB. Once npm packages and the browser are cached, documents using only bundled features can be converted offline. On Linux, install the OS shared libraries required by Chromium.',
   },
@@ -80,7 +79,7 @@ export const en = {
     releases: 'Releases (PDF docs)',
     license: 'License',
     licenseNote:
-      'pfpdf uses the MIT License. The external Vivliostyle CLI uses AGPL-3.0. See THIRD_PARTY_LICENSES.md for other licenses.',
+      'pfpdf: MIT License. The Vivliostyle CLI dependency is AGPL-3.0; see THIRD_PARTY_LICENSES.md for the rest.',
     copyright: '© Preferred Networks, Inc.',
   },
   gallery: {

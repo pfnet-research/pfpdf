@@ -34,6 +34,7 @@ async function main() {
   const command = process.argv[2];
   const args = options(process.argv.slice(3));
   const root = path.resolve(args.root ?? path.dirname(fileURLToPath(new URL('../package.json', import.meta.url))));
+  const verificationDir = args['verification-dir'] && path.resolve(args['verification-dir']);
   let result;
 
   switch (command) {
@@ -69,7 +70,7 @@ async function main() {
       result = verifyReleaseArtifacts({ metadataPath: path.resolve(required(args.metadata, 'metadata')) });
       break;
     case 'test-packed':
-      result = testPackedPackage({ root, metadataPath: path.resolve(required(args.metadata, 'metadata')) });
+      result = testPackedPackage({ root, verificationDir, metadataPath: path.resolve(required(args.metadata, 'metadata')) });
       break;
     case 'registry-status':
       result = registryStatus({ metadataPath: path.resolve(required(args.metadata, 'metadata')) });
@@ -81,7 +82,7 @@ async function main() {
       });
       break;
     case 'verify-published':
-      result = await verifyPublishedPackage({ root, metadataPath: path.resolve(required(args.metadata, 'metadata')) });
+      result = await verifyPublishedPackage({ root, verificationDir, metadataPath: path.resolve(required(args.metadata, 'metadata')) });
       break;
     case 'stage-github':
       result = stageGitHubRelease({ metadataPath: path.resolve(required(args.metadata, 'metadata')) });

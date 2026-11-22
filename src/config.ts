@@ -36,7 +36,6 @@ export interface Config {
   browserPath: ResolvedValue<string | null>;
   vivliostyleCli: ResolvedValue<string | null>;
   vivliostyleDaemon: ResolvedValue<string | null>;
-  vivliostyleDaemonDir: ResolvedValue<string | null>;
   renderTimeoutMs: ResolvedValue<number>;
   keepWorkDir: ResolvedValue<boolean>;
   strictFrontMatter: ResolvedValue<boolean>;
@@ -50,7 +49,6 @@ export interface Config {
   browserPathAbs: string | null;
   vivliostyleCliAbs: string | null;
   vivliostyleDaemonAbs: string | null;
-  vivliostyleDaemonDirAbs: string | null;
   cwd: string;
 }
 
@@ -61,7 +59,7 @@ interface RawCli {
 const VALUE_OPTIONS = new Set([
   '--input', '--output', '--title', '--template', '--template-preset', '--logo',
   '--font-dir', '--browser-path',
-  '--vivliostyle-cli', '--vivliostyle-daemon', '--vivliostyle-daemon-dir',
+  '--vivliostyle-cli', '--vivliostyle-daemon',
   '--render-timeout-ms', '--log-level',
 ]);
 const FLAG_OPTIONS = new Set([
@@ -70,7 +68,7 @@ const FLAG_OPTIONS = new Set([
 ]);
 const PATH_OPTIONS = new Set([
   '--input', '--output', '--template', '--template-preset', '--logo', '--font-dir', '--browser-path',
-  '--vivliostyle-cli', '--vivliostyle-daemon', '--vivliostyle-daemon-dir',
+  '--vivliostyle-cli', '--vivliostyle-daemon',
 ]);
 
 const CONFLICT_PAIRS: Array<[string, string]> = [
@@ -79,7 +77,6 @@ const CONFLICT_PAIRS: Array<[string, string]> = [
   ['--logo', '--no-logo'],
   ['--template', '--template-preset'],
   ['--vivliostyle-daemon', '--vivliostyle-cli'],
-  ['--vivliostyle-daemon', '--vivliostyle-daemon-dir'],
 ];
 
 function rejectNul(name: string, value: string): string {
@@ -232,17 +229,8 @@ export function resolveConfig(
   const browserPath = str('--browser-path');
   const vivliostyleCli = str('--vivliostyle-cli');
   const vivliostyleDaemon = str('--vivliostyle-daemon');
-  const vivliostyleDaemonDir = str('--vivliostyle-daemon-dir');
   if (vivliostyleDaemon.value !== null && process.platform !== 'linux' && process.platform !== 'darwin') {
     throw new InputError('--vivliostyle-daemon is supported only on Linux and macOS');
-  }
-  if (vivliostyleDaemonDir.value !== null) {
-    if (process.platform !== 'linux' && process.platform !== 'darwin') {
-      throw new InputError('--vivliostyle-daemon-dir is supported only on Linux and macOS');
-    }
-    if (vivliostyleCli.value === null) {
-      throw new InputError('--vivliostyle-daemon-dir requires --vivliostyle-cli');
-    }
   }
   const strictFrontMatter: ResolvedValue<boolean> = raw['--strict-front-matter'] !== undefined
     ? { value: true, source: 'cli' }
@@ -308,7 +296,6 @@ export function resolveConfig(
     browserPath,
     vivliostyleCli,
     vivliostyleDaemon,
-    vivliostyleDaemonDir,
     renderTimeoutMs,
     keepWorkDir,
     strictFrontMatter,
@@ -321,7 +308,6 @@ export function resolveConfig(
     browserPathAbs: abs(browserPath.value),
     vivliostyleCliAbs: abs(vivliostyleCli.value),
     vivliostyleDaemonAbs: abs(vivliostyleDaemon.value),
-    vivliostyleDaemonDirAbs: abs(vivliostyleDaemonDir.value),
     cwd,
   };
 }
@@ -383,7 +369,6 @@ export function effectiveConfigJson(config: Config): string {
       browserPath: entry(config.browserPath),
       vivliostyleCli: entry(config.vivliostyleCli),
       vivliostyleDaemon: entry(config.vivliostyleDaemon),
-      vivliostyleDaemonDir: entry(config.vivliostyleDaemonDir),
       renderTimeoutMs: entry(config.renderTimeoutMs),
       keepWorkDir: entry(config.keepWorkDir),
       strictFrontMatter: entry(config.strictFrontMatter),
@@ -425,8 +410,6 @@ Options:
   --vivliostyle-cli PATH   use the specified Vivliostyle JavaScript entry point
   --vivliostyle-daemon SOCKET
                            use a running standalone Vivliostyle daemon (Linux/macOS)
-  --vivliostyle-daemon-dir DIR
-                           use a running Vivliostyle daemon (Linux/macOS; requires --vivliostyle-cli)
   --render-timeout-ms N    overall renderer time limit in ms (default: 300000)
   --keep-work-dir          keep the temporary working directory
   --strict-front-matter    reject unknown front matter keys (default: warn and ignore)

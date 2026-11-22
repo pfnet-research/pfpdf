@@ -5,11 +5,11 @@ Versioning; breaking changes before 1.0 are called out explicitly.
 
 ## Unreleased
 
-### Breaking changes
+### Features
 
-- Install Vivliostyle CLI separately in the same npm project, or pass a built
-  Vivliostyle CLI entry point with `--vivliostyle-cli`. For a standalone
-  daemon, pfpdf uses the CLI path reported by the daemon.
+- Opt in to a standalone Vivliostyle build daemon on Linux and macOS with
+  `--vivliostyle-daemon`. Use `--vivliostyle-cli` to select a built CLI for
+  one-off conversions.
 
 ## [0.4.1](https://github.com/pfnet-research/pfpdf/compare/v0.4.0...v0.4.1) (2026-11-20)
 

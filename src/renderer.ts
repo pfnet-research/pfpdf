@@ -1,6 +1,7 @@
 /** Vivliostyle CLI renderer and bounded child-process coordination. */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { InputError, RuntimeError } from './errors.js';
@@ -16,7 +17,6 @@ export interface RenderJob {
   logLevel: string;
   diagnosticsPath: string;
   vivliostyleCli?: string | undefined;
-  daemonSocket?: string | undefined;
   standaloneSocket?: string | undefined;
   /** Child cwd, kept outside the output subtree for Vivliostyle path checks. */
   processCwd?: string | undefined;
@@ -73,7 +73,7 @@ export async function renderWithAssetServer(
       try {
         await renderPromise;
       } catch (renderError) {
-        if ((job.daemonSocket !== undefined || job.standaloneSocket !== undefined) && error instanceof Error &&
+        if (job.standaloneSocket !== undefined && error instanceof Error &&
           renderError instanceof RenderProcessError && error !== renderError) {
           throw new RenderProcessError(error.message, renderError.diagnostics);
         }
@@ -89,50 +89,7 @@ export function rendererChildEnv(): NodeJS.ProcessEnv {
   return process.env;
 }
 
-const vivliostyleManifest = path.join('node_modules', '@vivliostyle', 'cli', 'package.json');
-
-function linkedWorkspaceRoot(project: string): string | undefined {
-  let name: string;
-  let realProject: string;
-  try {
-    const scope = path.basename(path.dirname(project));
-    const fallback = scope.startsWith('@') ? `${scope}/${path.basename(project)}` : path.basename(project);
-    const manifest = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8')) as { name?: unknown };
-    name = typeof manifest.name === 'string' && manifest.name !== '' ? manifest.name : fallback;
-    realProject = fs.realpathSync(project);
-  } catch {
-    return undefined;
-  }
-  if (!/^(?:@[^/\\:]+\/)?[^/\\:]+$/.test(name) || name === '.' || name.endsWith('/.') ||
-    name === '..' || name.endsWith('/..')) return undefined;
-
-  // npm links installed workspace packages in the root's node_modules.
-  for (let dir = project; path.dirname(dir) !== dir;) {
-    dir = path.dirname(dir);
-    try {
-      if (fs.realpathSync(path.join(dir, 'node_modules', name)) !== realProject) continue;
-      const { workspaces } = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')) as { workspaces?: unknown };
-      if (workspaces) return dir;
-    } catch {
-      // Keep looking for the npm workspace's installed link.
-    }
-  }
-  return undefined;
-}
-
-function installedVivliostyleManifest(cwd: string): string | undefined {
-  for (let dir = cwd; ; dir = path.dirname(dir)) {
-    const manifest = path.join(dir, vivliostyleManifest);
-    if (fs.existsSync(manifest)) return manifest;
-    if (path.dirname(dir) === dir) return undefined;
-    if (fs.existsSync(path.join(dir, 'package.json'))) {
-      const workspaceRoot = linkedWorkspaceRoot(dir);
-      return workspaceRoot === undefined ? undefined : path.join(workspaceRoot, vivliostyleManifest);
-    }
-  }
-}
-
-export function resolveVivliostyleCli(override: string | null = null, cwd = process.cwd()): string {
+export function resolveVivliostyleCli(override: string | null = null): string {
   if (override !== null) {
     try {
       if (!fs.statSync(override).isFile()) throw new Error('expected a regular file');
@@ -142,52 +99,19 @@ export function resolveVivliostyleCli(override: string | null = null, cwd = proc
     }
     return override;
   }
-  const manifest = installedVivliostyleManifest(cwd);
-  if (manifest !== undefined) {
-    try {
-      const { bin } = JSON.parse(fs.readFileSync(manifest, 'utf8')) as { bin?: Record<string, string> | string };
-      const entry = typeof bin === 'string' ? bin : bin?.vivliostyle;
-      if (entry) {
-        const cli = path.resolve(path.dirname(manifest), entry);
-        if (fs.statSync(cli).isFile()) {
-          fs.accessSync(cli, fs.constants.R_OK);
-          return cli;
-        }
-      }
-    } catch {
-      // Report the same setup instructions if the installation is incomplete.
-    }
-  }
-  const { devDependencies } = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
-    devDependencies: Record<string, string>;
-  };
-  throw new RuntimeError(
-    'Cannot find a usable Vivliostyle CLI in the current npm project.\n'
-    + `Install it with npm install @vivliostyle/cli@${devDependencies['@vivliostyle/cli']} in the same project,\n`
-    + 'or pass a built CLI with --vivliostyle-cli /path/to/vivliostyle-cli/dist/cli.js.',
-  );
-}
-
-export function validateDaemonContext(dir: string): string {
-  const context = path.join(dir, 'context');
+  const require = createRequire(import.meta.url);
   try {
-    if (!fs.statSync(context).isDirectory()) throw new Error('expected a directory');
-    fs.accessSync(context, fs.constants.X_OK);
+    const manifest = require.resolve('@vivliostyle/cli/package.json');
+    const { bin } = JSON.parse(fs.readFileSync(manifest, 'utf8')) as { bin?: Record<string, string> | string };
+    const entry = typeof bin === 'string' ? bin : bin?.vivliostyle;
+    if (!entry) throw new Error('the package has no Vivliostyle entry point');
+    const cli = path.resolve(path.dirname(manifest), entry);
+    if (!fs.statSync(cli).isFile()) throw new Error('the entry point is not a regular file');
+    fs.accessSync(cli, fs.constants.R_OK);
+    return cli;
   } catch (error) {
-    throw new InputError(`--vivliostyle-daemon-dir: ${context}: ${(error as Error).message}`);
+    throw new RuntimeError(`cannot locate the Vivliostyle CLI installed with pfpdf: ${(error as Error).message}`);
   }
-  return context;
-}
-
-export function validateDaemonSocket(dir: string, allowMissing = false): string {
-  const socket = path.join(dir, 'daemon.sock');
-  try {
-    const stat = fs.lstatSync(socket, { throwIfNoEntry: !allowMissing });
-    if (stat !== undefined && !stat.isSocket()) throw new Error('expected a Unix socket');
-  } catch (error) {
-    throw new InputError(`--vivliostyle-daemon-dir: ${socket}: ${(error as Error).message}`);
-  }
-  return socket;
 }
 
 export async function renderLocal(job: RenderJob): Promise<RenderResult> {
@@ -203,7 +127,7 @@ export async function renderLocal(job: RenderJob): Promise<RenderResult> {
     }
   }
   const cliPath = session?.cliPath ?? job.vivliostyleCli ?? resolveVivliostyleCli();
-  const daemonSocket = session?.socketPath ?? job.daemonSocket;
+  const daemonSocket = session?.socketPath;
   if (job.browserPath !== null) {
     let st: fs.Stats;
     try {

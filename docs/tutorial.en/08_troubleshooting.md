@@ -5,7 +5,7 @@
 If something goes wrong, run `--doctor` first.
 
 ```bash
-npx pfpdf --doctor
+npx @pfnet-research/pfpdf@latest --doctor
 ```
 
 The command checks the Node.js version, browser availability, fonts, output permissions, and other environmental requirements, then reports problems with suggested remedies. When you provide `--input` and `--output`, it also checks the document's resources and output destination. Standard output (stdout) contains a single JSON object with a versioned schema, so CI can parse it. Regular logs go to standard error (stderr).
@@ -28,7 +28,7 @@ pfpdf checks the Node.js version at startup and exits with a clear error if it i
 
 ## 8.3 The browser download fails
 
-On first use, the selected Vivliostyle CLI downloads Chromium through its browser manager.
+On first use, the bundled Vivliostyle CLI and its browser manager download Chromium through their standard mechanism.
 
 - In environments that need a proxy or a custom CA, follow the Vivliostyle CLI / Puppeteer instructions to configure them
 - If you already have a compatible browser, you can specify it explicitly with `--browser-path`
