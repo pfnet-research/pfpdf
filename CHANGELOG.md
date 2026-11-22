@@ -3,6 +3,18 @@
 Notable changes to pfpdf are documented in this file. Versions follow Semantic
 Versioning; breaking changes before 1.0 are called out explicitly.
 
+## [0.5.0](https://github.com/pfnet-research/pfpdf/compare/v0.4.1...v0.5.0) (2026-11-22)
+
+
+### Features
+
+* **slides:** build PDF slides from Markdown with template-owned layouts ([#54](https://github.com/pfnet-research/pfpdf/issues/54)) ([348f723](https://github.com/pfnet-research/pfpdf/commit/348f723f5884b0aed3345b07e70c93e721e64bc8))
+
+
+### Bug Fixes
+
+* **release:** allow npm registry propagation ([#52](https://github.com/pfnet-research/pfpdf/issues/52)) ([60940bf](https://github.com/pfnet-research/pfpdf/commit/60940bfab594d7741cbcd4627744417c8a1a6e29))
+
 ## [0.4.1](https://github.com/pfnet-research/pfpdf/compare/v0.4.0...v0.4.1) (2026-11-20)
 
 
