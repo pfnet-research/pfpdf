@@ -109,7 +109,6 @@ async function prepareDocument(
   const slideOptions = input.config.slides === true ? {
     toc: documentConfig.toc.value,
     sectionCovers: input.config.sectionCovers === true,
-    confidential: input.metadata.confidential,
     lang: input.metadata.lang,
   } : undefined;
   const body = await buildDocumentBody(input.files, manifest, template.reservedIds, {

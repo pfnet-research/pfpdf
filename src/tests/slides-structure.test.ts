@@ -9,7 +9,7 @@ async function render(content: string, overrides: Partial<SlideOptions> = {}) {
   const body = await buildDocumentBody([
     { content, name: 'slides.md', path: '/virtual/slides.md', lineOffset: 0 },
   ], new ResourceManifest(), [], {
-    warn: () => {}, slides: { toc: true, sectionCovers: false, confidential: false, ...overrides },
+    warn: () => {}, slides: { toc: true, sectionCovers: false, ...overrides },
   });
   return { ...body, html: body.sections.map((section) => toHtml(section as never)).join('') };
 }
@@ -30,24 +30,34 @@ test('only top-level ATX headings and underscore breaks split pages', async () =
   assert.match(body.html, /<h3[^>]*>Subheading/);
 });
 
-test('named regions infer columns, preserve notes, and remove speaker-only resources', async () => {
+test('adjacent regions with one name share a group, and speaker-only resources are removed', async () => {
   const body = await render('## Comparison\n\n::: column\nLeft text\n\n::: column\n### Right\n\nRight text\n\n::: note\nVisible note\n\n::: talk\n![secret](missing.png)\n\n## Next\n\nOrdinary body');
   assert.equal(body.slideCount, 2);
-  assert.match(body.html, /data-pfpdf-slide="columns" data-pfpdf-columns="2"/);
-  assert.match(body.html, /class="pfpdf-slide-note"/);
+  assert.match(body.html, /data-pfpdf-slide="content"/);
+  assert.match(body.html, /class="pfpdf-slide-regions" data-pfpdf-regions="column" data-pfpdf-count="2"/);
+  assert.equal((body.html.match(/class="pfpdf-slide-region" data-pfpdf-region="column"/g) ?? []).length, 2);
+  assert.match(body.html, /<\/div><\/div><div class="pfpdf-slide-region" data-pfpdf-region="note">/);
   assert.match(body.html, /Visible note/);
-  assert.doesNotMatch(body.html, /secret|missing|pfpdf-region/);
-  assert.doesNotMatch(toHtml(body.sections[1]! as never), /pfpdf-slide-column/);
+  assert.doesNotMatch(body.html, /secret|missing|pfpdf-region:/);
+  assert.doesNotMatch(toHtml(body.sections[1]! as never), /pfpdf-slide-region/);
 });
 
-test('explicit blank and per-slide modifiers survive and reset', async () => {
-  const body = await render('<!-- pfpdf:layout=blank -->\n\n___\n\n## Split\n\n<!-- pfpdf:band=off split=half audience=client tone=gray align=bottom -->\n\n::: left\nLeft\n\n::: right\nRight\n\n## Last\n\n<!-- pfpdf:audience=none -->\n\nLast', { confidential: true });
+test('templates own region names, and body content separates groups', async () => {
+  const body = await render('## Custom\n\n::: side-bar\nOne\n\n::: main\nTwo\n\n::: card\nA\n\n::: body\nBetween\n\n::: card\nB');
+  assert.match(body.html, /data-pfpdf-region="side-bar"/);
+  assert.match(body.html, /data-pfpdf-region="main"/);
+  assert.equal((body.html.match(/data-pfpdf-region="card"/g) ?? []).length, 2);
+  assert.doesNotMatch(body.html, /pfpdf-slide-regions/);
+  assert.match(body.html, /<p>Between<\/p>/);
+});
+
+test('every per-slide key reaches the template, and a named layout keeps an empty page', async () => {
+  const body = await render('<!-- pfpdf:layout=blank -->\n\n___\n\n## Split\n\n<!-- pfpdf:layout=split band=off audience=client accent-color=blue -->\n\n::: left\nLeft\n\n::: right\nRight\n\n## Last\n\nLast');
   assert.equal(body.slideCount, 3);
   assert.match(body.html, /data-pfpdf-slide="blank"/);
-  assert.match(body.html, /data-pfpdf-slide="split" data-pfpdf-band="off" data-pfpdf-split="half"/);
-  assert.match(body.html, /data-pfpdf-audience="client"/);
-  assert.match(body.html, /貴社内に限り/);
-  assert.doesNotMatch(toHtml(body.sections[2]! as never), /data-pfpdf-audience|pfpdf-slide-audience|data-pfpdf-band/);
+  assert.match(body.html, /data-pfpdf-slide="split" data-pfpdf-band="off" data-pfpdf-audience="client" data-pfpdf-accent-color="blue"/);
+  assert.match(body.html, /data-pfpdf-region="left"/);
+  assert.doesNotMatch(toHtml(body.sections[2]! as never), /data-pfpdf-audience|data-pfpdf-band/);
 });
 
 test('agendas paginate five groups at a time and optional section covers count', async () => {
@@ -71,29 +81,4 @@ test('leading visual modifiers attach to the next title without an empty page', 
   const body = await render('<!-- pfpdf:band=off -->\n\n## First\n\nText');
   assert.equal(body.slideCount, 1);
   assert.match(body.html, /data-pfpdf-band="off"/);
-});
-
-test('a misspelled region fails before speaker text can enter a slide', async () => {
-  await assert.rejects(render('## First\n\n::: tal\nPrivate notes'), /unknown slide region: tal/);
-});
-
-test('a table style applies only to the immediately following table on the same slide', async () => {
-  const table = '| Heading |\n| --- |\n| Text |';
-  const body = await render([
-    '## First',
-    'Text before the tables.',
-    '<!-- pfpdf-table:phase -->',
-    table,
-    table,
-    '<!-- pfpdf-table:unused -->',
-    'A paragraph separates the comment and the table.',
-    table,
-    '<!-- pfpdf-table:unused -->',
-    '## Second',
-    table,
-  ].join('\n\n'));
-  assert.equal(body.slideCount, 2);
-  assert.equal((body.html.match(/<table(?:>| )/g) ?? []).length, 4);
-  assert.equal((body.html.match(/<table data-pfpdf-table="phase">/g) ?? []).length, 1);
-  assert.doesNotMatch(body.html, /unused|pfpdf-table:/);
 });

@@ -26,27 +26,15 @@ body[data-pfpdf-slides] {
   margin: 0 0 18pt;
 }
 
-.pfpdf-slide-columns,
-.pfpdf-slide-split {
+.pfpdf-slide-regions {
   display: flex;
   align-items: flex-start;
   gap: 18pt;
 }
 
-.pfpdf-slide-column,
-.pfpdf-slide-left,
-.pfpdf-slide-right {
+.pfpdf-slide-regions > .pfpdf-slide-region {
   min-width: 0;
   flex: 1 1 0;
-}
-
-.pfpdf-slide-note {
-  margin-top: 12pt;
-  font-size: 10pt;
-}
-
-.pfpdf-slide-audience {
-  font-size: 9pt;
 }
 
 [data-pfpdf-slide] img {

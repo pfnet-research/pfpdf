@@ -3,21 +3,19 @@ import type { Root as MdastRoot, RootContent } from 'mdast';
 import type { Root, Element, ElementContent } from 'hast';
 import { visit } from 'unist-util-visit';
 import type { SourceFile } from './input.js';
-import { InputError } from './errors.js';
 import { createMarkdownParser } from './markdown-parser.js';
 import type { IdAllocator, ParsedSource } from './markdown.js';
 
 export interface SlideOptions {
   toc: boolean;
   sectionCovers: boolean;
-  confidential: boolean;
   lang?: string;
 }
 
+// Region names belong to templates. Only `talk` (speaker notes) and `body`
+// (return to the slide body) have a meaning here.
 const directive = /^ {0,3}::: ([a-z][a-z-]*)[ \t]*$/;
-const regions = new Set(['column', 'left', 'right', 'note', 'talk', 'body']);
-const directiveComment = /^pfpdf-region:(column|left|right|note|talk|body)$/;
-const tableStyleComment = /^pfpdf-table:([a-z][a-z0-9-]*)$/;
+const regionComment = /^pfpdf-region:([a-z][a-z-]*)$/;
 
 /** Split top-level paragraph directives without changing source coordinates. */
 export function prepareSlideDirectives(file: SourceFile, tree: MdastRoot): void {
@@ -49,12 +47,9 @@ export function prepareSlideDirectives(file: SourceFile, tree: MdastRoot): void 
       });
       expanded.push(...fragment.children);
     };
-    for (const [index, line] of lines.entries()) {
+    for (const line of lines) {
       const match = directive.exec(line.replace(/\r$/, ''));
       if (match) {
-        if (!regions.has(match[1]!)) {
-          throw new InputError(`${file.path}:${node.position.start.line + index}: unknown slide region: ${match[1]}`);
-        }
         append(cursor);
         expanded.push({ type: 'html', value: `<!--pfpdf-region:${match[1]}-->` });
         chunk = cursor + line.length + 1;
@@ -66,7 +61,7 @@ export function prepareSlideDirectives(file: SourceFile, tree: MdastRoot): void 
   // Speaker notes do not participate in bibliography, resources, or rendering.
   let talk = false;
   tree.children = expanded.filter((node) => {
-    const marker = node.type === 'html' ? /^<!--pfpdf-region:(\w+)-->$/.exec(node.value) : null;
+    const marker = node.type === 'html' ? /^<!--pfpdf-region:([a-z-]+)-->$/.exec(node.value) : null;
     if (marker) {
       talk = marker[1] === 'talk';
       return !talk;
@@ -102,41 +97,34 @@ function text(node: Element): string {
   return node.children.map((child) => child.type === 'text' ? child.value : child.type === 'element' ? text(child) : '').join('');
 }
 
-const audienceLabels: Record<string, string> = {
-  seminar: 'セミナー参加者に限り', client: '貴社内に限り', confidential: 'Confidential',
-};
-
-function decorateSlide(slide: SlideElement, children: ElementContent[], modifiers: Record<string, string>, options: SlideOptions): Element {
-  let region = el('div', 'pfpdf-slide-body');
-  const body = region;
-  let columns: Element | undefined;
-  let columnCount = 0;
-  let split = false;
-  let tableStyle: string | undefined;
+/**
+ * Wrap each named region. Adjacent regions with one name share a group, so a
+ * template can place them side by side without knowing the name in advance.
+ */
+function buildSlideBody(children: ElementContent[]): Element {
+  const body = el('div', 'pfpdf-slide-body');
+  let target = body;
   for (const child of children) {
-    const tableMarker = child.type === 'comment' ? tableStyleComment.exec(child.value.trim()) : null;
-    if (tableMarker) { tableStyle = tableMarker[1]; continue; }
-    if (child.type === 'element' && child.tagName === 'table' && tableStyle) {
-      child.properties ??= {};
-      child.properties['data-pfpdf-table'] = tableStyle;
-    }
-    if (significant(child) || child.type === 'comment') tableStyle = undefined;
-    const marker = child.type === 'comment' ? directiveComment.exec(child.value.trim()) : null;
-    if (!marker) { region.children.push(child); continue; }
-    const name = marker[1]!;
-    if (name === 'column') {
-      if (!columns) { columns = el('div', 'pfpdf-slide-columns'); body.children.push(columns); }
-      region = el('div', 'pfpdf-slide-column');
-      columns.children.push(region);
-      columnCount++;
-    } else if (name === 'body') { region = body; }
-    else {
-      region = el('div', `pfpdf-slide-${name}`);
-      body.children.push(region);
-      if (name === 'left' || name === 'right') split = true;
+    const name = child.type === 'comment' ? regionComment.exec(child.value.trim())?.[1] : undefined;
+    if (name === undefined) { target.children.push(child); continue; }
+    if (name === 'body') { target = body; continue; }
+    target = el('div', 'pfpdf-slide-region');
+    target.properties['data-pfpdf-region'] = name;
+    const previous = body.children.at(-1);
+    const run = previous?.type === 'element' ? previous.properties ?? {} : {};
+    if (run['data-pfpdf-regions'] === name) {
+      const group = previous as Element;
+      group.children.push(target);
+      run['data-pfpdf-count'] = String(group.children.length);
+    } else if (run['data-pfpdf-region'] === name) {
+      const group = el('div', 'pfpdf-slide-regions', [previous as Element, target]);
+      group.properties['data-pfpdf-regions'] = name;
+      group.properties['data-pfpdf-count'] = '2';
+      body.children[body.children.length - 1] = group;
+    } else {
+      body.children.push(target);
     }
   }
-  applySlideModifiers(slide, body, modifiers, options, { split, columnCount });
   return body;
 }
 
@@ -157,13 +145,19 @@ export function assembleSlides(
     let modifiers: Record<string, string> = {};
     let fileAnchored = false;
     const flush = (): void => {
-      if (!title && !children.some((child) => significant(child)) && !['blank', 'closing'].includes(modifiers.layout ?? '')) {
+      // A page without a title or content exists only when its layout is named.
+      if (!title && !children.some((child) => significant(child)) && modifiers.layout === undefined) {
         children = [];
         return;
       }
       const slide = el('section', 'pfpdf-slide');
       fileAnchored = anchorFile(slide, fileIndex, fileAnchored);
-      const body = decorateSlide(slide, children, modifiers, options);
+      // Templates give the layout name and every other key their meaning.
+      slide.properties['data-pfpdf-slide'] = modifiers.layout ?? 'content';
+      for (const [key, value] of Object.entries(modifiers)) {
+        if (key !== 'layout' && key !== 'slide') slide.properties[`data-pfpdf-${key}`] = value;
+      }
+      const body = buildSlideBody(children);
       for (const heading of pendingGroups) {
         classes(heading, 'pfpdf-slide-group-anchor');
         slide.children.push(heading);
@@ -240,25 +234,6 @@ function buildAgendas(headings: Element[], allocator: IdAllocator, japanese: boo
   return agendas;
 }
 
-function applySlideModifiers(slide: SlideElement, body: Element, modifiers: Record<string, string>, options: SlideOptions, inferred: { split: boolean; columnCount: number }): void {
-  const { split, columnCount } = inferred;
-  if (modifiers.layout === 'agenda') {
-    for (const child of body.children) {
-      if (child.type === 'element' && ['ol', 'ul'].includes(child.tagName)) classes(child, 'pfpdf-slide-agenda');
-    }
-  }
-  slide.properties['data-pfpdf-slide'] = modifiers.layout ?? (split ? 'split' : columnCount ? 'columns' : 'content');
-  if (columnCount) slide.properties['data-pfpdf-columns'] = String(columnCount);
-  for (const key of ['band', 'split', 'tone', 'align']) {
-    if (modifiers[key]) slide.properties[`data-pfpdf-${key}`] = modifiers[key]!;
-  }
-  const audience = modifiers.audience ?? (options.confidential ? 'confidential' : undefined);
-  if (audience && audience !== 'none') {
-    slide.properties['data-pfpdf-audience'] = audience;
-    slide.children.push(el('span', 'pfpdf-slide-audience', [{ type: 'text', value: audienceLabels[audience] ?? audience }]));
-  }
-}
-
 function anchorFile(slide: SlideElement, index: number, anchored: boolean): boolean {
   if (!anchored) slide.properties.id = `pfpdf-file-${String(index + 1).padStart(4, '0')}`;
   return true;
@@ -271,7 +246,7 @@ function isSlideOptions(node: ElementContent, children: ElementContent[]): boole
 function parseSlideOptions(node: ElementContent): Record<string, string> {
   const result: Record<string, string> = {};
   if (node.type === 'comment') {
-    for (const match of node.value.matchAll(/([a-z]+)=([a-z0-9-]+)/g)) result[match[1]!] = match[2]!;
+    for (const match of node.value.matchAll(/([a-z][a-z-]*)=([a-z0-9-]+)/g)) result[match[1]!] = match[2]!;
   }
   return result;
 }

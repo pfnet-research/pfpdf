@@ -165,7 +165,8 @@ Explain the comparison conditions aloud.
 - A top-level `#` begins a group. A top-level `##` begins a new page and supplies its title. Use `###` and deeper headings within a page. Use `___` to start a page without a title.
 - The cover uses front matter such as the title, author, and date. An omitted title falls back to the input file or directory name. The cover and table of contents are enabled by default. Use `cover: false` or `toc: false` to omit them.
 - The table of contents comes from `#` headings and is omitted when none are present. `section_covers: true` adds a divider at the start of each group.
-- Write `::: column` for each column, in order from left to right. Use `::: left` and `::: right` when the two sides have distinct roles. `::: note` is visible on the slide. `::: talk` holds presenter notes, which do not appear in the PDF.
-- Each region continues until the next `::: name` or page. Use `::: body` to return to ordinary slide content.
-- Use a comment at the beginning of the page for options such as the title band or a closing slide. Examples include `<!-- pfpdf:band=off -->` and `<!-- pfpdf:layout=closing -->`. The selected template controls their appearance.
-- To style one table, place a comment such as `<!-- pfpdf-table:phase -->` directly before it. The template defines the style names and their appearance.
+- `::: name` starts a region, which continues until the next `::: name` or page. Adjacent regions with the same name form one group and, by default, sit side by side from left to right. The `::: column` regions in the example work this way.
+- The selected template defines region names and their appearance. The bundled slide template supports `column` for columns, `left` and `right` for two sides with distinct roles, and `note` for a note that is visible on the slide.
+- pfpdf itself defines only two names. `::: talk` holds presenter notes, which do not appear in the PDF. `::: body` returns to ordinary slide content.
+- To choose how a page looks, write `key=value` options in a comment at the beginning of the page. Examples include `<!-- pfpdf:layout=closing -->` and `<!-- pfpdf:layout=section tone=dark -->`. The template defines the available keys and values.
+- A page without a title or content is created only when `layout` is specified, as in `<!-- pfpdf:layout=blank -->`.

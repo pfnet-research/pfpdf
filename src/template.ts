@@ -367,6 +367,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
       throw new InputError('slide mode requires a template cover slot, or cover: false');
     }
     (htmlBody.properties ??= {})['data-pfpdf-slides'] = '';
+    if (metadata.confidential) htmlBody.properties['data-pfpdf-confidential'] = '';
     if (slots.cover) (slots.cover.properties ??= {})['data-pfpdf-slide'] = 'title';
   }
   applyCoverVisibility(root, htmlBody, slots, opts.cover !== false, metadata);
