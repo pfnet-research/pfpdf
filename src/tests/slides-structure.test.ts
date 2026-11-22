@@ -1,15 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { toHtml } from 'hast-util-to-html';
+import { buildHtml } from '../build.js';
+import { resolveConfig } from '../config.js';
 import { buildDocumentBody } from '../markdown.js';
 import { ResourceManifest } from '../resources.js';
 import type { SlideOptions } from '../slides.js';
 
-async function render(content: string, overrides: Partial<SlideOptions> = {}) {
+async function render(content: string, overrides: Partial<SlideOptions> = {}, lang?: string) {
   const body = await buildDocumentBody([
     { content, name: 'slides.md', path: '/virtual/slides.md', lineOffset: 0 },
   ], new ResourceManifest(), [], {
-    warn: () => {}, slides: { toc: true, sectionCovers: false, ...overrides },
+    warn: () => {}, ...(lang === undefined ? {} : { lang }), slides: { toc: true, sectionCovers: false, ...overrides },
   });
   return { ...body, html: body.sections.map((section) => toHtml(section as never)).join('') };
 }
@@ -81,4 +86,55 @@ test('leading visual modifiers attach to the next title without an empty page', 
   const body = await render('<!-- pfpdf:band=off -->\n\n## First\n\nText');
   assert.equal(body.slideCount, 1);
   assert.match(body.html, /data-pfpdf-band="off"/);
+});
+
+test('references and footnotes resolve against the whole document, inside and outside regions', async () => {
+  const body = await render('## A\n\nSee [manual][ref] and a note[^1].\n\n::: column\nAlso [manual][ref].\n\n[ref]: https://example.com/\n\n[^1]: Footnote.');
+  assert.equal((body.html.match(/<a href="https:\/\/example.com\/">manual<\/a>/g) ?? []).length, 2);
+  assert.doesNotMatch(body.html, /\[manual\]|\[\^1\]/);
+  assert.match(body.html, /<\/div>\s*<aside[^>]*class="pfpdf-page-footnote"/);
+});
+
+test('speaker notes stay private across Setext headings and code spans', async () => {
+  const setext = await render('## A\n\nVisible\n\n::: talk\nSecret note\n---\n\n## B\n\nNext');
+  assert.equal(setext.slideCount, 2);
+  assert.doesNotMatch(setext.html, /Secret|:::/);
+  const code = await render('## A\n\nVisible\n\n::: talk\nSecret `code\n::: body\nstill code` secret tail\n\n## B\n\nNext');
+  assert.doesNotMatch(code.html, /[Ss]ecret|still code/);
+  const shown = await render('## A\n\nShown `code\n::: talk\nstill code` tail\n\n## ::: talk');
+  assert.match(shown.html, /<code>code ::: talk still code<\/code> tail/);
+  assert.match(shown.html, /<h2[^>]*>::: talk<\/h2>/);
+});
+
+test('a region marker inside a paragraph keeps inline nodes and Japanese line joining', async () => {
+  const body = await render('## A\n\n前の\n文です。\n::: card2\n**強調**の\n文です。  \n::: note\n注記です。', {}, 'ja');
+  assert.match(body.html, /<p>前の文です。<\/p>/);
+  assert.match(body.html, /data-pfpdf-region="card2">\s*<p><strong>強調<\/strong>の文です。<br>\s*<\/p>/);
+  assert.match(body.html, /data-pfpdf-region="note">\s*<p>注記です。<\/p>/);
+});
+
+test('option values reach the template whole, and malformed options are errors', async () => {
+  const body = await render('## A\n\n<!-- pfpdf:gap=1.5rem align=top_left ratio=2:1 span2=wide -->\n\nText');
+  assert.match(body.html, /data-pfpdf-gap="1.5rem" data-pfpdf-align="top_left" data-pfpdf-ratio="2:1" data-pfpdf-span2="wide"/);
+  await assert.rejects(render('## A\n\n<!-- pfpdf:layout=x wide -->\n\nText'), /slides\.md:3: invalid slide option: wide/);
+  await assert.rejects(render('## A\n\n<!-- pfpdf:slide=x -->\n\nText'), /invalid slide option: slide=x/);
+});
+
+test('a content-only custom template and the bundled slide preset both build slides', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-slides-'));
+  t.after(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+  const input = path.join(dir, 'deck.md');
+  fs.writeFileSync(input, '---\nslides: true\ntitle: Deck\nlang: en\n---\n## First\n\nText\n');
+  const custom = path.join(dir, 'custom');
+  fs.mkdirSync(custom);
+  fs.writeFileSync(path.join(custom, 'style.css'), '');
+  fs.writeFileSync(path.join(custom, 'vivliostyle.css'), '');
+  fs.writeFileSync(path.join(custom, 'template.html'), '<!doctype html><html><head></head><body><main data-pfpdf-slot="content"></main></body></html>');
+  const log = { warn: (): void => {}, info: (): void => {}, debug: (): void => {} };
+  const env = { ...process.env, SOURCE_DATE_EPOCH: '0' };
+  const plain = await buildHtml(resolveConfig(['--input', input, '--output', 'out.pdf', '--template', custom], dir), env, log);
+  assert.match(plain.html, /data-pfpdf-slide="content"/);
+  assert.doesNotMatch(plain.html, /data-pfpdf-slide="title"/);
+  const preset = await buildHtml(resolveConfig(['--input', input, '--output', 'out.pdf', '--template-preset', 'slide-base'], dir), env, log);
+  assert.match(preset.html, /data-pfpdf-slide="title"/);
 });

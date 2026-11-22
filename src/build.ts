@@ -135,7 +135,8 @@ async function prepareDocument(
   for (const [logical, content] of body.generatedFiles) {
     generated.set(logical, Buffer.from(content, 'utf8'));
   }
-  const expectedPages = body.slideCount === undefined ? undefined : body.slideCount + Number(documentConfig.cover.value);
+  // A template without a cover slot emits no cover page.
+  const expectedPages = body.slideCount === undefined ? undefined : body.slideCount + Number(document.hasCover);
   return { html: document.html, metadata: input.metadata, manifest, generated, fontWarnings: fonts.warnings, expectedPages };
 }
 

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fromHtml } from 'hast-util-from-html';
 import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
-import { BUNDLED_TEMPLATE_NAMES } from './bundled-templates.js';
+import { isBundledTemplate } from './bundled-templates.js';
 import type { FrontMatterConfig } from './config.js';
 import { InputError } from './errors.js';
 import { inferDocumentLanguage } from './language.js';
@@ -223,7 +223,7 @@ function resolveFrontMatterConfig(
   if (value !== undefined && typeof value !== 'string') {
     throw new InputError('front matter template: expected a string');
   }
-  if (typeof value === 'string' && !BUNDLED_TEMPLATE_NAMES.includes(value)) {
+  if (typeof value === 'string' && !isBundledTemplate(value)) {
     throw new InputError(`front matter template: unknown bundled template: ${value}`);
   }
   if (typeof value === 'string') template = value;

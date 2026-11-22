@@ -1,6 +1,6 @@
 /** ConfigResolver: built-in defaults < front matter < CLI arguments. */
 import path from 'node:path';
-import { BUNDLED_TEMPLATE_NAMES } from './bundled-templates.js';
+import { isBundledTemplate } from './bundled-templates.js';
 import { InputError } from './errors.js';
 import { validateTitle } from './input.js';
 import { parseRepositoryLocator } from './repository.js';
@@ -145,14 +145,14 @@ function resolveTemplateSetting(
 }
 
 function bundledTemplate(name: string, source: string): { kind: 'bundled'; name: string } {
-  if (!BUNDLED_TEMPLATE_NAMES.includes(name)) {
+  if (!isBundledTemplate(name)) {
     throw new InputError(`${source}: unknown bundled template: ${name}`);
   }
   return { kind: 'bundled', name };
 }
 
 function parseTemplateSource(value: string, source: string): Config['template']['value'] {
-  if (BUNDLED_TEMPLATE_NAMES.includes(value)) return { kind: 'bundled', name: value };
+  if (isBundledTemplate(value)) return { kind: 'bundled', name: value };
   if (value.startsWith('git::')) {
     parseRepositoryLocator(value, source);
     return { kind: 'repository', locator: value };

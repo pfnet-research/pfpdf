@@ -49,9 +49,7 @@ export function resolveTemplate(
     throw new RuntimeError('repository template must be checked out before template resolution');
   }
   const bundled = template.kind === 'bundled';
-  const dir = !bundled ? templateDirAbs!
-    : template.name === 'slide-base' ? resourcePath('slide-base')
-    : resourcePath('templates', template.name);
+  const dir = bundled ? resourcePath('templates', template.name) : templateDirAbs!;
   const err = bundled
     ? (msg: string) => new RuntimeError(`bundled template is broken: ${msg}`)
     : (msg: string) => new InputError(msg);
@@ -279,7 +277,7 @@ function applyCoverVisibility(root: HastRoot, body: Element, slots: SlotMap, vis
   if (running.length > 0) body.children.unshift(el('div', { className: ['pfpdf-running-metadata'], ariaHidden: 'true' }, running));
 }
 
-export function buildDocumentHtml(opts: BuildOptions): { html: string; generatedCss: Array<[string, string]> } {
+export function buildDocumentHtml(opts: BuildOptions): { html: string; generatedCss: Array<[string, string]>; hasCover: boolean } {
   const { metadata, template } = opts;
   const root = template.root;
   const { slots, html, head, body: htmlBody } = validateTemplate(root, template);
@@ -363,9 +361,6 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
 
   // Slot: toc / content
   if (opts.body.slideCount !== undefined) {
-    if (opts.cover !== false && !slots.cover) {
-      throw new InputError('slide mode requires a template cover slot, or cover: false');
-    }
     (htmlBody.properties ??= {})['data-pfpdf-slides'] = '';
     if (metadata.confidential) htmlBody.properties['data-pfpdf-confidential'] = '';
     if (slots.cover) (slots.cover.properties ??= {})['data-pfpdf-slide'] = 'title';
@@ -471,7 +466,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   });
 
   const html5 = toHtml(root as never, { allowDangerousHtml: true });
-  return { html: html5, generatedCss };
+  return { html: html5, generatedCss, hasCover: opts.cover !== false && Boolean(slots.cover) };
 }
 
 function removeElement(root: HastRoot, target: Element): void {

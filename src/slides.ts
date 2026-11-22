@@ -1,9 +1,9 @@
 /** Slide structure layered over the existing Markdown and resource pipeline. */
-import type { Root as MdastRoot, RootContent } from 'mdast';
+import type { Heading, Paragraph, PhrasingContent, Root as MdastRoot, RootContent, Text } from 'mdast';
+import type { Point } from 'unist';
 import type { Root, Element, ElementContent } from 'hast';
-import { visit } from 'unist-util-visit';
 import type { SourceFile } from './input.js';
-import { createMarkdownParser } from './markdown-parser.js';
+import { InputError } from './errors.js';
 import type { IdAllocator, ParsedSource } from './markdown.js';
 
 export interface SlideOptions {
@@ -14,54 +14,80 @@ export interface SlideOptions {
 
 // Region names belong to templates. Only `talk` (speaker notes) and `body`
 // (return to the slide body) have a meaning here.
-const directive = /^ {0,3}::: ([a-z][a-z-]*)[ \t]*$/;
-const regionComment = /^pfpdf-region:([a-z][a-z-]*)$/;
+const directive = /^ {0,3}::: ([a-z][a-z0-9-]*)[ \t]*$/;
+const regionComment = /^pfpdf-region:([a-z][a-z0-9-]*)$/;
 
-/** Split top-level paragraph directives without changing source coordinates. */
-export function prepareSlideDirectives(file: SourceFile, tree: MdastRoot): void {
-  const expanded: RootContent[] = [];
-  const sourceLines = file.content.split(/\r?\n/);
-  for (const node of tree.children) {
-    if (node.type !== 'paragraph' || node.position?.start.offset === undefined || node.position.end.offset === undefined) {
-      expanded.push(node);
+/**
+ * Split a paragraph or Setext heading at lines that hold only `::: name`.
+ * The parsed inline nodes are reused, so references, footnotes, and code
+ * spans keep the meaning they have in the whole document.
+ */
+function splitAtDirectives(file: SourceFile, node: Paragraph | Heading): RootContent[] {
+  const result: RootContent[] = [];
+  let children: PhrasingContent[] = [];
+  const flush = (): void => {
+    if (children.some((child) => child.type !== 'text' || child.value.trim() !== '')) result.push({ ...node, children });
+    children = [];
+  };
+  const point = (offset: number): Point => {
+    const before = file.content.slice(0, offset);
+    return { line: before.split('\n').length, column: offset - before.lastIndexOf('\n'), offset };
+  };
+  let lineStart = true;
+  for (const [index, child] of node.children.entries()) {
+    if (child.type !== 'text') {
+      children.push(child);
+      lineStart = child.type === 'break';
       continue;
     }
-    const start = node.position.start.offset;
-    const source = file.content.slice(start, node.position.end.offset);
-    const lines = source.split('\n');
-    let cursor = start;
-    let chunk = start;
-    const append = (end: number): void => {
-      if (end <= chunk) return;
-      const fragment = createMarkdownParser().parse(file.content.slice(chunk, end));
-      const prefix = file.content.slice(0, chunk);
-      const lineOffset = prefix.split('\n').length - 1;
-      const columnOffset = chunk - (prefix.lastIndexOf('\n') + 1);
-      visit(fragment, (child) => {
-        if (!child.position) return;
-        for (const point of [child.position.start, child.position.end]) {
-          if (point.line === 1) point.column += columnOffset;
-          point.line += lineOffset;
-          if (point.offset !== undefined) point.offset += chunk;
-        }
-      });
-      expanded.push(...fragment.children);
-    };
-    for (const line of lines) {
-      const match = directive.exec(line.replace(/\r$/, ''));
-      if (match) {
-        append(cursor);
-        expanded.push({ type: 'html', value: `<!--pfpdf-region:${match[1]}-->` });
-        chunk = cursor + line.length + 1;
+    const lines = child.value.split(/\r?\n/);
+    const start = child.position?.start.offset;
+    const end = child.position?.end.offset;
+    const breaks = start === undefined || end === undefined ? [] : [...file.content.slice(start, end).matchAll(/\r?\n/g)];
+    // Later passes read source text through positions, so each piece keeps its own.
+    const pushLines = (from: number, to: number): void => {
+      const value = lines.slice(from, to).join('\n');
+      if (value === '') return;
+      const piece: Text = { type: 'text', value };
+      if (start !== undefined && end !== undefined && breaks.length === lines.length - 1) {
+        const last = breaks[to - 1];
+        piece.position = {
+          start: point(from === 0 ? start : start + breaks[from - 1]!.index + breaks[from - 1]![0].length),
+          end: point(last === undefined ? end : start + last.index),
+        };
       }
-      cursor += line.length + 1;
+      children.push(piece);
+    };
+    let from = 0;
+    for (const [i, line] of lines.entries()) {
+      const wholeLine = (i > 0 || lineStart) && (i < lines.length - 1 || index === node.children.length - 1);
+      const name = wholeLine ? directive.exec(line)?.[1] : undefined;
+      if (name === undefined) continue;
+      pushLines(from, i);
+      flush();
+      result.push({ type: 'html', value: `<!--pfpdf-region:${name}-->` });
+      from = i + 1;
     }
-    append(node.position.end.offset);
+    if (from === 0) children.push(child);
+    else pushLines(from, lines.length);
+    lineStart = child.value.endsWith('\n');
   }
+  if (result.length === 0) return [node];
+  flush();
+  return result;
+}
+
+/** Turn standalone top-level `::: name` lines into region markers. */
+export function prepareSlideDirectives(file: SourceFile, tree: MdastRoot): void {
+  const sourceLines = file.content.split(/\r?\n/);
+  // Only a Setext heading can span lines; an ATX heading is never a directive.
+  const expanded = tree.children.flatMap((node) => node.type === 'paragraph'
+    || (node.type === 'heading' && node.position?.start.line !== node.position?.end.line)
+    ? splitAtDirectives(file, node) : [node]);
   // Speaker notes do not participate in bibliography, resources, or rendering.
   let talk = false;
   tree.children = expanded.filter((node) => {
-    const marker = node.type === 'html' ? /^<!--pfpdf-region:([a-z-]+)-->$/.exec(node.value) : null;
+    const marker = node.type === 'html' ? /^<!--pfpdf-region:([a-z0-9-]+)-->$/.exec(node.value) : null;
     if (marker) {
       talk = marker[1] === 'talk';
       return !talk;
@@ -106,7 +132,13 @@ function buildSlideBody(children: ElementContent[]): Element {
   let target = body;
   for (const child of children) {
     const name = child.type === 'comment' ? regionComment.exec(child.value.trim())?.[1] : undefined;
-    if (name === undefined) { target.children.push(child); continue; }
+    if (name === undefined) {
+      // Page footnotes belong to the slide, not to the region that happens to be last.
+      const names = child.type === 'element' ? child.properties?.className : undefined;
+      const footnote = Array.isArray(names) && names.includes('pfpdf-page-footnote');
+      (footnote ? body : target).children.push(child);
+      continue;
+    }
     if (name === 'body') { target = body; continue; }
     target = el('div', 'pfpdf-slide-region');
     target.properties['data-pfpdf-region'] = name;
@@ -155,7 +187,7 @@ export function assembleSlides(
       // Templates give the layout name and every other key their meaning.
       slide.properties['data-pfpdf-slide'] = modifiers.layout ?? 'content';
       for (const [key, value] of Object.entries(modifiers)) {
-        if (key !== 'layout' && key !== 'slide') slide.properties[`data-pfpdf-${key}`] = value;
+        if (key !== 'layout') slide.properties[`data-pfpdf-${key}`] = value;
       }
       const body = buildSlideBody(children);
       for (const heading of pendingGroups) {
@@ -189,7 +221,7 @@ export function assembleSlides(
       } else if (node.type === 'element' && Array.isArray(node.properties?.className)
         && node.properties?.className?.includes('pfpdf-page-break-marker')) { flush(); }
       else if (isSlideOptions(node, children)) {
-        Object.assign(modifiers, parseSlideOptions(node));
+        Object.assign(modifiers, parseSlideOptions(node, source.file));
       } else { children.push(node); }
     }
     flush();
@@ -243,10 +275,18 @@ function isSlideOptions(node: ElementContent, children: ElementContent[]): boole
   return node.type === 'comment' && /^\s*pfpdf:/.test(node.value) && !children.some((child) => significant(child));
 }
 
-function parseSlideOptions(node: ElementContent): Record<string, string> {
+/** Read `key=value` tokens. Values pass through whole; templates give them meaning. */
+function parseSlideOptions(node: ElementContent, file: SourceFile): Record<string, string> {
   const result: Record<string, string> = {};
-  if (node.type === 'comment') {
-    for (const match of node.value.matchAll(/([a-z][a-z-]*)=([a-z0-9-]+)/g)) result[match[1]!] = match[2]!;
+  if (node.type !== 'comment') return result;
+  for (const token of node.value.replace(/^\s*pfpdf:/, '').split(/\s+/).filter(Boolean)) {
+    const match = /^([a-z][a-z0-9-]*)=(.+)$/.exec(token);
+    // `slide` would collide with the attribute that carries the layout name.
+    if (!match || match[1] === 'slide') {
+      const line = (node.position?.start.line ?? 1) + file.lineOffset;
+      throw new InputError(`${file.path}:${line}: invalid slide option: ${token} (expected key=value)`);
+    }
+    result[match[1]!] = match[2]!;
   }
   return result;
 }
