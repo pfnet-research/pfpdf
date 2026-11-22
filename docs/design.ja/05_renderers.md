@@ -12,7 +12,8 @@
 
 - Vivliostyle CLI は Node.js の子プロセスとして呼び出し、pfpdf 本体との境界を明確にする
 - `AssetServer` の文書 URL を入力として渡し、作業ディレクトリーの `file:` URL を別に生成しない
-- パッケージの解決処理で特定した同梱の Vivliostyle エントリーポイント、または `--vivliostyle-cli` で指定したファイルを、`process.execPath` が指す Node.js で起動する
+- 選択した Vivliostyle のエントリーポイントを `process.execPath` が指す Node.js で起動する。単発実行では `--vivliostyle-cli PATH` でビルド済みの JavaScript エントリーポイントを pfpdf の起動ディレクトリーからの相対パスで指定できる。省略時は起動ディレクトリーから最も近い npm プロジェクトルートまでの `node_modules` で `@vivliostyle/cli` を探し、パッケージの `bin` からエントリーポイントを取得する
+- pfpdf の本番インストールでは Vivliostyle CLI の導入を利用者に委ねる。ローカルで見つからない場合、変換は標準エラーに導入手順を表示して終了コード `1` を返す。`--doctor` は `vivliostyle-cli` の検査結果に同じ手順を含め、終了コード `1` を返す
 - 選択した Vivliostyle CLI が管理するブラウザー、または `--browser-path` で指定した実行ファイルを使う。ブラウザーの取得とキャッシュは Vivliostyle CLI が管理する
 - シェル文字列を組み立てず、引数配列と `shell: false` で子プロセスを起動する
 - 上流が提供するサンドボックスを不必要に無効化しない

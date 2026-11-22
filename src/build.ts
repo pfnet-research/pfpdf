@@ -176,7 +176,7 @@ export async function runBuild(
 
   const standaloneSocket = config.vivliostyleDaemonAbs ?? undefined;
   const vivliostyleCli = standaloneSocket === undefined
-    ? resolveVivliostyleCli(config.vivliostyleCliAbs)
+    ? resolveVivliostyleCli(config.vivliostyleCliAbs, config.cwd)
     : undefined;
   const daemonDir = config.vivliostyleDaemonDirAbs;
   const processCwd = daemonDir === null ? undefined : validateDaemonContext(daemonDir);

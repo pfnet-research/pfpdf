@@ -7,7 +7,7 @@
 
 Python は必要ありません。
 
-> 初回実行時には PDF 描画用の Chromium が自動でダウンロードされるため、数百 MB の通信が発生することがあります。2 回目以降はキャッシュが使われます。Linux では Chromium の実行に OS の共有ライブラリーが必要です（08 章参照）。
+> 初回実行時には Vivliostyle CLI が PDF 描画用の Chromium を取得するため、数百 MB の通信が発生することがあります。2 回目以降はキャッシュが使われます。Linux では Chromium の実行に OS の共有ライブラリーが必要です（08 章参照）。
 
 ブラウザーの初回取得から PDF の生成完了までの制限時間は、既定で 5 分です。低速な回線や大きな文書で時間が足りない場合は、`--render-timeout-ms` で制限時間を増やしてください（07 章参照）。
 
@@ -21,10 +21,11 @@ Python は必要ありません。
 これは **pfpdf** で作った最初の PDF です。
 ```
 
-変換します。
+pfpdf と Vivliostyle CLI を同じ npm プロジェクトにインストールし、そのプロジェクトから変換します。
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input hello.md --output hello.pdf
+npm install @pfnet-research/pfpdf @vivliostyle/cli@11.1.0
+npx pfpdf --input hello.md --output hello.pdf
 ```
 
 `hello.pdf` が生成されれば成功です。表紙にタイトル、本文に見出しと段落が入っています。
@@ -33,11 +34,7 @@ npx @pfnet-research/pfpdf@latest --input hello.md --output hello.pdf
 
 ## 1.3 バージョンの固定
 
-CI や長期保存する手順書では `latest` を使わず、バージョンを固定してください。
-
-```bash
-npx --yes @pfnet-research/pfpdf@0.4.0 --input hello.md --output hello.pdf
-```
+CI や長期保存する手順書では、インストール時に pfpdf のバージョンを厳密に指定し、npm のロックファイルをコミットしてください。`npx pfpdf` の実行前に `npm ci` で固定したバージョンを復元します。
 
 ## 1.4 ディレクトリーをまとめて変換する
 
@@ -51,7 +48,7 @@ docs/
 ```
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf
+npx pfpdf --input docs --output docs.pdf
 ```
 
 並び順は、ファイル名をバイト列として比較して決まります。ファイル名の先頭に `00_`、`01_` のような番号を付けることを推奨します。
@@ -61,7 +58,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf
 環境の診断には `--doctor` を使います。
 
 ```bash
-npx @pfnet-research/pfpdf@latest --doctor
+npx pfpdf --doctor
 ```
 
 Node.js、ブラウザー、フォントなどの状態を検査し、問題があれば対処方法とともに報告します。詳しくは 08 章を参照してください。

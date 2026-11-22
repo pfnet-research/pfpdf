@@ -26,7 +26,7 @@ dir: ltr
 たとえば、他のツール用の `tags` や `status` を残したまま PDF 化できます。`page_szie` のような誤記も警告されるため、意図した設定が反映されたか確認してください。未知のキーをエラーにしたい場合は、CLI の `--strict-front-matter` を指定します。
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-matter
+npx pfpdf --input docs --output docs.pdf --strict-front-matter
 ```
 
 未知のキーへの警告や厳格な検証は、`--print-effective-config --input docs` と `--doctor --input docs` にも適用されます。`--strict-front-matter` は実行時の設定なので、フロントマターでは指定できません。

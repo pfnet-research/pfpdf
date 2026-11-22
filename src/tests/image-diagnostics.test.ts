@@ -11,7 +11,7 @@ import { buildHtml, runBuild } from '../build.js';
 import { resolveConfig } from '../config.js';
 import { InputError, RuntimeError } from '../errors.js';
 import { ResourceManifest, rewriteElementResources } from '../resources.js';
-import { renderDocument } from '../renderer.js';
+import { renderDocument, resolveVivliostyleCli } from '../renderer.js';
 
 const log = { warn: (): void => {}, info: (): void => {}, debug: (): void => {} };
 const env = { SOURCE_DATE_EPOCH: '0' };
@@ -77,6 +77,8 @@ test('srcset resource failures retain the referring source and declared destinat
 });
 
 test('image readiness diagnostics identify corrupt, empty, missing-src, HTTP and network failures', { skip: process.env.RUN_E2E !== '1' }, async (t) => {
+  const browser = process.env.BROWSER_PATH ? ['--browser-path', process.env.BROWSER_PATH] : [];
+  const renderer = ['--vivliostyle-cli', resolveVivliostyleCli(), ...browser];
   const server = http.createServer((request, response) => {
     if (request.url === '/drop.png') { request.socket.destroy(); return; }
     response.writeHead(404); response.end('not found');
@@ -99,8 +101,7 @@ test('image readiness diagnostics identify corrupt, empty, missing-src, HTTP and
       try {
         fs.writeFileSync(path.join(f.dir, 'broken.png'), 'invalid image bytes');
         fs.writeFileSync(f.output, 'OLD OUTPUT');
-        const browser = process.env.BROWSER_PATH ? ['--browser-path', process.env.BROWSER_PATH] : [];
-        await assert.rejects(runBuild(resolveConfig(['--input', f.input, '--output', f.output, ...browser], f.dir), env, log),
+        await assert.rejects(runBuild(resolveConfig(['--input', f.input, '--output', f.output, ...renderer], f.dir), env, log),
           (error: unknown) => error instanceof RuntimeError && error.message.includes(`${f.input}:6:`)
             && reason.test(error.message) && error.message.includes('destination'));
         assert.equal(fs.readFileSync(f.output, 'utf8'), 'OLD OUTPUT');
@@ -112,6 +113,8 @@ test('image readiness diagnostics identify corrupt, empty, missing-src, HTTP and
 });
 
 test('scripted images, picture sources, and image-free documents still produce PDFs', { skip: process.env.RUN_E2E !== '1' }, async () => {
+  const browser = process.env.BROWSER_PATH ? ['--browser-path', process.env.BROWSER_PATH] : [];
+  const renderer = ['--vivliostyle-cli', resolveVivliostyleCli(), ...browser];
   for (const body of [
     '# No images\n\nText.',
     `<img id="later" alt="scripted">\n\n<script>window.pfpdf.registerReady(new Promise(resolve => { setTimeout(() => { document.getElementById('later').src = ${JSON.stringify(validImage)}; resolve(); }, 20); }));</script>`,
@@ -121,8 +124,7 @@ test('scripted images, picture sources, and image-free documents still produce P
     const f = fixture(body);
     try {
       fs.writeFileSync(path.join(f.dir, 'picture.svg'), '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="blue"/></svg>');
-      const browser = process.env.BROWSER_PATH ? ['--browser-path', process.env.BROWSER_PATH] : [];
-      await runBuild(resolveConfig(['--input', f.input, '--output', f.output, ...browser], f.dir), env, log);
+      await runBuild(resolveConfig(['--input', f.input, '--output', f.output, ...renderer], f.dir), env, log);
       assert.equal(fs.readFileSync(f.output).subarray(0, 5).toString(), '%PDF-');
     } finally {
       fs.rmSync(f.dir, { recursive: true, force: true });

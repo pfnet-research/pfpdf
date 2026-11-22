@@ -8,7 +8,7 @@ The table below records how dependencies are pinned. For a release candidate, ev
 
 | Item | Pinning method | Notes |
 |---|---|---|
-| Vivliostyle CLI | exact direct dependency version + source lockfile + published shrinkwrap | AGPL-3.0. Updated after sample PDF smoke tests on each supported OS |
+| Vivliostyle CLI | exact development dependency version in both locks | AGPL-3.0. Updated after sample PDF smoke tests on each supported OS |
 | Browser build | standard mechanism of the pinned Vivliostyle CLI (`@puppeteer/browsers`) | pfpdf has no downloader of its own |
 | GFM parser | source lockfile + published shrinkwrap | Verified against the conformance examples of the pinned GFM Spec |
 | CJK-friendly extension | source lockfile + published shrinkwrap | Verify the combination with GFM strikethrough |
@@ -99,7 +99,7 @@ On Linux, the browser archive alone does not provide all the required shared lib
 - Inject signals just before and during the commit critical section and just after rename. Signals before commit produce a non-zero exit and preserve existing output; after rename, the result is the complete new output and exit code `0`
 - Even with cyclic-object or huge-xref fixtures that stall the PDF worker, the main process's deadline and signal handling still work. Terminate the worker and reclaim the temporary file created alongside the final output
 - Even when two builds specifying the same output destination are deliberately raced, no bytes are intermixed, and only the complete PDF committed last remains
-- The tarball produced by `npm pack` runs from a fresh temporary project via `npm exec`
+- The tarball produced by `npm pack` installs in a separate verification project with `--omit=dev`. Conversion and `--doctor` both exit with code `1` and give setup instructions when Vivliostyle CLI is absent
 - On a first run without a browser, the pinned Vivliostyle CLI's standard acquisition works, or the upstream diagnostics are shown to the user as-is
 - A compatible browser explicitly specified via `--browser-path` can be used
 - `template`, `toc`, `cover`, and `logo` can be configured via front matter, and CLI arguments always override them
@@ -133,7 +133,7 @@ Independently of the structural inspection in normal runs, the smoke tests also 
 
 - Run `npm ci` / `npm test` / `npm run lint`
 - Confirm with `npm pack --dry-run` that no unnecessary files or secrets are included
-- Run `npm exec --package=<tarball> -- pfpdf --help` using the packed tarball
+- Check the production installation of the packed tarball in a separate npm project and pass the pinned test CLI explicitly with `--vivliostyle-cli` to generate a PDF
 - Confirm that the tarball contains `npm-shrinkwrap.json` but not `package-lock.json`. In the four environments, check that the runtime dependency tree and integrity hashes installed into an empty project match the source lockfile
 - The packed entrypoint loads and runs on the oldest Node.js in the supported range. On representative versions just outside the range, the startup check returns the intended diagnostic
 - Generate the PDF for `tests/fixtures/minimal/` in the four supported environments

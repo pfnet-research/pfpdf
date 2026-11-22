@@ -2,22 +2,19 @@
 
 ## 1.1 What pfpdf is
 
-pfpdf is a command-line tool that converts Markdown documents to PDF through HTML. Its primary goal is to let anyone with Node.js and npm generate a PDF with a single command, without first cloning the repository:
+pfpdf is a command-line tool that converts Markdown documents to PDF through HTML. With Node.js and npm, install the packages in the same project and run the conversion there.
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input foo --output foo.pdf
+npm install @pfnet-research/pfpdf @vivliostyle/cli@11.1.0
+npx pfpdf --input foo --output foo.pdf
 ```
 
-In CI and in long-lived runbooks, pin the version instead of using `latest`.
-
-```bash
-npx --yes @pfnet-research/pfpdf@0.1.0 --input foo --output foo.pdf
-```
+For CI and long-lived runbooks, pin the package versions in the project and restore them with `npm ci`.
 
 ## 1.2 Goals for `v0.1.0`
 
-- Work with only Node.js and bundled dependencies
-- Make `npx @pfnet-research/pfpdf` the only official installation path for the user-facing CLI
+- Run with Node.js, npm packages, and the browser selected for rendering
+- Distribute the user-facing CLI on npm for local project installation
 - Require no external Python installation
 - Support all official GitHub Flavored Markdown (GFM) syntax in principle, including the underlying CommonMark syntax
 - Reliably convert Japanese strong emphasis containing full-width punctuation and brackets, such as `これは**「重要」**です`, into `<strong>` even without surrounding whitespace

@@ -2,7 +2,6 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 import { StringDecoder } from 'node:string_decoder';
 import { InputError, RuntimeError } from './errors.js';
 import { AssetServer } from './assetserver.js';
@@ -90,7 +89,7 @@ export function rendererChildEnv(): NodeJS.ProcessEnv {
   return process.env;
 }
 
-export function resolveVivliostyleCli(override: string | null = null): string {
+export function resolveVivliostyleCli(override: string | null = null, cwd = process.cwd()): string {
   if (override !== null) {
     try {
       if (!fs.statSync(override).isFile()) throw new Error('expected a regular file');
@@ -100,12 +99,36 @@ export function resolveVivliostyleCli(override: string | null = null): string {
     }
     return override;
   }
-  const require = createRequire(import.meta.url);
-  const pkgPath = require.resolve('@vivliostyle/cli/package.json');
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as { bin?: Record<string, string> | string };
-  const bin = typeof pkg.bin === 'string' ? pkg.bin : pkg.bin?.vivliostyle;
-  if (!bin) throw new RuntimeError('cannot locate the Vivliostyle CLI entry point');
-  return path.join(path.dirname(pkgPath), bin);
+  let dir = cwd;
+  let manifest: string;
+  while (true) {
+    manifest = path.join(dir, 'node_modules', '@vivliostyle', 'cli', 'package.json');
+    if (fs.existsSync(manifest)) break;
+    const parent = path.dirname(dir);
+    if (fs.existsSync(path.join(dir, 'package.json')) || parent === dir) break;
+    dir = parent;
+  }
+  try {
+    const { bin } = JSON.parse(fs.readFileSync(manifest, 'utf8')) as { bin?: Record<string, string> | string };
+    const entry = typeof bin === 'string' ? bin : bin?.vivliostyle;
+    if (entry) {
+      const cli = path.resolve(path.dirname(manifest), entry);
+      if (fs.statSync(cli).isFile()) {
+        fs.accessSync(cli, fs.constants.R_OK);
+        return cli;
+      }
+    }
+  } catch {
+    // Report the same setup instructions if the installation is incomplete.
+  }
+  const { devDependencies } = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+    devDependencies: Record<string, string>;
+  };
+  throw new RuntimeError(
+    'Cannot find a usable Vivliostyle CLI in the current npm project.\n'
+    + `Install it with npm install @vivliostyle/cli@${devDependencies['@vivliostyle/cli']} in the same project,\n`
+    + 'or pass a built CLI with --vivliostyle-cli /path/to/vivliostyle-cli/dist/cli.js.',
+  );
 }
 
 export function validateDaemonContext(dir: string): string {

@@ -3,6 +3,14 @@
 Notable changes to pfpdf are documented in this file. Versions follow Semantic
 Versioning; breaking changes before 1.0 are called out explicitly.
 
+## Unreleased
+
+### Breaking changes
+
+- Install Vivliostyle CLI separately in the same npm project, or pass a built
+  Vivliostyle CLI entry point with `--vivliostyle-cli`. For a standalone
+  daemon, pfpdf uses the CLI path reported by the daemon.
+
 ## [0.4.0](https://github.com/pfnet-research/pfpdf/compare/v0.3.0...v0.4.0) (2026-10-31)
 
 

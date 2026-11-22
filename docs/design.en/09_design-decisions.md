@@ -672,3 +672,11 @@ Each decision follows this format:
 - Adopted: (a). Vivliostyle manages the worker and private working directory. pfpdf gets the CLI and working directory from the socket and invokes the existing client with its original build arguments. The same deadline covers discovery and rendering
 - Rejection reasons: (b) adds a file whose lifetime would need to track the daemon. (c) couples service lifecycle management to pfpdf conversions
 - Verification: Check socket permissions and protocol compatibility, reuse the executor and Chromium from separate input directories, and verify cancellation and PDF preservation on failure
+
+## DD-60: Install Vivliostyle CLI separately
+
+- Problem: Installing pfpdf with a modified Vivliostyle build still downloads the standard CLI and its dependencies
+- Options: (a) keep Vivliostyle CLI as a production dependency, (b) declare it as a peer dependency, (c) pin it for development and let users select a separate installation or build
+- Adopted: (c). Use the project-local CLI by default, a built entry point when explicitly specified, and the advertised CLI for standalone daemons
+- Rejection reasons: (a) installs a second renderer for users of a modified build. (b) makes renderer installation depend on npm peer resolution
+- Verification: Install the tarball as a production dependency, check missing-renderer diagnostics, and generate PDFs with both the standard CLI and a modified build

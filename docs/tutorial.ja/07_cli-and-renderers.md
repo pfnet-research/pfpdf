@@ -51,7 +51,7 @@ Options:
 `--print-effective-config` は、適用後の設定と各値の設定元を、バージョン付きスキーマを持つ JSON オブジェクトとして表示します。`--input` も指定すると、フロントマターの `template` / `toc` / `cover` / `logo` を反映し、設定元を `front-matter` と表示します。
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --print-effective-config
+npx pfpdf --input docs --print-effective-config
 ```
 
 ## 7.3 終了コード
@@ -68,13 +68,21 @@ npx @pfnet-research/pfpdf@latest --input docs --print-effective-config
 
 ## 7.4 レンダラー
 
-同梱の Vivliostyle CLI と、その標準機構が管理する Chromium を使って PDF を描画します。
+既定では、コマンドを実行した npm プロジェクトにインストールされた Vivliostyle CLI を使います。01 章の手順に従って両方のパッケージをインストールしてください。改変版を使う場合は、pfpdf をインストールし、ビルド済みの `dist/cli.js` のパスを指定します。
+
+```bash
+npm install @pfnet-research/pfpdf
+npx pfpdf --input docs --output docs.pdf \
+  --vivliostyle-cli ../vivliostyle-cli/dist/cli.js
+```
+
+Vivliostyle CLI が見つからない場合、変換と `--doctor` はインストール手順とパスの指定方法を表示し、終了コード `1` を返します。
 
 - ブラウザーは初回に自動取得され、以降はキャッシュされます
 - 既にある互換ブラウザーを使いたい場合は `--browser-path` で指定します
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
+npx pfpdf --input docs --output docs.pdf \
   --browser-path /usr/bin/chromium
 ```
 
@@ -139,7 +147,7 @@ Vivliostyle の 2 つのオプションの相対パスは、pfpdf の起動時�
 デーモンへの接続とキューでの待機、ブラウザーの確認と初回取得、描画開始の準備、PDF の描画・後処理・構造検査にかかる合計時間には、既定で 300,000 ms（5 分）のタイムアウトがあります。大きな文書や低速な初回ダウンロードで不足する場合だけ、1,000 から 3,600,000 ms の範囲で変更します。`0` など無期限にする値は使えません。
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
+npx pfpdf --input docs --output docs.pdf \
   --render-timeout-ms 600000
 ```
 
@@ -148,12 +156,13 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
 ## 7.6 再現可能なビルド
 
 CI などで同じ入力から同じ結果を得たい場合は、環境変数 `SOURCE_DATE_EPOCH` を設定します。フロントマターの `date` が省略されているときは、実行日ではなくこの値の UTC 日付が使われます。
+1.3 節の手順でバージョンを固定した npm プロジェクトを使います。
 
 フロントマターに表示用の `date` が書かれていても、PDF メタデータのタイムスタンプは別に存在します。そのため、`SOURCE_DATE_EPOCH` を設定しないビルドでは警告が出され、再現可能とは扱われません。
 
 ```bash
 SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) \
-  npx --yes @pfnet-research/pfpdf@0.4.0 --input docs --output docs.pdf
+  npx pfpdf --input docs --output docs.pdf
 ```
 
 ## 7.7 デバッグ

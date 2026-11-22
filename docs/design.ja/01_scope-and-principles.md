@@ -2,22 +2,19 @@
 
 ## 1.1 pfpdf とは
 
-pfpdf は、Markdown 文書を HTML 経由で PDF へ変換するコマンドラインツールです。Node.js と npm を導入済みの利用者が、リポジトリーをクローンせずに次の 1 コマンドで PDF を生成できることを第一の目標とします。
+pfpdf は、Markdown 文書を HTML 経由で PDF へ変換するコマンドラインツールです。Node.js と npm を使い、同じプロジェクトにパッケージをインストールして、そこで変換を実行します。
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input foo --output foo.pdf
+npm install @pfnet-research/pfpdf @vivliostyle/cli@11.1.0
+npx pfpdf --input foo --output foo.pdf
 ```
 
-CI や長期保存する手順書では `latest` を使わずバージョンを固定します。
-
-```bash
-npx --yes @pfnet-research/pfpdf@0.1.0 --input foo --output foo.pdf
-```
+CI や長期保存する手順書では、プロジェクトのパッケージのバージョンを固定し、`npm ci` で復元します。
 
 ## 1.2 `v0.1.0` の目標
 
-- Node.js と同梱の依存関係だけで動作する
-- `npx @pfnet-research/pfpdf` を利用者向け CLI の唯一の正式な導入経路とする
+- Node.js、npm パッケージ、描画用に選択したブラウザーで動作する
+- 利用者向け CLI は npm で配布し、プロジェクトにインストールして使えるようにする
 - 外部の Python 環境を要求しない
 - CommonMark を包含する正式な GitHub Flavored Markdown（GFM）の構文を原則すべて扱う
 - `これは**「重要」**です` のような、全角約物・括弧を含む日本語の強い強調（strong emphasis）を空白なしでも確実に `<strong>` へ変換する

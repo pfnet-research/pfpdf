@@ -20,8 +20,7 @@ function fixture() {
   const pkg = {
     name: '@example/pfpdf',
     version: '1.2.3',
-    dependencies: { '@vivliostyle/cli': '11.1.0' },
-    devDependencies: { '@fontsource/noto-sans': '5.3.0' },
+    devDependencies: { '@fontsource/noto-sans': '5.3.0', '@vivliostyle/cli': '11.1.0' },
   };
   const lock = {
     name: pkg.name,
@@ -160,6 +159,7 @@ test('release artifact metadata covers the exact PDF set and detects changes', (
     checksumsPath,
   });
   assert.deepEqual(metadata.pdfs.map((pdf) => pdf.name), RELEASE_PDF_NAMES);
+  assert.equal(metadata.toolchain.vivliostyle, '11.1.0');
   verifyReleaseArtifacts({ metadataPath });
   const release = {
     assets: [

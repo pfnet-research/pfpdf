@@ -16,7 +16,7 @@ const templates = listTemplates();
 // The hero pairs a real input file with the PDF it actually renders to.
 const hero = loadHero(locale);
 const heroMarkdown = loadHeroSource(locale);
-const installCommand = 'npx @pfnet-research/pfpdf@latest --input document.md --output document.pdf';
+const installCommand = 'npm install @pfnet-research/pfpdf @vivliostyle/cli@11.1.0\nnpx pfpdf --input document.md --output document.pdf';
 ---
 
 <Base locale={locale} path={root}>
@@ -111,7 +111,9 @@ const installCommand = 'npx @pfnet-research/pfpdf@latest --input document.md --o
         ))}
       </ol>
       <p>{dict.quickStart.directoryNote}</p>
-      <pre><code>{'npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf\nnpx --yes @pfnet-research/pfpdf@0.4.0 --input docs --output docs.pdf'}</code></pre>
+      <pre><code>npx pfpdf --input docs --output docs.pdf</code></pre>
+      <p>{dict.quickStart.modifiedNote}</p>
+      <pre><code>{'npm install @pfnet-research/pfpdf\nnpx pfpdf --input docs --output docs.pdf \\\n  --vivliostyle-cli ../vivliostyle-cli/dist/cli.js'}</code></pre>
       <p class="note">{dict.quickStart.chromiumNote}</p>
     </div>
   </section>
@@ -282,7 +284,7 @@ const installCommand = 'npx @pfnet-research/pfpdf@latest --input document.md --o
   @media (max-width: 56rem) {
     .hero-grid {
       /* minmax(0, …) rather than 1fr: a plain 1fr track grows to its content's
-         min-content width, which the one-line install command would push past
+         min-content width, which the install command would push past
          the viewport. */
       grid-template-columns: minmax(0, 1fr);
       gap: 2rem;

@@ -97,8 +97,7 @@ async function runDoctorWithResolver(
     }
   } else {
     try {
-      const cli = resolveVivliostyleCli(config.vivliostyleCliAbs);
-      fs.accessSync(cli, fs.constants.R_OK);
+      const cli = resolveVivliostyleCli(config.vivliostyleCliAbs, config.cwd);
       vivliostyleCli = cli;
       add('vivliostyle-cli', 'pass', cli);
     } catch (e) {
@@ -139,7 +138,7 @@ async function runDoctorWithResolver(
 
   if (standaloneSocket !== null && config.browserPathAbs === null) {
     add('browser', 'not-run', 'browser is managed by the daemon');
-  } else if (vivliostyleCli === undefined && standaloneSocket === null) {
+  } else if (vivliostyleCli === undefined) {
     add('browser', 'not-run', 'Vivliostyle CLI check failed');
   } else {
     const browserPath = config.browserPathAbs ?? await managedBrowserPath();
@@ -147,7 +146,7 @@ async function runDoctorWithResolver(
       add('browser', 'warning', 'managed browser is not installed yet; conversion will attempt to download it');
     } else {
       try {
-        const browser = await probeBrowser(browserPath, vivliostyleCli ?? resolveVivliostyleCli());
+        const browser = await probeBrowser(browserPath, vivliostyleCli);
         add('browser', browser.status, browser.message);
       } catch (e) {
         add('browser', 'fail', `browser diagnostic failed: ${(e as Error).message}`);

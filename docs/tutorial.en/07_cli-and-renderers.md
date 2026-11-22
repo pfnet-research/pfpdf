@@ -51,7 +51,7 @@ Runtime settings such as the browser, font directories, timeout, logging, and wo
 `--print-effective-config` outputs the effective settings and the source of each value as a JSON object with a versioned schema. When `--input` is also specified, it reflects front matter `template` / `toc` / `cover` / `logo` values and reports their source as `front-matter`.
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --print-effective-config
+npx pfpdf --input docs --print-effective-config
 ```
 
 ## 7.3 Exit codes
@@ -68,13 +68,21 @@ pfpdf never reports success for a partial PDF. It creates a temporary file in th
 
 ## 7.4 Renderer
 
-pfpdf renders the PDF using the bundled Vivliostyle CLI and the Chromium browser that the CLI manages by default.
+By default, pfpdf uses the Vivliostyle CLI installed in the npm project where you run the command. Install both packages as described in Chapter 01. To use a modified Vivliostyle CLI, install pfpdf and pass the path to the built `dist/cli.js`.
+
+```bash
+npm install @pfnet-research/pfpdf
+npx pfpdf --input docs --output docs.pdf \
+  --vivliostyle-cli ../vivliostyle-cli/dist/cli.js
+```
+
+When pfpdf cannot find the CLI, conversion and `--doctor` return exit code `1` with instructions to install it or specify its path.
 
 - The browser is fetched automatically on first run and cached thereafter
 - To use an existing compatible browser, specify it with `--browser-path`
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
+npx pfpdf --input docs --output docs.pdf \
   --browser-path /usr/bin/chromium
 ```
 
@@ -139,7 +147,7 @@ When finished, press Ctrl+C in the daemon terminal first and wait for it to exit
 The default timeout of 300,000 ms (five minutes) covers daemon discovery and queueing, browser verification and initial download, waiting for the document to be ready, PDF rendering, post-processing, and structural inspection. If a large document or slow initial download needs more time, choose a value from 1,000 to 3,600,000 ms. Unlimited values such as `0` are not accepted.
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
+npx pfpdf --input docs --output docs.pdf \
   --render-timeout-ms 600000
 ```
 
@@ -148,12 +156,13 @@ The deadline starts before contacting the daemon or launching the renderer and r
 ## 7.6 Reproducible builds
 
 If you want the same result from the same input, for example in CI, set the `SOURCE_DATE_EPOCH` environment variable. When the front matter `date` is omitted, pfpdf uses the UTC date represented by this value instead of the run date.
+Use the pinned npm project from section 1.3.
 
 The PDF metadata timestamps are separate from the display `date` in front matter. Even if `date` is set, a build without `SOURCE_DATE_EPOCH` produces a warning and is not treated as reproducible.
 
 ```bash
 SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) \
-  npx --yes @pfnet-research/pfpdf@0.4.0 --input docs --output docs.pdf
+  npx pfpdf --input docs --output docs.pdf
 ```
 
 ## 7.7 Debugging

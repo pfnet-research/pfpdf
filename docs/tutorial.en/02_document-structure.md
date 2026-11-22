@@ -26,7 +26,7 @@ The following table lists eight metadata fields and the `template` / `toc` / `co
 For example, you can keep `tags` or `status` intended for other tools when building a PDF. Typos such as `page_szie` also produce warnings, so check that the intended settings took effect. To treat unknown keys as errors, pass the CLI flag `--strict-front-matter`.
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --strict-front-matter
+npx pfpdf --input docs --output docs.pdf --strict-front-matter
 ```
 
 The unknown-key warnings and strict validation also apply to `--print-effective-config --input docs` and `--doctor --input docs`. Since `--strict-front-matter` is a runtime setting, it cannot be set in front matter.

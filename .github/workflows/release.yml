@@ -149,6 +149,8 @@ jobs:
           $browserPath = Join-Path $env:PROGRAMFILES 'Google\Chrome\Application\chrome.exe'
           if (-not (Test-Path $browserPath)) { throw 'Google Chrome is not installed' }
           "BROWSER_PATH=$browserPath" >> $env:GITHUB_ENV
+      - name: Install the pinned test renderer
+        run: npm ci
       - name: Install and smoke-test the packed package
         run: node scripts/release.mjs test-packed --metadata build/release/release-metadata.json
 
@@ -241,6 +243,8 @@ jobs:
           browser_path="$(command -v google-chrome)"
           test -n "$browser_path"
           echo "BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
+      - name: Install the pinned test renderer
+        run: npm ci
       - name: Verify installation from the public registry
         run: node scripts/release.mjs verify-published --metadata build/release/release-metadata.json
       - name: Record the approved candidate

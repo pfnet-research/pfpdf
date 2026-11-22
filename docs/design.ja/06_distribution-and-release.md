@@ -92,7 +92,7 @@ Make ターゲットの生成物を置く `build/docs/` は、`.gitignore` の `
 - プルリクエストごとに `make docs-release docs-template-samples` を実行し、公開用の日本語の正本と英語の翻訳、および同梱テンプレートすべてによる共通プレビューをビルドできることを確認する。全テンプレートの画像を詳しくレビューするには、`make docs-template-images` を使う
 - `scripts/check-doc-translations.mjs` で日英のファイルの対応と変更の同期を検査し、翻訳の意味上の一致はプルリクエストのレビューで必須の確認項目にする
 - `scripts/check-doc-policy.mjs` で、すべての `AGENTS.md` に日本語文字が含まれないことを検査する
-- Vivliostyle CLI は npm の最新版を実行時に無条件に取得せず、検証済みの 1 バージョンを、直接依存の厳密なバージョン指定、ソース側のロックファイル、公開用 shrinkwrap で固定する。更新は自動マージせず、各対象 OS でのサンプル PDF のスモークテスト後に行う
+- ドキュメントのビルドと CI 用に Vivliostyle CLI 11.1.0 を開発依存として両方のロックファイルで固定する。各対象 OS でサンプル PDF のスモークテストが通ってから固定バージョンを更新する
 - CI のテストコマンドはネットワークから適合性検査用のフィクスチャーやスクリプトを取得せず、ロックファイルとリポジトリーに固定した入力だけを使う。依存関係のダウンロードが必要なジョブと、オフライン時の挙動の検査を分ける
 - Release Please は Conventional Commit をリリースに含める変更の単位としてリリース PR を更新し、バージョン、`CHANGELOG.md`、`package-lock.json`、`npm-shrinkwrap.json` を同じ PR で変更する。`0.x` の破壊的変更を含むバージョンの判断とリリースノートは、マージ前に人がレビューする
 - Release Please が作る PR やタグからも通常のワークフローを起動できるよう、リリース専用 GitHub App の短命なインストールトークンを使う。App は、現在のリポジトリーの Contents、Pull requests、Issues だけに必要最小限の書き込み権限を持ち、個人 PAT は使わない
@@ -101,11 +101,11 @@ Make ターゲットの生成物を置く `build/docs/` は、`.gitignore` の `
 
 - Release Please はリリース PR のマージコミットに `v<package version>` タグと下書きの GitHub Release を作る。タグの作成を契機に `.github/workflows/release.yml` が始まる。手動で再開するときは、`gh workflow run release.yml --ref v<package version>` でワークフロー自体を既存のタグから開始し、ブランチから別のタグを入力する方式は許可しない。タグ、`package.json`、ロックファイル、CHANGELOG のバージョンが一致しない場合は、公開前に失敗させる
 - タグが指す同じソースリビジョンから npm tarball と 4 文書の PDF を一度だけビルドし、GitHub Actions のアーティファクトに保存する。承認後に再ビルドせず、この tarball と PDF をそのまま公開まで使う
-- 梱包した tarball について、ファイルの許可リスト、パッケージ名、バージョン、shrinkwrap、チェックサム、ライセンスファイルを検査し、空の一時プロジェクトへインストールする。インストール時に生成されたロックファイルのパッケージパス、バージョン、取得元、integrity 値が公開用 shrinkwrap と一致することを確認する。同じ tarball を macOS aarch64、Linux x86_64、Windows x86_64、Linux aarch64 での `npm ls --all --json`、`pfpdf --version`、実際に PDF を生成するスモークテストに使う
+- 梱包した tarball のファイル許可リスト、パッケージ名、バージョン、shrinkwrap、チェックサム、ライセンスファイルを検査する。独立した検証プロジェクトに `--omit=dev` でインストールし、Vivliostyle CLI が導入されず、変換と `--doctor` が同じ導入手順を表示して終了コード `1` を返すことを確認する。`pfpdf --version` を確認し、チェックアウト側で固定したテスト用 CLI を `--vivliostyle-cli` で明示して PDF を生成する。別のプロジェクトで `npm ci --omit=dev` と `npm ls` を使い、本番依存のパス、バージョン、取得元、integrity 値を公開用 shrinkwrap と照合する。macOS aarch64、Linux x86_64、Windows x86_64、Linux aarch64 でこれらの検査を行う
 - GitHub Release は最初に下書きとして作成し、`build/docs/release/` の 4 PDF と `SHA256SUMS` だけをアップロードする。アップロード直後と公開直前に、リモートにある添付ファイルの一覧、アップロード状態、サイズ、SHA-256 ダイジェストを公開準備用メタデータと照合し、すべてが完全に一致することを確認する。テンプレートのプレビュー、npm tarball、内部メタデータは Release の添付ファイルに含めない
 - GitHub Environment `release` では、必須レビュアーを設定し、自己承認を禁止し、リリースタグを制限する。承認画面のジョブサマリーに、ソースコミット、tarball に含まれるファイルの数、tarball の SHA-256、ツールチェーンのバージョン、4 PDF のチェックサム、マトリックスの全テスト結果を表示する
 - npm への公開には、`.github/workflows/release.yml` と Environment `release` に限定した GitHub Actions の trusted publishing を使い、長期 npm トークンをリポジトリーのシークレットに保存しない。OIDC に必要な `id-token: write` は公開ジョブだけへ付与し、安定版は `latest`、プレリリース版は `next` タグで公開する
-- 公開後は公開レジストリーから厳密に指定したバージョンを新しい一時プロジェクトへ取得し、バージョンと、実際に PDF を生成するスモークテストの結果を確認してから、下書きの GitHub Release を公開する。公開確認、npm tarball の SHA-256、Vivliostyle・Chromium・フォントのバージョン、4 PDF のチェックサムをリリースノートに追記する
+- npm への公開後は、公開レジストリーから厳密に指定したバージョンを使って、別の検証プロジェクトで本番インストールと PDF のスモークテストを繰り返す。その検証結果、npm tarball の SHA-256、開発依存として固定した Vivliostyle CLI のバージョン、Chromium とフォントのバージョン、4 PDF のチェックサムをリリースノートに記録する
 - npm と GitHub Release の公開は別々の操作であり、片方だけが完了することがある。途中で失敗した場合、GitHub Release は下書きのまま保つ。再実行時に、npm 上の同じバージョンの SHA-1 と integrity 値が公開準備用の tarball と一致すれば、公開済みとして後続の検証から再開し、不一致なら停止する。公開済みの成果物を上書き・再利用せず、修正版は新しいバージョンとする
 - shrinkwrap で固定した間接依存のセキュリティー修正も、既存リリースのインストール結果へ自動反映されない。そのため、ロックファイルを更新してすべてのスモークテストを通し、新しいパッチリリースとして配布する
 
@@ -142,7 +142,7 @@ make docs-template-images  # 各テンプレートの見本の全ページを目
 - CHANGELOG は Semantic Versioning に従い、`0.x` の破壊的変更も明記する
 - リリースタグ、ソースコミット、npm tarball のチェックサム、Vivliostyle・Chromium・フォントのバージョン、4 PDF のチェックサム、公開後の検証、セキュリティー修正を配布するリリースの手順を記録する
 - pfpdf が新規に作成するコードは MIT License とする。ただし npm パッケージ全体が MIT の要素だけで構成されるとは表現しない
-- Vivliostyle CLI は実行時の直接依存で、ライセンスは AGPL-3.0 である。配布経路（npm への同梱、ネットワークサービス）ごとの義務を整理し、正確なソースのバージョン、上流の URL、ライセンス文、変更の有無を記録する
+- 外部レンダラーの Vivliostyle CLI のライセンスは AGPL-3.0 である。開発に使う上流ソースとバージョンを記録し、第三者ライセンス一覧に外部レンダラーとして記載する
 - MathJax、highlight.js、フォント、Chromium、Node.js、GFM パーサー、CJK 向けの拡張、PDF の解析・書き換えツールについても、バージョン・ライセンス・入手元を `THIRD_PARTY_LICENSES.md` に一覧化する
 - ファイル名の衝突、見出しのスラッグ、BCP 47 言語タグの正規化に使う Unicode データと言語サブタグデータのバージョン、ライセンス、入手元も固定する。更新時は、アンカーや既存文書との互換性にどのような差が生じるかをレビューする
 - リリース前にシークレットスキャン、依存関係のレビュー、第三者ライセンス一覧の更新を確認する

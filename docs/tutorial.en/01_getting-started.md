@@ -7,7 +7,7 @@
 
 Python is not required.
 
-> On the first run, pfpdf automatically downloads Chromium for PDF rendering.
+> On the first run, Vivliostyle CLI downloads Chromium for PDF rendering.
 > The download may be several hundred megabytes. Subsequent runs use the cached
 > browser. On Linux, Chromium also requires system shared libraries (see
 > Chapter 08).
@@ -24,10 +24,11 @@ Create `hello.md`.
 This is my first PDF made with **pfpdf**.
 ```
 
-Convert it.
+Install pfpdf and Vivliostyle CLI in the same npm project, then convert the file from that project.
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input hello.md --output hello.pdf
+npm install @pfnet-research/pfpdf @vivliostyle/cli@11.1.0
+npx pfpdf --input hello.md --output hello.pdf
 ```
 
 After the command succeeds, `hello.pdf` contains a cover with the title and a body with the heading and paragraph.
@@ -36,11 +37,7 @@ When the title is omitted, pfpdf uses the first H1 (level 1 heading) as the titl
 
 ## 1.3 Pinning the version
 
-In CI and long-lived runbooks, pin a specific version instead of using `latest`.
-
-```bash
-npx --yes @pfnet-research/pfpdf@0.4.0 --input hello.md --output hello.pdf
-```
+For CI and long-lived runbooks, install pfpdf with an exact version and commit the npm lockfile. Use `npm ci` to restore the pinned versions before running `npx pfpdf`.
 
 ## 1.4 Converting a whole directory
 
@@ -54,7 +51,7 @@ docs/
 ```
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf
+npx pfpdf --input docs --output docs.pdf
 ```
 
 Files are ordered by comparing their filenames as byte sequences. We recommend adding numeric prefixes such as `00_` and `01_`.
@@ -64,7 +61,7 @@ Files are ordered by comparing their filenames as byte sequences. We recommend a
 Use `--doctor` to diagnose your environment.
 
 ```bash
-npx @pfnet-research/pfpdf@latest --doctor
+npx pfpdf --doctor
 ```
 
 The command checks Node.js, browser availability, fonts, and other parts of the environment, then reports any problems with suggested fixes. See Chapter 08 for details.

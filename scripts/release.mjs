@@ -69,7 +69,7 @@ async function main() {
       result = verifyReleaseArtifacts({ metadataPath: path.resolve(required(args.metadata, 'metadata')) });
       break;
     case 'test-packed':
-      result = testPackedPackage({ metadataPath: path.resolve(required(args.metadata, 'metadata')) });
+      result = testPackedPackage({ root, metadataPath: path.resolve(required(args.metadata, 'metadata')) });
       break;
     case 'registry-status':
       result = registryStatus({ metadataPath: path.resolve(required(args.metadata, 'metadata')) });
@@ -81,7 +81,7 @@ async function main() {
       });
       break;
     case 'verify-published':
-      result = await verifyPublishedPackage({ metadataPath: path.resolve(required(args.metadata, 'metadata')) });
+      result = await verifyPublishedPackage({ root, metadataPath: path.resolve(required(args.metadata, 'metadata')) });
       break;
     case 'stage-github':
       result = stageGitHubRelease({ metadataPath: path.resolve(required(args.metadata, 'metadata')) });

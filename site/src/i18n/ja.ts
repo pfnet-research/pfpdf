@@ -11,7 +11,7 @@ export const ja: typeof en = {
   hero: {
     subcopy:
       '日本語の文書も Vivliostyle と Chromium で組版できます。GFM・数式・コードハイライト・BibTeX の引用・表紙に対応しています。',
-    installNote: 'pfpdf の事前インストールは不要です。Node.js 22.12.0 以上と npm を用意し、npx で取得して実行します。',
+    installNote: 'Node.js 22.12.0 以上と npm を用意し、両方のコマンドを同じ npm プロジェクトで実行します。',
     getStarted: 'はじめる',
     browseTemplates: 'テンプレートを見る',
     viewOnGitHub: 'GitHub で見る',
@@ -49,7 +49,7 @@ export const ja: typeof en = {
       },
       {
         title: 'ブラウザーの自動取得',
-        body: '既定では、同梱の Vivliostyle CLI が Chromium を取得・管理します。--browser-path で既存の互換ブラウザーも指定できます。',
+        body: '既定では、Vivliostyle CLI が Chromium を取得・管理します。--browser-path で既存の互換ブラウザーも指定できます。',
       },
       {
         title: '4環境で PDF 生成を検証',
@@ -66,10 +66,11 @@ export const ja: typeof en = {
     title: 'クイックスタート',
     steps: [
       { title: 'Markdown を書く', body: 'Markdown を .md ファイルに書き、必要に応じて先頭のフロントマターにタイトル・著者・テンプレートを指定します。' },
-      { title: 'npx @pfnet-research/pfpdf を実行', body: '--input に .md ファイル、--output に PDF の保存先を指定して実行します。' },
+      { title: 'pfpdf をインストールして実行', body: '上の手順で両方のパッケージをインストールします。同じプロジェクトで、--input に .md ファイル、--output に PDF の保存先を指定して npx pfpdf を実行します。' },
       { title: '印刷品質の PDF が完成', body: '既定では表紙・目次・ページ番号付きの PDF が生成されます。--output で指定した保存先を確認してください。' },
     ],
-    directoryNote: 'ディレクトリーを --input に渡すと、直下の .md ファイルをファイル名順に1つの PDF にまとめます。CI 用にバージョンを固定する例も示します:',
+    directoryNote: 'ディレクトリーを --input に渡すと、直下の .md ファイルをファイル名順に1つの PDF にまとめます。',
+    modifiedNote: '改変版の Vivliostyle を使う場合は、pfpdf をインストールし、ビルド済みの dist/cli.js を --vivliostyle-cli で指定します。',
     chromiumNote:
       '初回実行にはインターネット接続が必要で、PDF 描画用の Chromium の取得で数百 MB の通信が発生することがあります。npm パッケージとブラウザーのキャッシュが揃えば、同梱機能だけを使う文書はオフラインでも変換できます。Linux では Chromium に必要な OS の共有ライブラリーも用意してください。',
   },
@@ -81,7 +82,7 @@ export const ja: typeof en = {
     releases: 'Releases (PDF 版ドキュメント)',
     license: 'ライセンス',
     licenseNote:
-      'pfpdf: MIT License。依存する Vivliostyle CLI は AGPL-3.0、その他は THIRD_PARTY_LICENSES.md を参照してください。',
+      'pfpdf は MIT License、外部の Vivliostyle CLI は AGPL-3.0 です。その他のライセンスは THIRD_PARTY_LICENSES.md を参照してください。',
     copyright: '© Preferred Networks, Inc.',
   },
   gallery: {

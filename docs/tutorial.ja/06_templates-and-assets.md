@@ -34,7 +34,7 @@ template: pfn
 一時的に別の見た目で出力する場合は `--template` を指定します。CLI はフロントマターの選択を上書きします。
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template pfn
+npx pfpdf --input docs --output docs.pdf --template pfn
 ```
 
 フロントマターから選べるのは同梱テンプレートだけです。CLI の `--template SOURCE` は、同梱プリセット名と完全に一致する値をプリセット名として扱い、それ以外はローカルディレクトリーまたは Git ロケーターとして扱います。同梱プリセットであることを明示する場合は `--template-preset` を使います。テンプレートは `default` を既定値とし、フロントマター、CLI の順に上書きされます。
@@ -66,7 +66,7 @@ logo: assets/logo.png
 `logo: false` を指定すると、テンプレートの既定値を含めてロゴを表示しません。Git ロケーターから取得する場合や一時的に上書きする場合は、CLI の `--logo` を使います。
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
+npx pfpdf --input docs --output docs.pdf \
   --template pfn --logo assets/logo.png
 ```
 
@@ -77,7 +77,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
 
 ```make
 docs.pdf: $(wildcard docs/*.md)
-	npx --yes @pfnet-research/pfpdf@0.4.0 --input docs --output $@ \
+	npx pfpdf --input docs --output $@ \
 	  --template pfn --logo assets/logo.png
 ```
 
@@ -93,7 +93,7 @@ my-template/
 ```
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template ./my-template
+npx pfpdf --input docs --output docs.pdf --template ./my-template
 ```
 
 - カスタムテンプレートは信頼できるローカルコードとして扱われ、生の HTML やスクリプトを実行できます
@@ -133,14 +133,14 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template ./my-
 テンプレートは Git リポジトリー内のサブディレクトリーから、ロゴはファイルから直接取得できます。リポジトリー URL とリポジトリー内のパスを `//` で区切り、リビジョンを `ref` で指定します。
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
+npx pfpdf --input docs --output docs.pdf \
   --template 'git::https://github.com/example/pdf-assets.git//templates/corporate?ref=0123456789abcdef0123456789abcdef01234567'
 ```
 
 別のリポジトリーのロゴで、既定のロゴを上書きする例です。
 
 ```bash
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
+npx pfpdf --input docs --output docs.pdf \
   --template pfn \
   --logo 'git::ssh://git@example.com/pdf-assets.git//logos/brand/main.svg?ref=v2.0.0'
 ```
@@ -167,10 +167,10 @@ OS にインストールされたフォントを使うには、CLI で明示的�
 
 ```bash
 # OS 標準のフォントディレクトリーを探索する
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --host-fonts
+npx pfpdf --input docs --output docs.pdf --host-fonts
 
 # 特定のディレクトリーだけを追加する（--host-fonts なしでも可）
-npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --font-dir ~/my-fonts
+npx pfpdf --input docs --output docs.pdf --font-dir ~/my-fonts
 ```
 
 - `--font-dir` は複数回指定できます
