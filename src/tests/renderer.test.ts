@@ -256,7 +256,6 @@ for (const stop of ['signal', 'timeout'] as const) {
     fs.writeFileSync(cli, `
       import { createConnection } from 'node:net';
       const [, , , url, ...args] = process.argv;
-      const socket = createConnection(args[args.indexOf('--build-daemon') + 1]);
       process.on('SIGTERM', () => {
         setTimeout(async () => {
           const body = await (await fetch(url)).text();
@@ -264,6 +263,7 @@ for (const stop of ['signal', 'timeout'] as const) {
           socket.end(url);
         }, ${stop === 'signal' ? 5500 : 0});
       });
+      const socket = createConnection(args[args.indexOf('--build-daemon') + 1]);
     `);
     const controller = new AbortController();
     const diagnosticsPath = path.join(dir, 'renderer.log');
