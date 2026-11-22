@@ -40,7 +40,7 @@ Install pfpdf and the standard Vivliostyle CLI in the same npm project. Run both
 commands from the directory containing `document.md`.
 
 ```bash
-npm install @pfnet-research/pfpdf @vivliostyle/cli@11.1.0
+npm install @pfnet-research/pfpdf @vivliostyle/cli@11.5.0
 npx pfpdf --input document.md --output document.pdf
 ```
 

@@ -1,6 +1,6 @@
 {
   "name": "@pfnet-research/pfpdf",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Convert GitHub Flavored Markdown documents into print-quality PDF via Vivliostyle",
   "license": "MIT",
   "repository": {
@@ -112,7 +112,7 @@
     "@fontsource/noto-serif-telugu": "5.3.0",
     "@fontsource/noto-serif-thai": "5.3.0",
     "@types/node": "26.1.2",
-    "@vivliostyle/cli": "11.1.0",
+    "@vivliostyle/cli": "11.5.0",
     "highlight.js": "11.11.1",
     "oxlint": "1.77.0",
     "oxlint-tsgolint": "7.0.2001",

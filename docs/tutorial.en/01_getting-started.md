@@ -27,7 +27,7 @@ This is my first PDF made with **pfpdf**.
 Install pfpdf and Vivliostyle CLI in the same npm project, then convert the file from that project.
 
 ```bash
-npm install @pfnet-research/pfpdf @vivliostyle/cli@11.1.0
+npm install @pfnet-research/pfpdf @vivliostyle/cli@11.5.0
 npx pfpdf --input hello.md --output hello.pdf
 ```
 

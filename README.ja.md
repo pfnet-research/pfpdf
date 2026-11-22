@@ -32,7 +32,7 @@ template: pfn
 `document.md`を保存したディレクトリーで、pfpdfと標準版のVivliostyle CLIを同じnpmプロジェクトにインストールして実行します。
 
 ```bash
-npm install @pfnet-research/pfpdf @vivliostyle/cli@11.1.0
+npm install @pfnet-research/pfpdf @vivliostyle/cli@11.5.0
 npx pfpdf --input document.md --output document.pdf
 ```
 

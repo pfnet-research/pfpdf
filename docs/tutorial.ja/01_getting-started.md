@@ -24,7 +24,7 @@ Python は必要ありません。
 pfpdf と Vivliostyle CLI を同じ npm プロジェクトにインストールし、そのプロジェクトから変換します。
 
 ```bash
-npm install @pfnet-research/pfpdf @vivliostyle/cli@11.1.0
+npm install @pfnet-research/pfpdf @vivliostyle/cli@11.5.0
 npx pfpdf --input hello.md --output hello.pdf
 ```
 

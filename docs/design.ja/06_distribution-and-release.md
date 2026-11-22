@@ -92,7 +92,7 @@ Make ターゲットの生成物を置く `build/docs/` は、`.gitignore` の `
 - プルリクエストごとに `make docs-release docs-template-samples` を実行し、公開用の日本語の正本と英語の翻訳、および同梱テンプレートすべてによる共通プレビューをビルドできることを確認する。全テンプレートの画像を詳しくレビューするには、`make docs-template-images` を使う
 - `scripts/check-doc-translations.mjs` で日英のファイルの対応と変更の同期を検査し、翻訳の意味上の一致はプルリクエストのレビューで必須の確認項目にする
 - `scripts/check-doc-policy.mjs` で、すべての `AGENTS.md` に日本語文字が含まれないことを検査する
-- ドキュメントのビルドと CI 用に Vivliostyle CLI 11.1.0 を開発依存として両方のロックファイルで固定する。各対象 OS でサンプル PDF のスモークテストが通ってから固定バージョンを更新する
+- ドキュメントのビルドと CI 用に Vivliostyle CLI 11.5.0 を開発依存として両方のロックファイルで固定する。各対象 OS でサンプル PDF のスモークテストが通ってから固定バージョンを更新する
 - CI のテストコマンドはネットワークから適合性検査用のフィクスチャーやスクリプトを取得せず、ロックファイルとリポジトリーに固定した入力だけを使う。依存関係のダウンロードが必要なジョブと、オフライン時の挙動の検査を分ける
 - Release Please は Conventional Commit をリリースに含める変更の単位としてリリース PR を更新し、バージョン、`CHANGELOG.md`、`package-lock.json`、`npm-shrinkwrap.json` を同じ PR で変更する。`0.x` の破壊的変更を含むバージョンの判断とリリースノートは、マージ前に人がレビューする
 - Release Please が作る PR やタグからも通常のワークフローを起動できるよう、リリース専用 GitHub App の短命なインストールトークンを使う。App は、現在のリポジトリーの Contents、Pull requests、Issues だけに必要最小限の書き込み権限を持ち、個人 PAT は使わない

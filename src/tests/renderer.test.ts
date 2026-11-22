@@ -41,7 +41,7 @@ test('a workspace can use its hoisted renderer while an independent nested proje
   fs.symlinkSync(workspace, link, 'junction');
 
   assert.equal(resolveVivliostyleCli(null, docs), cli);
-  assert.throws(() => resolveVivliostyleCli(null, nestedProject), /npm install @vivliostyle\/cli@11\.1\.0/);
+  assert.throws(() => resolveVivliostyleCli(null, nestedProject), /npm install @vivliostyle\/cli@11\.5\.0/);
 });
 
 test('bounded child process classifies timeout and abort consistently', async () => {

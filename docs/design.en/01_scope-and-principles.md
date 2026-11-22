@@ -5,7 +5,7 @@
 pfpdf is a command-line tool that converts Markdown documents to PDF through HTML. With Node.js and npm, install the packages in the same project and run the conversion there.
 
 ```bash
-npm install @pfnet-research/pfpdf @vivliostyle/cli@11.1.0
+npm install @pfnet-research/pfpdf @vivliostyle/cli@11.5.0
 npx pfpdf --input foo --output foo.pdf
 ```
 
