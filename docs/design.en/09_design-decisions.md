@@ -654,7 +654,15 @@ Each decision follows this format:
 - Distribution check caveat: Direct local `.tgz` installation in npm 10.9.0 / 11.17.0 ignores shrinkwrap, a known upstream limitation. A local registry with the same `_hasShrinkwrap` metadata as the public registry reproduces the pinned tree. Verify this without publishing or deploying, and also follow the existing release procedure: `npm ci --omit=dev`, `npm ls`, lock comparison, and PDF smoke from the extracted package root. `npm ls` from a consuming project can report overrides beyond parent ranges as invalid; distinguish this diagnostic from checking exact versions and integrity
 - Reconsideration conditions: Parents officially adopt patched versions, allowing overrides to be removed. Reevaluate when new advisories or pattern compatibility problems appear
 
-## DD-58: Opt in to an externally managed Vivliostyle daemon
+## DD-58: Assemble slides from headings and named regions
+
+- Status: Accepted (2026-11-22)
+- Problem: Produce a cover, table of contents, pages, and columns from Markdown with less per-slide configuration
+- Adopted: Only in documents with `slides: true`, use top-level `#` to group slides and `##` to start and title a page. The existing `___` can start an untitled page. Build the cover from front matter and the table of contents from groups. A `::: name` starts a region, which continues until the next region or page
+- Alternatives: Explicit layouts on each page repeat the same declarations. Guessing from heading text can change layout when a title is reworded. Use heading levels and named regions for structural decisions. Pass region names and per-slide options to the HTML as attributes, and let template CSS define their meaning and appearance. pfpdf interprets only `talk` and `body`, and holds no layout-specific or brand-specific vocabulary
+- Compatibility and verification: Keep the assembly of ordinary Markdown documents. Check that the rendered PDF page count agrees with the generated slide count before committing the output. Keep brand assets in a separate template repository
+
+## DD-59: Opt in to an externally managed Vivliostyle daemon
 
 - Problem: Each one-off conversion starts the Vivliostyle build process and Chromium
 - Options: (a) manage persistent services inside pfpdf, (b) require callers to supply the CLI and a manually prepared working directory, (c) let callers select a standalone daemon by socket

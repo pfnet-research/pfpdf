@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { BUNDLED_TEMPLATE_NAMES } from '../bundled-templates.js';
+import { BUNDLED_SLIDE_TEMPLATE_NAMES, BUNDLED_TEMPLATE_NAMES } from '../bundled-templates.js';
 import { resolveConfig } from '../config.js';
 import { buildHtml } from '../build.js';
 import { InputError } from '../errors.js';
@@ -36,7 +36,7 @@ test('bundled template manifest matches resource directories', () => {
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
-  assert.deepEqual([...BUNDLED_TEMPLATE_NAMES].sort(), directories);
+  assert.deepEqual([...BUNDLED_TEMPLATE_NAMES, ...BUNDLED_SLIDE_TEMPLATE_NAMES].sort(), directories);
 });
 
 test('bundled templates import the shared structural styles before local rules', () => {

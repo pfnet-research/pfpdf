@@ -106,6 +106,7 @@ Make ターゲットの生成物を置く `build/docs/` は、`.gitignore` の `
 - GitHub Environment `release` では、必須レビュアーを設定し、自己承認を禁止し、リリースタグを制限する。承認画面のジョブサマリーに、ソースコミット、tarball に含まれるファイルの数、tarball の SHA-256、ツールチェーンのバージョン、4 PDF のチェックサム、マトリックスの全テスト結果を表示する
 - npm への公開には、`.github/workflows/release.yml` と Environment `release` に限定した GitHub Actions の trusted publishing を使い、長期 npm トークンをリポジトリーのシークレットに保存しない。OIDC に必要な `id-token: write` は公開ジョブだけへ付与し、安定版は `latest`、プレリリース版は `next` タグで公開する
 - npm での公開後、別の文書ディレクトリーから `npm exec --package=<name>@<version> -- pfpdf` を実行し、公開版のバージョンと既定の PDF 変換を確認する。公開レジストリーでの検証結果、npm tarball の SHA-256、Vivliostyle・Chromium・フォントのバージョン、4 本の PDF のチェックサムをリリースノートに追記する
+- 公開直後のレジストリー確認では、`npm view --prefer-online` でキャッシュの更新確認を強制します。404 のときだけ10秒間隔で最大61回まで確認し、待ち時間を最大10分にします。20分の公開ジョブ内に、問い合わせと後続のインストールおよび PDF スモークテストの時間を残します。バイトの不一致や404以外のエラーは、再試行せずに失敗させます。
 - npm と GitHub Release の公開は別々の操作であり、片方だけが完了することがある。途中で失敗した場合、GitHub Release は下書きのまま保つ。再実行時に、npm 上の同じバージョンの SHA-1 と integrity 値が公開準備用の tarball と一致すれば、公開済みとして後続の検証から再開し、不一致なら停止する。公開済みの成果物を上書き・再利用せず、修正版は新しいバージョンとする
 - shrinkwrap で固定した間接依存のセキュリティー修正も、既存リリースのインストール結果へ自動反映されない。そのため、ロックファイルを更新してすべてのスモークテストを通し、新しいパッチリリースとして配布する
 
@@ -132,7 +133,7 @@ make docs-template-images  # 各テンプレートの見本の全ページを目
 - 公開用 PDF は `build/docs/release/`、テンプレートのプレビューは `build/docs/templates/<template>/sample.pdf` に置き、同名 PDF の上書きとリリースへのプレビューの混入を防ぐ
 - `sample.pdf` には、GFM、長い表とコードブロック、数式、ローカル画像、生の HTML、改ページを含む 5 ページ以上の共通サンプルを使う。独立した表紙を持たない `compact` は 4 ページ以上とする。ページ数に上限は設けない。`compact` 以外は目次が 2 ページ以上になる数の見出しを設け、`compact` は 2 段組みの目次と本文を最初のページに共存させる
 - コーディングエージェントが文書全体をレビューできるよう、全ページを `pdftoppm` で PNG 化し、`build/docs/template-images/<template>/page-NN.png` にページ順で置く。PDF が所定の最小ページ数に満たない場合、`compact` 以外で目次が 2 ページに継続しない場合、または `compact` の最初のページに目次と本文が共存しない場合は、画像化ターゲットの実行を失敗させる
-- `resources/templates/manifest.json` を同梱テンプレート一覧の正本とし、CLI で許可する名前、`list-templates`、`docs-templates` はこの一覧を使う。マニフェストと実際のディレクトリーが一致することをテストする
+- `resources/templates/manifest.json` を同梱テンプレート一覧の正本とし、CLI で許可する名前、`list-templates`、`docs-templates` はこの一覧を使う。スライド用の同梱テンプレートは同じファイルの `slideTemplates` に分けて書く。CLI では同じ方法で選べるが、文書用テンプレートの一覧、ギャラリー、文書のビルドには含めない。マニフェストと実際のディレクトリーが一致することをテストする
 - 各ターゲットは、チェックアウトしたソースからビルドした現在の pfpdf を使い、レジストリー上の `latest` や以前のリリースに依存しない
 - `SOURCE_DATE_EPOCH` を受け取り、リリースビルドではタグが指すコミットの日時を固定して再現可能性を高める
 - リリースワークフローは、タグが指すソースから `docs-release` で 4 PDF を再生成し、`build/docs/release/*.pdf` だけをチェックサムとともに下書きの GitHub Release へアップロードする。テンプレートのプレビューの PDF と PNG は Release の添付ファイルに含めない。4 PDF が揃わないリリースは公開状態へ進めない

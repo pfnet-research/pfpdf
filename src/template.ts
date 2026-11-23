@@ -277,7 +277,7 @@ function applyCoverVisibility(root: HastRoot, body: Element, slots: SlotMap, vis
   if (running.length > 0) body.children.unshift(el('div', { className: ['pfpdf-running-metadata'], ariaHidden: 'true' }, running));
 }
 
-export function buildDocumentHtml(opts: BuildOptions): { html: string; generatedCss: Array<[string, string]> } {
+export function buildDocumentHtml(opts: BuildOptions): { html: string; generatedCss: Array<[string, string]>; hasCover: boolean } {
   const { metadata, template } = opts;
   const root = template.root;
   const { slots, html, head, body: htmlBody } = validateTemplate(root, template);
@@ -360,6 +360,11 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   }
 
   // Slot: toc / content
+  if (opts.body.slideCount !== undefined) {
+    (htmlBody.properties ??= {})['data-pfpdf-slides'] = '';
+    if (metadata.confidential) htmlBody.properties['data-pfpdf-confidential'] = '';
+    if (slots.cover) (slots.cover.properties ??= {})['data-pfpdf-slide'] = 'title';
+  }
   applyCoverVisibility(root, htmlBody, slots, opts.cover !== false, metadata);
 
   const tocEl = opts.toc && opts.body.toc.length > 0 ? tocElement(opts.body.toc, metadata.lang) : null;
@@ -409,6 +414,10 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   // Reserve the diagram's two 1.25em margins within the page area. A block
   // image avoids the extra baseline space of an inline image. Vivliostyle's
   // `vh` follows the page area left by each template's page margins.
+  if (opts.body.slideCount !== undefined) {
+    const baseCss = fs.readFileSync(resourcePath('templates', 'slides.css'), 'utf8');
+    generatedCss.push(['generated/slides.css', baseCss]);
+  }
   const pageCss = `@page { size: ${metadata.pageSize.css}; }\n` +
     `.pfpdf-running-metadata { display: block; height: 0; overflow: hidden; margin: 0; padding: 0; }\n` +
     `.pfpdf-toc-continuation-marker { display: block; height: 0; overflow: hidden; ` +
@@ -425,6 +434,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
     el('meta', { charSet: 'utf-8' }, []),
     el('link', { rel: 'stylesheet', href: 'generated/fonts.css' }, []),
     el('link', { rel: 'stylesheet', href: hljsLogical }, []),
+    ...(opts.body.slideCount === undefined ? [] : [el('link', { rel: 'stylesheet', href: 'generated/slides.css' }, [])]),
     el('link', { rel: 'stylesheet', href: 'generated/style.css' }, []),
     el('link', { rel: 'stylesheet', href: 'generated/vivliostyle.css' }, []),
     el('link', { rel: 'stylesheet', href: 'generated/page.css' }, []),
@@ -447,16 +457,16 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
     el('script', {}, [text(readinessFinishScript())]),
   );
 
-  // Remove slot attributes from the final document.
+  // Remove the template's slot markers from the final document.
   visit(root, 'element', (e: Element) => {
-    if (!e.properties) return;
+    if (!e.properties || !templateElements.has(e)) return;
     for (const key of Object.keys(e.properties)) {
       if (propertyToAttribute(key) === 'data-pfpdf-slot') delete e.properties[key];
     }
   });
 
   const html5 = toHtml(root as never, { allowDangerousHtml: true });
-  return { html: html5, generatedCss };
+  return { html: html5, generatedCss, hasCover: opts.cover !== false && Boolean(slots.cover) };
 }
 
 function removeElement(root: HastRoot, target: Element): void {
