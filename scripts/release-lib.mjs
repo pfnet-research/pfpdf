@@ -331,8 +331,8 @@ function verificationDirectory(root, verificationDir, stage) {
     fromCheckout === '..' || fromCheckout.startsWith(`..${path.sep}`) || path.isAbsolute(fromCheckout),
     'release verification directory must be outside the checkout',
   );
-  const directory = path.join(verification, stage);
-  fs.mkdirSync(directory);
+  const directory = path.join(verification, `${stage}-${crypto.randomUUID()}`);
+  fs.mkdirSync(directory, { mode: 0o700 });
   return directory;
 }
 

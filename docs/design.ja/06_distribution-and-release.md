@@ -101,7 +101,7 @@ Make ターゲットの生成物を置く `build/docs/` は、`.gitignore` の `
 
 - Release Please はリリース PR のマージコミットに `v<package version>` タグと下書きの GitHub Release を作る。タグの作成を契機に `.github/workflows/release.yml` が始まる。手動で再開するときは、`gh workflow run release.yml --ref v<package version>` でワークフロー自体を既存のタグから開始し、ブランチから別のタグを入力する方式は許可しない。タグ、`package.json`、ロックファイル、CHANGELOG のバージョンが一致しない場合は、公開前に失敗させる
 - タグが指す同じソースリビジョンから npm tarball と 4 文書の PDF を一度だけビルドし、GitHub Actions のアーティファクトに保存する。承認後に再ビルドせず、この tarball と PDF をそのまま公開まで使う
-- tarball のファイル許可リスト、パッケージ情報、shrinkwrap、チェックサム、ライセンスを確認する。チェックアウトの外に展開し、`npm ci --omit=dev` で本番依存関係を導入する。`npm ls` を実行し、パッケージのパス、バージョン、取得元、整合性ハッシュを shrinkwrap と照合する。別の文書ディレクトリーから展開先の実行ファイルを使い、バージョンと、同じ本番依存関係に含まれる既定レンダラーによる PDF 変換を確認する。macOS aarch64、Linux x86_64、Windows x86_64、Linux aarch64 で検証する
+- tarball のファイル許可リスト、パッケージ情報、shrinkwrap、チェックサム、ライセンスを確認する。チェックアウトの外に毎回新しい検証用ディレクトリーを作成して展開し、`npm ci --omit=dev` で本番依存関係を導入する。`npm ls` を実行し、パッケージのパス、バージョン、取得元、整合性ハッシュを shrinkwrap と照合する。別の文書ディレクトリーから展開先の実行ファイルを使い、バージョンと、同じ本番依存関係に含まれる既定レンダラーによる PDF 変換を確認する。macOS aarch64、Linux x86_64、Windows x86_64、Linux aarch64 で検証する
 - GitHub Release は最初に下書きとして作成し、`build/docs/release/` の 4 PDF と `SHA256SUMS` だけをアップロードする。アップロード直後と公開直前に、リモートにある添付ファイルの一覧、アップロード状態、サイズ、SHA-256 ダイジェストを公開準備用メタデータと照合し、すべてが完全に一致することを確認する。テンプレートのプレビュー、npm tarball、内部メタデータは Release の添付ファイルに含めない
 - GitHub Environment `release` では、必須レビュアーを設定し、自己承認を禁止し、リリースタグを制限する。承認画面のジョブサマリーに、ソースコミット、tarball に含まれるファイルの数、tarball の SHA-256、ツールチェーンのバージョン、4 PDF のチェックサム、マトリックスの全テスト結果を表示する
 - npm への公開には、`.github/workflows/release.yml` と Environment `release` に限定した GitHub Actions の trusted publishing を使い、長期 npm トークンをリポジトリーのシークレットに保存しない。OIDC に必要な `id-token: write` は公開ジョブだけへ付与し、安定版は `latest`、プレリリース版は `next` タグで公開する
