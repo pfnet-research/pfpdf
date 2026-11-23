@@ -20,7 +20,7 @@ Options:
   --host-fonts             Use the OS standard font directories
   --font-dir PATH          Additional font directory. Can be specified multiple times
   --browser-path PATH      Browser used by the renderer
-  --vivliostyle-cli PATH   Vivliostyle JavaScript entry point
+  --vivliostyle-cli PATH    Vivliostyle JavaScript entry point
   --vivliostyle-daemon SOCKET
                            use a running standalone daemon on Linux or macOS
   --render-timeout-ms N    Time limit from renderer preparation through PDF inspection; default: 300000 ms

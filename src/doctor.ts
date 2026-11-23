@@ -87,7 +87,7 @@ async function runDoctorWithResolver(
       add(
         'vivliostyle-daemon-socket',
         'pass',
-        `standalone describe handshake succeeded at ${standaloneSocket} (connection and protocol only)`,
+        `standalone connection and describe protocol verified at ${standaloneSocket}`,
       );
       add('vivliostyle-cli', 'pass', session.cliPath);
     } catch (error) {

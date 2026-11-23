@@ -407,7 +407,7 @@ Options:
   --host-fonts             search OS standard font directories
   --font-dir PATH          extra font directory (repeatable)
   --browser-path PATH      browser used by the renderer
-  --vivliostyle-cli PATH   use the specified Vivliostyle JavaScript entry point
+  --vivliostyle-cli PATH    use the specified Vivliostyle JavaScript entry point
   --vivliostyle-daemon SOCKET
                            use a running standalone Vivliostyle daemon (Linux/macOS)
   --render-timeout-ms N    overall renderer time limit in ms (default: 300000)

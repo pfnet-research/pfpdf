@@ -187,7 +187,7 @@ test('doctor distinguishes a stopped daemon, incompatible protocol, and a succes
   const compatible = await check();
   assert.equal(compatible.exitCode, 0);
   assert.equal(compatible.socket.status, 'pass');
-  assert.match(compatible.socket.message, /connection and protocol only/);
+  assert.match(compatible.socket.message, /connection and describe protocol verified/);
   assert.equal(compatible.checks.get('vivliostyle-cli')?.message, advertisedCli);
   assert.equal(compatible.checks.get('browser')?.status, 'not-run');
 });

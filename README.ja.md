@@ -41,7 +41,7 @@ npx @pfnet-research/pfpdf@latest --input document.md --output document.pdf
 
 CIや繰り返し実行するビルド手順では、`@latest`を`@0.2.1`のような指定に置き換え、バージョンを固定してください。
 
-単発変換に使う Vivliostyle CLI 11.5.0 は pfpdf の依存関係として導入されます。`--vivliostyle-cli` でビルド済みの CLI を選ぶ方法や、`--vivliostyle-daemon` で起動済みのスタンドアロンデーモンに接続する方法は、[CLI とレンダラー](docs/tutorial.ja/07_cli-and-renderers.md#74-レンダラー)を参照してください。
+単発変換に使う Vivliostyle CLI 11.5.0 は pfpdf の依存関係として導入されます。[CLI とレンダラー](docs/tutorial.ja/07_cli-and-renderers.md#74-レンダラー)
 
 ## 複数ファイルの結合
 

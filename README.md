@@ -54,9 +54,8 @@ table of contents, and the body text.
 For CI or build steps you run repeatedly, pin the package version by replacing
 `@latest` with a version such as `@0.2.1`.
 
-pfpdf installs Vivliostyle CLI 11.5.0 for one-off conversions. Use
-`--vivliostyle-cli` to select a built CLI or `--vivliostyle-daemon` to connect to a
-running standalone daemon. [CLI and renderers](docs/tutorial.en/07_cli-and-renderers.md#74-renderer)
+pfpdf installs Vivliostyle CLI 11.5.0 for one-off conversions.
+[CLI and renderers](docs/tutorial.en/07_cli-and-renderers.md#74-renderer)
 
 ## Combine chapters
 

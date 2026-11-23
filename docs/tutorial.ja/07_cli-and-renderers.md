@@ -20,7 +20,7 @@ Options:
   --host-fonts             OS 標準のフォントディレクトリーを使用する
   --font-dir PATH          追加のフォントディレクトリー。複数回指定可能
   --browser-path PATH      レンダラーが使うブラウザー
-  --vivliostyle-cli PATH   Vivliostyle の JavaScript エントリーポイント
+  --vivliostyle-cli PATH    Vivliostyle の JavaScript エントリーポイント
   --vivliostyle-daemon SOCKET
                            Linux または macOS で起動済みのスタンドアロンデーモンを使う
   --render-timeout-ms N    レンダラーの準備から PDF 検査完了まで。既定は 300000
