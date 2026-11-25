@@ -34,6 +34,7 @@ The unknown-key warnings and strict validation also apply to `--print-effective-
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `title` | string | inferred from H1, then input name | Document title. Explicit values can use `<br>` for line breaks |
+| `subtitle` | string | none | Subtitle, shown below the title on the cover of every bundled template |
 | `author` | string | none | Author name |
 | `series` | string | none | Series name, shown as a primary label in every bundled template |
 | `template` | bundled template name | `default` | Bundled template used for the document |
@@ -51,7 +52,7 @@ The unknown-key warnings and strict validation also apply to `--print-effective-
 - An empty string, a value of an invalid type, or disallowed HTML in an explicit `title` causes an input error (exit code `2`), even when title inference or a CLI override is available
 - Front matter `template` must be one of `academic` / `book` / `compact` / `default` / `notebook` / `pfn` / `technical`. The CLI's `--template` / `--template-preset` override front matter
 - Relative `logo` paths are resolved from the directory containing the front matter Markdown. Front matter accepts only local files; use `--logo` for a Git repository source
-- If `series` is omitted, the series display area is removed entirely. The bundled templates never fill it with a fixed publication name, document type, brand name, or boilerplate label
+- If `subtitle` or `series` is omitted, its display area is removed entirely. The bundled templates never fill it with a fixed publication name, document type, brand name, or boilerplate label
 - To break the title across lines on the cover, use `<br>`, as in `title: "Long Title<br>Subtitle"`. The only HTML element allowed is an attribute-free `br` element, with spellings such as `<br>` / `<br/>` / `<BR />`
 - The front matter is parsed as a YAML mapping. pfpdf uses only the keys in the table above and the `bibliography` key described in Chapter 03. Supply each key's value using the type listed in the table. You can write complex YAML values, but they are not used as metadata
 - If the first line of a source file is `---`, pfpdf treats it as a front matter delimiter and requires a closing `---` or `...` in that file. Front matter is removed from the body of every file. To place a horizontal rule at the top of a file, use `***`
@@ -139,11 +140,14 @@ Set `slides: true` to produce PDF slides. The default aspect ratio is 16:9.
 ---
 slides: true
 title: Performance Evaluation
+subtitle: Measurements from November 2026
 ---
 
 # Methods
 
 ## Measurement Conditions
+
+### Medians of 30 runs each
 
 We processed the same input 30 times for each condition.
 
@@ -163,11 +167,16 @@ Explain the comparison conditions aloud.
 ```
 
 - A top-level `#` begins a group. A top-level `##` begins a new page and supplies its title. Use `###` and deeper headings within a page. Use `___` to start a page without a title.
+- A `###` written directly after a `##` becomes that page's subtitle and appears right below the title. With body text or a `::: name` in between, it stays an ordinary heading. Set the cover subtitle with `subtitle` in the front matter.
 - The cover uses front matter such as the title, author, and date. An omitted title falls back to the input file or directory name. The cover and table of contents are enabled by default. Use `cover: false` or `toc: false` to omit them. A template without a cover slot produces no cover.
 - The table of contents comes from `#` headings and is omitted when none are present. `section_covers: true` adds a divider at the start of each group. The table of contents continues on a new page after every five entries.
 - `::: name` starts a region, which continues until the next `::: name` or page. Adjacent regions with the same name form one group and, by default, sit side by side from left to right. The `::: column` regions in the example work this way. Names may contain lowercase letters, digits, and `-`.
 - Write `::: name` on its own line at the top level of the document. Blank lines before and after it are the safe choice. Directly below a list, a block quote, or a table, a line without a preceding blank line is treated as a continuation of that block. To show a line that reads `::: name` as text, put it in code.
-- The selected template defines region names and their appearance. The bundled slide template `slide-base` supports `column` for columns, `left` and `right` for two sides with distinct roles, and `note` for a note that is visible on the slide.
+- Choose the look of slides with the same `template` setting as for documents. Every bundled template has a slide variant with the same fonts and colors as its document design. Without `template`, the slide variant of `default` is used. See [chapter 6](06_templates-and-assets.md) for the template list and for how to write a slide variant.
+- The selected template defines region names and their appearance. The slide variants of the bundled templates all support `column` for columns, `left` and `right` for two sides with distinct roles, and `note` for a note that is visible on the slide.
+- The slide variants of the bundled templates set body text at 24 pt (22 pt in `compact`), page titles at about 36 pt, and the agenda at about 28 pt. To change the body text size of a whole deck, set `slide_font_size` in the front matter to a number of points from 10 to 40, as in `slide_font_size: 20`. Titles, the cover, and the agenda keep their sizes
+- To make the body text of one page smaller, write `<!-- pfpdf:size=small -->` at the beginning of the page. In the bundled templates, body text, tables, code, and notes shrink to five sixths. `size=x-small` shrinks them to two thirds. The title and subtitle keep their sizes
+- The slide template `slide-base` is deprecated. Selecting it prints a warning, and it will be removed in 0.7.0. Omit `template` or select another bundled template.
 - pfpdf itself defines only two names. `::: talk` holds presenter notes, which do not appear in the PDF. `::: body` returns to ordinary slide content.
 - To choose how a page looks, write `key=value` options in a comment at the beginning of the page. Examples include `<!-- pfpdf:layout=closing -->` and `<!-- pfpdf:layout=section tone=dark -->`. A value is any text without whitespace and is passed to the template unchanged. The template defines the available keys and values. An option that is not in the `key=value` form is an error.
 - A page without a title or content is created only when `layout` is specified, as in `<!-- pfpdf:layout=blank -->`.

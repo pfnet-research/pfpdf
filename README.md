@@ -74,7 +74,9 @@ chapters, page breaks, and image paths.
 
 Set `template` in the front matter to choose a design. To try another design for
 one conversion, add an option such as `--template notebook` to the command;
-command-line arguments override front matter.
+command-line arguments override front matter. Every bundled template also has a
+slide variant: add `slides: true` to build 16:9 slides in the same design (see
+[slides](docs/tutorial.en/02_document-structure.md)).
 
 The templates come with their default fonts, including Japanese fonts. For custom
 templates, logos, or local fonts, see
