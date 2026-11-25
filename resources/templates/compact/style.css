@@ -198,7 +198,7 @@ details {
   padding: 0.3em 0 0.3em 0.65em;
 }
 
-figure { break-inside: avoid; margin: 0.65em 0; text-align: center; }
+figure { margin: 0.65em 0; text-align: center; }
 figcaption { color: var(--compact-color-muted); font-size: 7.5pt; margin-top: 0.25em; }
 hr { border: 0; border-top: 0.5pt solid var(--compact-color-rule); margin: 0.8em 0; }
 .pfpdf-math-display { margin: 0.55em 0; }
