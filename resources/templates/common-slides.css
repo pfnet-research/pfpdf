@@ -1,0 +1,141 @@
+/* Shared structure for the slide variants of bundled templates.
+ *
+ * pfpdf's own slides.css already breaks pages, sizes each slide to the page,
+ * and lays out adjacent regions with one name side by side. This file adds
+ * what every bundled slide variant shares: readable type on a 16:9 page, the
+ * slide subtitle, the `left`, `right`, and `note` regions, the agenda, section
+ * numbers, text size modifiers, and the slide footer. Each template sets the
+ * variables and its own colors after importing it.
+ *
+ * Default sizes follow common presentation guidance for a 960 x 540 pt page
+ * (the PowerPoint 16:9 slide size): body text 24 pt or more, slide titles
+ * 36-44 pt, the title slide around 60 pt, and nothing below 18 pt except the
+ * footer.
+ */
+:root {
+  /* Body text. `slide_font_size` in front matter overrides this per deck. */
+  --pfpdf-slide-font-size: 24pt;
+  --pfpdf-slide-title-size: 36pt;
+  --pfpdf-slide-subtitle-size: 22pt;
+  --pfpdf-slide-section-title-size: 48pt;
+  --pfpdf-slide-agenda-size: 28pt;
+  --pfpdf-slide-footer-size: 12pt;
+  --pfpdf-slide-padding: 36pt 52pt 46pt;
+  --pfpdf-slide-gap: 22pt;
+  --pfpdf-slide-footer-color: #6b7280;
+  --pfpdf-slide-confidential-color: #a00000;
+  --pfpdf-slide-split: 1fr 1fr;
+}
+
+body[data-pfpdf-slides] {
+  counter-reset: pfpdf-slide pfpdf-section;
+  /* pfpdf's slides.css names a sans face; keep each template's body face. */
+  font-family: var(--pfpdf-font-body);
+  font-size: var(--pfpdf-slide-font-size);
+  line-height: 1.45;
+}
+
+[data-pfpdf-slide] {
+  counter-increment: pfpdf-slide;
+  padding: var(--pfpdf-slide-padding);
+}
+[data-pfpdf-slide="section"] { counter-increment: pfpdf-slide pfpdf-section; }
+
+/* Short lines on a wide page read better ragged than justified. */
+[data-pfpdf-slide] :is(p, li, dd) { text-align: inherit; }
+[data-pfpdf-slide] :is(p, ul, ol, pre, table, blockquote, figure) { margin-block: 0 0.6em; }
+[data-pfpdf-slide] li { margin-block: 0.15em; }
+[data-pfpdf-slide] li > :is(ul, ol) { margin-block: 0.15em 0; }
+[data-pfpdf-slide] li li { font-size: 0.9em; }
+[data-pfpdf-slide] :is(h3, h4, h5, h6) { margin-block: 0 0.4em; }
+[data-pfpdf-slide] pre { font-size: 0.75em; }
+[data-pfpdf-slide] table { font-size: 0.85em; }
+[data-pfpdf-slide] img { max-height: 280pt; }
+
+/* `<!-- pfpdf:size=small -->` and `size=x-small` fit more on one slide.
+ * Titles keep their size; body text, notes, tables, and code shrink. */
+[data-pfpdf-slide][data-pfpdf-size="small"] { font-size: calc(var(--pfpdf-slide-font-size) * 5 / 6); }
+[data-pfpdf-slide][data-pfpdf-size="x-small"] { font-size: calc(var(--pfpdf-slide-font-size) * 2 / 3); }
+
+.pfpdf-slide-title {
+  font-size: var(--pfpdf-slide-title-size);
+  line-height: 1.25;
+  margin: 0 0 var(--pfpdf-slide-gap);
+}
+
+/* A `###` directly under the slide title. */
+.pfpdf-slide-subtitle {
+  font-size: var(--pfpdf-slide-subtitle-size);
+  font-weight: 400;
+  line-height: 1.35;
+  margin: calc(var(--pfpdf-slide-gap) * -0.55) 0 var(--pfpdf-slide-gap);
+}
+
+.pfpdf-slide-body > :last-child { margin-bottom: 0; }
+
+/* `::: column` repeated: pfpdf groups the run; keep the gap consistent. */
+.pfpdf-slide-regions { gap: var(--pfpdf-slide-gap); }
+.pfpdf-slide-region > :first-child { margin-top: 0; }
+.pfpdf-slide-region > :last-child { margin-bottom: 0; }
+
+/* `::: left` and `::: right` split the body; other content spans both. */
+.pfpdf-slide-body:has(> [data-pfpdf-region="left"], > [data-pfpdf-region="right"]) {
+  display: grid;
+  grid-template-columns: var(--pfpdf-slide-split);
+  column-gap: var(--pfpdf-slide-gap);
+  align-items: start;
+}
+.pfpdf-slide-body:has(> [data-pfpdf-region="left"], > [data-pfpdf-region="right"]) > * { grid-column: 1 / -1; }
+.pfpdf-slide-body > [data-pfpdf-region="left"] { grid-column: 1; }
+.pfpdf-slide-body > [data-pfpdf-region="right"] { grid-column: 2; }
+
+/* `::: note`: a small remark shown on the slide, 18 pt at the default size. */
+[data-pfpdf-region="note"] {
+  font-size: 0.75em;
+  line-height: 1.45;
+  margin-top: 0.8em;
+}
+
+/* The agenda generated from `#` groups. */
+.pfpdf-slide-agenda {
+  font-size: var(--pfpdf-slide-agenda-size);
+  margin: 0;
+  padding-inline-start: 1.6em;
+}
+.pfpdf-slide-agenda-entry { margin-block: 0.5em; }
+.pfpdf-slide-agenda-link { color: inherit; text-decoration: none; }
+
+/* Section covers center their title block vertically; templates add the look. */
+[data-pfpdf-slide="section"] {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title { font-size: var(--pfpdf-slide-section-title-size); }
+
+/* Footer: the page number and, with `confidential: true`, the notice.
+ * The cover carries its own notice and no number. */
+[data-pfpdf-slide]::after {
+  bottom: 14pt;
+  color: var(--pfpdf-slide-footer-color);
+  content: counter(pfpdf-slide);
+  font-size: var(--pfpdf-slide-footer-size);
+  line-height: 1;
+  position: absolute;
+  right: 24pt;
+}
+body[data-pfpdf-confidential] [data-pfpdf-slide]::before {
+  bottom: 15pt;
+  color: var(--pfpdf-slide-confidential-color);
+  content: "Confidential";
+  font-size: calc(var(--pfpdf-slide-footer-size) - 2pt);
+  font-weight: 700;
+  left: 24pt;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  position: absolute;
+  text-transform: uppercase;
+}
+/* The doubled attribute keeps this above templates' own footer rules. */
+[data-pfpdf-slide][data-pfpdf-slide="title"]::after,
+body[data-pfpdf-confidential] [data-pfpdf-slide][data-pfpdf-slide="title"]::before { content: none; }

@@ -76,3 +76,5 @@ h6::before { content: "– "; color: var(--pfpdf-color-accent); }
 p { margin: 0.6em 0; }
 
 .pfpdf-math-display { margin: 1em 0; }
+
+.pfpdf-cover-subtitle { color: #555; font-size: 14pt; line-height: 1.5; margin: -4mm 0 8mm; max-width: 145mm; overflow-wrap: anywhere; }

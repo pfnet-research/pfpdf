@@ -1,0 +1,213 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { BUNDLED_SLIDE_VARIANT_NAMES, BUNDLED_TEMPLATE_NAMES } from '../bundled-templates.js';
+import { resolveConfig } from '../config.js';
+import { buildHtml } from '../build.js';
+import { InputError } from '../errors.js';
+import { resourcePath } from '../template.js';
+
+const env = { SOURCE_DATE_EPOCH: '0' };
+
+function recorder(): { warnings: string[]; log: { warn: (m: string) => void; info: () => void; debug: () => void } } {
+  const warnings: string[] = [];
+  return { warnings, log: { warn: (m: string) => { warnings.push(m); }, info: () => {}, debug: () => {} } };
+}
+
+function workspace(t: { after: (fn: () => void) => void }): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-slide-variants-'));
+  t.after(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+  return dir;
+}
+
+const deck = '---\nslides: true\ntitle: Deck\nlang: en\n---\n# Group\n\n## First\n\n::: column\nA\n\n::: column\nB\n\n::: talk\nSECRET-TALK\n';
+const doc = '---\ntitle: Doc\nlang: en\n---\n# Heading\n\nText\n';
+
+async function build(dir: string, source: string, args: string[], log = recorder().log): Promise<{ html: string; generated: Map<string, Buffer> }> {
+  const input = path.join(dir, `input-${Math.random().toString(36).slice(2)}.md`);
+  fs.writeFileSync(input, source);
+  return buildHtml(resolveConfig(['--input', input, '--output', 'out.pdf', ...args], dir), env, log);
+}
+
+function writeTemplate(dir: string, files: Record<string, string>): string {
+  const root = path.join(dir, 'tpl');
+  fs.mkdirSync(root, { recursive: true });
+  const html = (marker: string): string =>
+    `<!doctype html><html><head></head><body><header data-pfpdf-slot="cover" class="${marker}"><h1 data-pfpdf-slot="title"></h1></header><main data-pfpdf-slot="content"></main></body></html>`;
+  const defaults: Record<string, string> = {
+    'template.html': html('doc-cover'),
+    'style.css': '@import "./theme.css";\n.doc-style { color: red; }\n',
+    'vivliostyle.css': '.doc-paged { color: red; }\n',
+    'theme.css': ':root { --shared-accent: #123456; }\n',
+  };
+  for (const [name, content] of Object.entries({ ...defaults, ...files })) {
+    if (content === '') continue;
+    fs.writeFileSync(path.join(root, name), content.replace('SLIDE_HTML', html('slide-cover')));
+  }
+  return root;
+}
+
+test('every bundled document template ships a slide variant listed in the manifest', () => {
+  const withVariant = BUNDLED_TEMPLATE_NAMES.filter((name) =>
+    fs.existsSync(resourcePath('templates', name, 'slides-template.html')));
+  assert.deepEqual([...BUNDLED_SLIDE_VARIANT_NAMES].sort(), [...withVariant].sort());
+  assert.deepEqual([...BUNDLED_SLIDE_VARIANT_NAMES].sort(), [...BUNDLED_TEMPLATE_NAMES].sort());
+  for (const name of BUNDLED_SLIDE_VARIANT_NAMES) {
+    const style = fs.readFileSync(resourcePath('templates', name, 'slides-style.css'), 'utf8');
+    assert.match(style, /^@import "\.\.\/common\.css";\n@import "\.\.\/common-slides\.css";/m, name);
+    const html = fs.readFileSync(resourcePath('templates', name, 'slides-template.html'), 'utf8');
+    assert.match(html, /data-pfpdf-slot="cover"/, name);
+    assert.doesNotMatch(html, /data-pfpdf-slot="toc"/, name);
+  }
+});
+
+test('slides without a template use the slide variant of default', async (t) => {
+  const dir = workspace(t);
+  const { warnings, log } = recorder();
+  const slides = await build(dir, deck, [], log);
+  assert.match(slides.html, /class="pfpdf-slide-cover"[^>]*data-pfpdf-slide="title"/);
+  assert.doesNotMatch(slides.html, /class="pfpdf-cover"/);
+  assert.doesNotMatch(slides.html, /SECRET-TALK/);
+  assert.ok(!slides.generated.has('generated/vivliostyle.css'));
+  assert.doesNotMatch(slides.html, /generated\/vivliostyle\.css/);
+  assert.match(slides.generated.get('generated/style.css')!.toString(), /common-slides\.css/);
+  assert.deepEqual(warnings, []);
+
+  const document = await build(dir, doc, []);
+  assert.match(document.html, /class="pfpdf-cover"/);
+  assert.match(document.html, /generated\/vivliostyle\.css/);
+  assert.doesNotMatch(document.generated.get('generated/style.css')!.toString(), /common-slides\.css/);
+});
+
+test('every bundled template selects its slide variant for slides and its document files otherwise', async (t) => {
+  const dir = workspace(t);
+  for (const name of BUNDLED_TEMPLATE_NAMES) {
+    const slides = await build(dir, deck, ['--template', name]);
+    assert.match(slides.generated.get('generated/style.css')!.toString(), /common-slides\.css/, name);
+    assert.match(slides.html, /data-pfpdf-slide="title"/, name);
+    const document = await build(dir, doc, ['--template', name]);
+    assert.doesNotMatch(document.generated.get('generated/style.css')!.toString(), /common-slides\.css/, name);
+  }
+});
+
+test('slide-base still builds but warns that it is deprecated', async (t) => {
+  const dir = workspace(t);
+  const preset = recorder();
+  const slides = await build(dir, deck, ['--template-preset', 'slide-base'], preset.log);
+  assert.match(slides.html, /data-pfpdf-slide="title"/);
+  assert.equal(preset.warnings.filter((w) => /slide-base is deprecated.*0\.7\.0/.test(w)).length, 1);
+
+  const frontMatter = recorder();
+  await build(dir, deck.replace('slides: true', 'slides: true\ntemplate: slide-base'), [], frontMatter.log);
+  assert.equal(frontMatter.warnings.filter((w) => /slide-base is deprecated/.test(w)).length, 1);
+});
+
+test('a custom template keeps document and slide files side by side', async (t) => {
+  const dir = workspace(t);
+  const template = writeTemplate(dir, {
+    'slides-template.html': 'SLIDE_HTML',
+    'slides-style.css': '@import "./theme.css";\n.slide-style { color: blue; }\n',
+  });
+  const slides = await build(dir, deck, ['--template', template]);
+  assert.match(slides.html, /class="slide-cover"/);
+  const style = slides.generated.get('generated/style.css')!.toString();
+  assert.match(style, /--shared-accent: #123456/);
+  assert.match(style, /\.slide-style/);
+  assert.doesNotMatch(style, /\.doc-style/);
+  assert.ok(!slides.generated.has('generated/vivliostyle.css'), 'slides-vivliostyle.css is optional');
+
+  const document = await build(dir, doc, ['--template', template]);
+  assert.match(document.html, /class="doc-cover"/);
+  assert.match(document.generated.get('generated/style.css')!.toString(), /\.doc-style/);
+  assert.match(document.generated.get('generated/vivliostyle.css')!.toString(), /\.doc-paged/);
+
+  fs.writeFileSync(path.join(template, 'slides-vivliostyle.css'), '.slide-paged { color: blue; }\n');
+  const paged = await build(dir, deck, ['--template', template]);
+  assert.match(paged.generated.get('generated/vivliostyle.css')!.toString(), /\.slide-paged/);
+});
+
+test('a custom template without slide files is used as-is for slides', async (t) => {
+  const dir = workspace(t);
+  const template = writeTemplate(dir, {});
+  const slides = await build(dir, deck, ['--template', template]);
+  assert.match(slides.html, /class="doc-cover"/);
+  assert.match(slides.generated.get('generated/vivliostyle.css')!.toString(), /\.doc-paged/);
+});
+
+test('an incomplete slide variant is an input error', async (t) => {
+  const dir = workspace(t);
+  const missingStyle = writeTemplate(dir, { 'slides-template.html': 'SLIDE_HTML' });
+  await assert.rejects(build(dir, deck, ['--template', missingStyle]), (error: unknown) =>
+    error instanceof InputError && /slides-style\.css/.test(error.message));
+  fs.rmSync(path.join(missingStyle, 'slides-template.html'));
+  fs.writeFileSync(path.join(missingStyle, 'slides-style.css'), '');
+  await assert.rejects(build(dir, deck, ['--template', missingStyle]), (error: unknown) =>
+    error instanceof InputError && /slides-template\.html \(required by slides-style\.css\)/.test(error.message));
+  // Documents never read the slide files.
+  await build(dir, doc, ['--template', missingStyle]);
+});
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const browserArgs = process.env.BROWSER_PATH ? ['--browser-path', process.env.BROWSER_PATH] : [];
+
+test('every bundled slide variant renders the sample deck on 16:9 pages without speaker notes', { skip: process.env.RUN_E2E !== '1' }, (t) => {
+  const dir = workspace(t);
+  for (const name of BUNDLED_SLIDE_VARIANT_NAMES) {
+    for (const input of ['slides.md', 'slides.en.md']) {
+      const output = path.join(dir, `${name}-${input}.pdf`);
+      const res = spawnSync(process.execPath, [
+        path.join(repoRoot, 'dist', 'launcher.js'), ...browserArgs,
+        '--input', path.join(repoRoot, 'docs', 'template-preview', input),
+        '--output', output, '--template', name, '--render-timeout-ms', '600000',
+      ], { encoding: 'utf8', env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' }, timeout: 660000 });
+      // pfpdf itself rejects a deck whose slides overflow onto extra pages.
+      assert.equal(res.status, 0, `${name} ${input}: ${res.stderr}`);
+      const info = spawnSync('pdfinfo', [output], { encoding: 'utf8' });
+      if (info.error === undefined && info.status === 0) {
+        assert.match(info.stdout, /Pages:\s+9\n/, `${name} ${input}`);
+        assert.match(info.stdout, /Page size:\s+960 x 540 pts/, `${name} ${input}`);
+      }
+      const text = spawnSync('pdftotext', [output, '-'], { encoding: 'utf8' });
+      if (text.error === undefined && text.status === 0) {
+        assert.doesNotMatch(text.stdout, /TALK-MARKER/, `${name} ${input}`);
+      }
+    }
+  }
+});
+
+test('a ### directly under a slide title becomes its subtitle', async (t) => {
+  const dir = workspace(t);
+  const source = '---\nslides: true\ntitle: Deck\nlang: en\ntoc: false\n---\n'
+    + '## First\n\n### Sub one\n\nText\n\n'
+    + '## Second\n\nText first\n\n### Heading two\n\n'
+    + '## Third\n\n::: column\n### Heading three\n\nA\n';
+  const { html } = await build(dir, source, []);
+  assert.match(html, /<h3 id="[^"]*" class="pfpdf-slide-subtitle">Sub one<\/h3><div class="pfpdf-slide-body">/);
+  assert.equal((html.match(/pfpdf-slide-subtitle/g) ?? []).length, 1);
+  assert.match(html, /<h3 id="[^"]*">Heading two<\/h3>/);
+  assert.match(html, /<h3 id="[^"]*">Heading three<\/h3>/);
+  // Ordinary documents keep every ### as a heading.
+  const document = await build(dir, '---\ntitle: Doc\nlang: en\n---\n## First\n\n### Sub one\n', []);
+  assert.doesNotMatch(document.html, /pfpdf-slide-subtitle/);
+});
+
+test('front matter subtitle fills the subtitle slot and slide_font_size sets the body text variable', async (t) => {
+  const dir = workspace(t);
+  const withSubtitle = deck.replace('title: Deck', 'title: Deck\nsubtitle: A <short> subtitle\nslide_font_size: 20');
+  const slides = await build(dir, withSubtitle, []);
+  assert.match(slides.html, /class="pfpdf-slide-cover-subtitle">A &#x3C;short> subtitle<\/p>/);
+  assert.match(slides.html, /<body[^>]*style="--pfpdf-slide-font-size: 20pt;"/);
+  const plain = await build(dir, deck, []);
+  assert.doesNotMatch(plain.html, /cover-subtitle/);
+  assert.doesNotMatch(plain.html, /--pfpdf-slide-font-size: /);
+  const document = await build(dir, doc.replace('title: Doc', 'title: Doc\nsubtitle: Second line'), []);
+  assert.match(document.html, /class="pfpdf-cover-subtitle">Second line<\/p>/);
+  for (const value of ['"20"', '9', '41', 'large']) {
+    await assert.rejects(build(dir, deck.replace('title: Deck', `title: Deck\nslide_font_size: ${value}`), []), (error: unknown) =>
+      error instanceof InputError && /slide_font_size/.test(error.message), value);
+  }
+});

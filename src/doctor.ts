@@ -93,7 +93,7 @@ async function runDoctorWithResolver(
     try {
       preparedTemplate = await prepareConfiguredTemplate(documentConfig, repositoryResolver);
       const tpl = preparedTemplate;
-      add('template', 'pass', `template resolved at ${tpl.dir}`);
+      add('template', 'pass', `template resolved at ${tpl.dir}${tpl.variant === 'slides' ? ' (slide variant)' : ''}`);
     } catch (e) {
       templateError = e as Error;
       add('template', 'fail', templateError.message);

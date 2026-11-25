@@ -234,3 +234,5 @@ details > summary { color: var(--academic-color-accent); }
 
 .references { font-size: 8.8pt; }
 .references li { margin: 0.45em 0; }
+
+.academic-cover-subtitle { color: var(--academic-color-muted); font-family: var(--pfpdf-font-heading); font-size: 14pt; line-height: 1.5; margin: 4mm 0 0; max-width: 150mm; overflow-wrap: anywhere; }

@@ -1,0 +1,118 @@
+@import url("./hljs-github-dark.css");
+@import "../common.css";
+@import "../common-slides.css";
+
+/* pfn template, slide variant: the pfn document colors on a 16:9 page.
+ * The document variant keeps its colors inline, so they are repeated here. */
+:root {
+  --pfpdf-slide-padding: 30pt 48pt 44pt;
+  --pfpdf-slide-footer-color: #555;
+  --pfpdf-task-accent: #359;
+}
+
+body[data-pfpdf-slides] {
+  color: #222;
+  font-weight: 200;
+  letter-spacing: -0.005em;
+}
+[data-pfpdf-slide] :is(h1, h2, h3, h4, h5, b, strong) {
+  font-family: var(--pfpdf-font-heading);
+  font-weight: 600;
+}
+a { color: #37b; text-decoration: none; }
+
+/* The slide title follows the document's first-level heading. */
+.pfpdf-slide-title {
+  border-bottom: 3pt solid #c9d0e6;
+  color: #263c7f;
+  padding: 0.1em 0 0.15em;
+  position: relative;
+}
+.pfpdf-slide-title::after {
+  border-bottom: 3pt solid #5267aa;
+  bottom: -3pt;
+  content: "";
+  left: 0;
+  position: absolute;
+  width: 15%;
+}
+.pfpdf-slide-subtitle { color: #3f5598; }
+[data-pfpdf-slide] h3:not(.pfpdf-slide-subtitle) { border-left: 4pt solid #3f5598; color: #3f5598; font-size: 1em; line-height: 1.4; padding-left: 0.4em; }
+[data-pfpdf-slide] h4 { border-left: 3pt solid #8190b7; color: #586b9a; font-size: 0.95em; padding-left: 0.5em; }
+
+/* Cover: the gradient and artwork of the document cover. */
+.pfn-slide-cover {
+  background: url("./cover-art.svg") center top / cover no-repeat, linear-gradient(135deg, #111b64 0%, #19438f 52%, #1b75b4 100%);
+  box-sizing: border-box;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 28pt 40pt;
+}
+.pfn-slide-cover-topline { display: flex; justify-content: flex-end; min-height: 20pt; }
+.pfn-slide-confidential,
+body[data-pfpdf-confidential] [data-pfpdf-slide]::before {
+  background-color: #c00;
+  color: #fff;
+  font-family: var(--pfpdf-font-heading);
+  font-size: 11pt;
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.5;
+  margin: 0;
+  min-width: 7.5em;
+  padding: 0.05em 0.75em;
+  text-align: center;
+  text-transform: none;
+}
+.pfn-slide-cover-center { line-height: 1.35; margin-inline: auto; max-width: 760pt; text-align: center; }
+.pfn-slide-cover-series { font-size: 14pt; font-weight: 500; letter-spacing: 0.14em; margin-bottom: 16pt; }
+.pfn-slide-cover-title { font-family: var(--pfpdf-font-heading); font-size: 52pt; font-weight: 800; line-height: 1.25; margin: 0; overflow-wrap: anywhere; }
+.pfn-slide-cover-subtitle { font-size: 24pt; font-weight: 400; margin: 14pt 0 0; opacity: 0.92; }
+.pfn-slide-cover-meta { font-size: 18pt; font-weight: 400; margin-top: 26pt; }
+.pfn-slide-cover-logo-row { display: flex; justify-content: flex-end; min-height: 20pt; }
+.pfn-slide-cover-logo { display: block; max-height: 48pt; max-width: 180pt; }
+
+/* Section covers reuse the cover gradient and artwork. The artwork is
+ * enlarged and shifted so that its waves, which fade out near the artwork's
+ * own edges, run off both sides of the slide, and lowered so that they start
+ * below the title rather than right under it. The section number stays on the
+ * title line in a lighter weight, and the line under the title fades out
+ * toward both ends instead of stopping short. */
+[data-pfpdf-slide="section"] {
+  align-items: center;
+  background:
+    url("./cover-art.svg") left 38% bottom -220pt / 160% auto no-repeat,
+    linear-gradient(135deg, #111b64 0%, #19438f 52%, #1b75b4 100%);
+  color: #fff;
+  padding-inline: 96pt;
+  text-align: center;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title {
+  background: linear-gradient(to right, transparent, rgb(255 255 255 / 0.55) 25%, rgb(255 255 255 / 0.55) 75%, transparent) center bottom / 100% 2pt no-repeat;
+  border-bottom: 0;
+  color: #fff;
+  padding-bottom: 0.3em;
+  width: 100%;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title::before {
+  content: counter(pfpdf-section);
+  font-weight: 300;
+  margin-right: 0.5em;
+  opacity: 0.6;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title::after { border-bottom: 3pt solid #fff; bottom: -0.5pt; left: 45%; width: 10%; }
+[data-pfpdf-slide="section"]::after { color: rgb(255 255 255 / 0.8); }
+
+/* Every other slide carries the navy band of the document's running head. */
+[data-pfpdf-slide]:not([data-pfpdf-slide="title"], [data-pfpdf-slide="section"]) {
+  border-top: 10pt solid #263c7f;
+}
+
+pre { background: #0d1117; color: #c9d1d9; }
+code:not(pre code) { background: #eee; border-radius: 0.5ex; display: inline; padding: 0.1ex 0.3ex; }
+blockquote { background: #f5f8fb; border-left: 3pt solid #79a; margin-inline: 0; padding: 0.25em 1em; }
+th, td { border: 0.5pt solid #b9c5d1; padding: 0.3em 0.5em; }
+th { background: #eaf0f7; color: #234b78; font-weight: 600; }
+[data-pfpdf-region="note"] { border-top: 0.5pt solid #c9d0e6; color: #555; padding-top: 0.4em; }

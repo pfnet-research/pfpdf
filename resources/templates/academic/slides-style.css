@@ -1,0 +1,124 @@
+@import "../common.css";
+@import "../common-slides.css";
+@import "./theme.css";
+
+/* academic template, slide variant: the restrained scholarly design on a 16:9 page.
+ * Body text keeps the serif face; headings and tables use the sans face. */
+:root {
+  --pfpdf-slide-footer-color: var(--academic-color-muted);
+  --pfpdf-slide-confidential-color: #8d2c2c;
+}
+
+body[data-pfpdf-slides] {
+  background: var(--academic-color-paper);
+  color: var(--academic-color-ink);
+  font-feature-settings: "palt" 1, "pkna" 1;
+  line-height: 1.6;
+}
+
+[data-pfpdf-slide] :is(h1, h2, h3, h4, h5, h6, table, figcaption) { font-family: var(--pfpdf-font-heading); }
+.pfpdf-slide-title {
+  border-bottom: 1pt solid var(--academic-color-accent);
+  color: var(--academic-color-accent);
+  padding-bottom: 0.25em;
+}
+.pfpdf-slide-subtitle { color: var(--academic-color-muted); }
+[data-pfpdf-slide] h3:not(.pfpdf-slide-subtitle) { color: var(--academic-color-ink); font-size: 1em; }
+[data-pfpdf-slide] h3:not(.pfpdf-slide-subtitle)::before { color: var(--academic-color-accent); content: "■ "; font-size: 0.65em; vertical-align: 0.15em; }
+[data-pfpdf-slide] h4 { border-left: 1.5pt solid var(--academic-color-accent); font-size: 0.95em; padding-left: 0.6em; }
+
+/* Footer number centered between thin rules, as on the document's pages. */
+[data-pfpdf-slide]::after { font-family: var(--pfpdf-font-heading); left: 0; right: 0; text-align: center; }
+body[data-pfpdf-confidential] [data-pfpdf-slide]::before { font-family: var(--pfpdf-font-heading); }
+
+/* Cover: the journal masthead, with the heavy-over-light double rules. */
+.academic-slide-cover { display: flex; flex-direction: column; padding: 40pt 64pt 36pt; }
+.academic-slide-cover-head {
+  align-items: flex-end;
+  border-bottom: 3pt solid var(--academic-color-accent);
+  display: flex;
+  justify-content: space-between;
+  min-height: 30pt;
+  padding-bottom: 8pt;
+  position: relative;
+}
+.academic-slide-cover-head::after {
+  border-bottom: 0.8pt solid var(--academic-color-accent);
+  bottom: -6pt;
+  content: "";
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+.academic-slide-cover-series {
+  color: var(--academic-color-accent);
+  font-family: var(--pfpdf-font-heading);
+  font-size: 13pt;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  margin: 0;
+  text-transform: uppercase;
+}
+.academic-slide-cover-logo { display: block; max-height: 36pt; max-width: 140pt; }
+.academic-slide-cover-main { display: flex; flex: 1 1 auto; flex-direction: column; justify-content: center; }
+.academic-slide-cover-confidential {
+  align-self: flex-start;
+  border: 0.6pt solid #8d2c2c;
+  color: #8d2c2c;
+  font-family: var(--pfpdf-font-heading);
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  margin: 0 0 18pt;
+  padding: 0.3em 1.1em;
+  text-transform: uppercase;
+}
+.academic-slide-cover-title {
+  color: var(--academic-color-ink);
+  font-family: var(--pfpdf-font-heading);
+  font-size: 50pt;
+  letter-spacing: 0.015em;
+  line-height: 1.3;
+  margin: 0;
+  max-width: 800pt;
+  text-wrap: balance;
+}
+.academic-slide-cover-subtitle { color: var(--academic-color-muted); font-family: var(--pfpdf-font-heading); font-size: 24pt; line-height: 1.4; margin: 12pt 0 0; max-width: 800pt; }
+.academic-slide-cover-meta {
+  align-items: baseline;
+  border-bottom: 3pt solid var(--academic-color-accent);
+  border-top: 0.8pt solid var(--academic-color-rule);
+  color: var(--academic-color-muted);
+  display: flex;
+  justify-content: space-between;
+  padding: 10pt 0;
+}
+.academic-slide-cover-meta p { margin: 0; }
+.academic-slide-cover-author { color: var(--academic-color-ink); font-size: 20pt; }
+.academic-slide-cover-date { font-size: 16pt; font-variant-numeric: tabular-nums; }
+
+/* Section covers: a numbered section heading ("1. Title") between mirrored
+ * double rules, heavy over light above and light over heavy below, as on the
+ * document's cover. */
+[data-pfpdf-slide="section"] { padding-inline: 88pt; }
+[data-pfpdf-slide="section"] .pfpdf-slide-title {
+  background:
+    linear-gradient(var(--academic-color-accent), var(--academic-color-accent)) left top / 100% 1.6pt no-repeat,
+    linear-gradient(var(--academic-color-accent), var(--academic-color-accent)) left top 5pt / 100% 0.6pt no-repeat,
+    linear-gradient(var(--academic-color-accent), var(--academic-color-accent)) left bottom 5pt / 100% 0.6pt no-repeat,
+    linear-gradient(var(--academic-color-accent), var(--academic-color-accent)) left bottom / 100% 1.6pt no-repeat;
+  border: 0;
+  color: var(--academic-color-ink);
+  margin: 0;
+  padding: 26pt 0 28pt;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title::before {
+  color: var(--academic-color-accent);
+  content: counter(pfpdf-section) ".";
+  margin-right: 0.4em;
+}
+
+blockquote { margin-inline: 0; padding: 0.2em 0 0.2em 1em; }
+th, td { padding: 0.35em 0.55em; }
+
+[data-pfpdf-region="note"] { border-top: 0.4pt solid var(--academic-color-rule); color: var(--academic-color-muted); padding-top: 0.4em; }

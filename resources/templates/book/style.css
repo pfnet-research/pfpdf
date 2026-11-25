@@ -219,3 +219,5 @@ details {
 }
 
 details > summary { color: var(--book-color-accent); }
+
+.book-cover-subtitle { color: var(--book-color-muted); font-size: 13pt; letter-spacing: 0.04em; line-height: 1.6; margin: 4mm 0 0; overflow-wrap: anywhere; }

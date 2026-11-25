@@ -1,0 +1,147 @@
+@import "../common.css";
+@import "../common-slides.css";
+@import "./theme.css";
+
+/* notebook template, slide variant: the friendly, colorful notebook on a 16:9 page. */
+:root {
+  --pfpdf-slide-footer-color: var(--notebook-color-teal);
+  --pfpdf-slide-confidential-color: #a63e32;
+}
+
+body[data-pfpdf-slides] { background: var(--notebook-color-paper); color: var(--notebook-color-ink); }
+[data-pfpdf-slide] { background: var(--notebook-color-paper); }
+
+/* Three colored dots in the corner, as in the document's running head. */
+[data-pfpdf-slide]:not([data-pfpdf-slide="title"]) {
+  background:
+    radial-gradient(circle, var(--notebook-color-coral) 0 3pt, transparent 3.5pt) right 56pt top 16pt / 10pt 10pt no-repeat,
+    radial-gradient(circle, var(--notebook-color-gold) 0 3pt, transparent 3.5pt) right 42pt top 16pt / 10pt 10pt no-repeat,
+    radial-gradient(circle, var(--notebook-color-teal) 0 3pt, transparent 3.5pt) right 28pt top 16pt / 10pt 10pt no-repeat,
+    var(--notebook-color-paper);
+}
+
+.pfpdf-slide-title {
+  color: var(--notebook-color-teal-dark);
+  padding: 0 0 0.25em 0.7em;
+  position: relative;
+}
+.pfpdf-slide-title::before {
+  background: var(--notebook-color-coral);
+  border-radius: 50%;
+  content: "";
+  height: 0.38em;
+  left: 0;
+  position: absolute;
+  top: 0.45em;
+  width: 0.38em;
+}
+.pfpdf-slide-title::after {
+  background: linear-gradient(to right, var(--notebook-color-coral) 0 70pt, var(--notebook-color-gold) 70pt 112pt, var(--notebook-color-rule) 112pt 100%);
+  bottom: 0;
+  content: "";
+  height: 2pt;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}
+.pfpdf-slide-subtitle { color: var(--notebook-color-coral); }
+[data-pfpdf-slide] h3:not(.pfpdf-slide-subtitle) { color: var(--notebook-color-coral); font-size: 1em; }
+[data-pfpdf-slide] h4 { color: var(--notebook-color-teal-dark); font-size: 1em; }
+[data-pfpdf-slide] h4::before { color: var(--notebook-color-gold); content: "◆ "; }
+
+/* Cover: the framed card with corner shapes and dots. */
+.notebook-slide-cover { overflow: hidden; padding: 30pt 40pt; position: relative; }
+.notebook-slide-cover-shape { position: absolute; transform: rotate(-8deg); }
+.notebook-slide-cover-shape-top { background: var(--notebook-color-teal); height: 150pt; right: -90pt; top: -95pt; width: 300pt; }
+.notebook-slide-cover-shape-bottom { background: var(--notebook-color-coral); bottom: -110pt; height: 160pt; left: -80pt; width: 340pt; }
+.notebook-slide-cover-inner {
+  border: 1.5pt solid var(--notebook-color-teal);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 480pt;
+  padding: 26pt 40pt;
+  position: relative;
+}
+.notebook-slide-cover-topline { align-items: flex-start; display: flex; justify-content: space-between; min-height: 30pt; }
+.notebook-slide-cover-series { color: var(--notebook-color-teal-dark); font-size: 14pt; font-weight: 700; letter-spacing: 0.18em; margin: 0; }
+.notebook-slide-cover-logo { display: block; max-height: 40pt; max-width: 140pt; }
+.notebook-slide-cover-main { margin: auto 0; max-width: 640pt; }
+.notebook-slide-cover-confidential {
+  background: var(--notebook-color-coral-pale);
+  border-radius: 10em;
+  color: #a63e32;
+  display: inline-block;
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: 0 0 14pt;
+  padding: 0.25em 1em;
+  text-transform: uppercase;
+}
+.notebook-slide-cover-confidential::before { content: "●  "; }
+.notebook-slide-cover-title { color: var(--notebook-color-ink); font-size: 50pt; line-height: 1.25; margin: 0; }
+.notebook-slide-cover-subtitle { color: var(--notebook-color-teal-dark); font-size: 24pt; line-height: 1.4; margin: 10pt 0 0; }
+.notebook-slide-cover-rule {
+  background: linear-gradient(to right, var(--notebook-color-coral) 0 24%, transparent 24% 27%, var(--notebook-color-gold) 27% 43%, transparent 43% 46%, var(--notebook-color-teal) 46% 100%);
+  border-radius: 6pt;
+  height: 7pt;
+  margin: 18pt 0 14pt;
+  max-width: 260pt;
+}
+.notebook-slide-cover-meta { color: var(--notebook-color-muted); display: flex; flex-wrap: wrap; font-size: 18pt; gap: 0.5em 1.5em; }
+.notebook-slide-cover-meta p { margin: 0; }
+.notebook-slide-cover-author::before { color: var(--notebook-color-teal); content: "● "; }
+.notebook-slide-cover-date::before { color: var(--notebook-color-coral); content: "● "; }
+.notebook-slide-cover-dots { bottom: 22pt; color: var(--notebook-color-gold); height: 56pt; position: absolute; right: 30pt; width: 84pt; }
+.notebook-slide-cover-dots circle { fill: currentColor; }
+
+/* The agenda sits on the document's pale contents card. */
+[data-pfpdf-slide="agenda"] .pfpdf-slide-agenda {
+  background: var(--notebook-color-teal-pale);
+  border-radius: 12pt;
+  padding: 18pt 24pt 18pt 2.6em;
+}
+.pfpdf-slide-agenda-entry::marker { color: var(--notebook-color-teal); font-weight: 700; }
+
+/* Section covers: a teal color field with the section number in a coral
+ * circle, like a divider tab in a notebook. */
+[data-pfpdf-slide][data-pfpdf-slide="section"] {
+  background:
+    radial-gradient(circle, var(--notebook-color-gold) 0 4pt, transparent 4.5pt) right 60pt bottom 40pt / 14pt 14pt no-repeat,
+    radial-gradient(circle, var(--notebook-color-coral) 0 4pt, transparent 4.5pt) right 42pt bottom 40pt / 14pt 14pt no-repeat,
+    var(--notebook-color-teal);
+  color: #fff;
+  padding-inline: 80pt;
+  --pfpdf-slide-footer-color: rgb(255 255 255 / 0.85);
+  --pfpdf-slide-confidential-color: #fff;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title { color: #fff; margin: 0; padding: 0 0 0.3em; }
+[data-pfpdf-slide="section"] .pfpdf-slide-title::before {
+  align-items: center;
+  background: var(--notebook-color-coral);
+  border-radius: 50%;
+  color: #fff;
+  content: counter(pfpdf-section);
+  display: flex;
+  font-size: 34pt;
+  height: 72pt;
+  justify-content: center;
+  margin-bottom: 20pt;
+  position: static;
+  width: 72pt;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title::after {
+  background: linear-gradient(to right, var(--notebook-color-coral) 0 70pt, var(--notebook-color-gold) 70pt 112pt, rgb(255 255 255 / 0.5) 112pt 100%);
+}
+
+pre { border-radius: 8pt; }
+
+blockquote { margin-inline: 0; padding: 0.4em 1em; }
+
+th, td { padding: 0.35em 0.6em; }
+
+th:first-child { border-radius: 7pt 0 0 0; }
+th:last-child { border-radius: 0 7pt 0 0; }
+
+[data-pfpdf-region="note"] { border-top: 1.5pt dotted var(--notebook-color-coral); color: var(--notebook-color-muted); padding-top: 0.4em; }

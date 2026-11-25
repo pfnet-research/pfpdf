@@ -8,6 +8,15 @@
     "pfn",
     "technical"
   ],
+  "slideVariants": [
+    "academic",
+    "book",
+    "compact",
+    "default",
+    "notebook",
+    "pfn",
+    "technical"
+  ],
   "slideTemplates": [
     "slide-base"
   ]

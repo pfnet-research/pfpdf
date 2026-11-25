@@ -13,6 +13,7 @@ import {
 import { buildDocumentBody } from './markdown.js';
 import { ResourceManifest } from './resources.js';
 import { resolveTemplate, buildDocumentHtml, type PreparedTemplate } from './template.js';
+import { DEPRECATED_BUNDLED_TEMPLATES } from './bundled-templates.js';
 import { resolveFonts } from './fonts.js';
 import { Workspace } from './workspace.js';
 import { renderDocument } from './renderer.js';
@@ -55,14 +56,16 @@ export async function prepareConfiguredTemplate(
   config: Config,
   resolver: RepositoryResolver,
 ): Promise<PreparedTemplate> {
+  const slides = config.slides === true;
   if (config.template.value.kind !== 'repository') {
-    return resolveTemplate(config.template.value, config.templateDirAbs);
+    return resolveTemplate(config.template.value, config.templateDirAbs, undefined, slides);
   }
   const resolved = await resolver.resolve(config.template.value.locator, 'template');
   return resolveTemplate(
     { kind: 'custom', dir: resolved.path },
     resolved.path,
     resolved.repositoryRoot,
+    slides,
   );
 }
 
@@ -101,6 +104,9 @@ async function prepareDocument(
   const documentConfig = applyFrontMatterConfig(config, input.config);
   const repositoryResolver = options.repositoryResolver;
   const template = prepared?.template ?? await prepareConfiguredTemplate(documentConfig, repositoryResolver);
+  const deprecation = documentConfig.template.value.kind === 'bundled'
+    ? DEPRECATED_BUNDLED_TEMPLATES.get(documentConfig.template.value.name) : undefined;
+  if (deprecation !== undefined) log.warn(deprecation);
   const logo = await prepareConfiguredLogo(documentConfig, repositoryResolver);
   const manifest = new ResourceManifest();
   const fonts = resolveFonts(manifest, config.fontDirsAbs, config.hostFonts.value);
@@ -125,6 +131,7 @@ async function prepareDocument(
     logo,
     toc: slideOptions === undefined && documentConfig.toc.value,
     cover: documentConfig.cover.value,
+    slideFontSize: slideOptions === undefined ? undefined : input.config.slideFontSize,
     fontFaceCss: fonts.css,
     warn: log.warn,
   });

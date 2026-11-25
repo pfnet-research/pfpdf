@@ -202,3 +202,5 @@ figure { margin: 0.65em 0; text-align: center; }
 figcaption { color: var(--compact-color-muted); font-size: 7.5pt; margin-top: 0.25em; }
 hr { border: 0; border-top: 0.5pt solid var(--compact-color-rule); margin: 0.8em 0; }
 .pfpdf-math-display { margin: 0.55em 0; }
+
+.compact-header-subtitle { color: var(--compact-color-muted); font-size: 11pt; line-height: 1.35; margin: 1.5mm 0 0; overflow-wrap: anywhere; }

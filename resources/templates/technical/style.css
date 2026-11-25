@@ -210,3 +210,5 @@ hr { border: 0; border-top: 0.5pt solid var(--technical-color-rule); margin: 1.2
 .pfpdf-math-display {
   margin: 0.8em 0;
 }
+
+.technical-cover-subtitle { color: var(--technical-color-muted); font-size: 13pt; line-height: 1.45; margin: 3mm 0 0; overflow-wrap: anywhere; }

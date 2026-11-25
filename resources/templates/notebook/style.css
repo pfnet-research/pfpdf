@@ -256,3 +256,5 @@ details {
 }
 
 details > summary { color: var(--notebook-color-teal-dark); }
+
+.notebook-cover-subtitle { color: var(--notebook-color-teal-dark); font-size: 14pt; line-height: 1.5; margin: 4mm 0 0; overflow-wrap: anywhere; }
