@@ -1,18 +1,7 @@
 @import "../common.css";
+@import "./theme.css";
 
 /* compact template: space-efficient briefs, meeting notes, and internal reports */
-:root {
-  --compact-color-text: #202428;
-  --compact-color-muted: #596168;
-  --compact-color-rule: #aeb4b9;
-  --compact-color-rule-light: #d8dcdf;
-  --compact-color-panel: #f3f4f5;
-  --compact-color-strong: #343a40;
-  --pfpdf-task-accent: var(--compact-color-strong);
-  --pfpdf-task-indent: 1.1em;
-  --pfpdf-toc-indent-step: 1em;
-}
-
 html {
   color: var(--compact-color-text);
   font-size: 9.5pt;
@@ -124,7 +113,6 @@ html {
   font-size: 0.9em;
 }
 
-
 h1, h2, h3, h4, h5, h6 {
   color: var(--compact-color-text);
   line-height: 1.28;
@@ -150,33 +138,18 @@ h6::before { color: var(--compact-color-strong); content: "– "; }
 
 p { margin: 0.38em 0; }
 
-a {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-thickness: 0.05em;
-  text-underline-offset: 0.12em;
-}
-
 pre {
-  background: var(--compact-color-panel);
-  border: 0.5pt solid var(--compact-color-rule);
   font-size: 8.2pt;
   line-height: 1.38;
   margin: 0.55em 0;
   padding: 0.5em 0.7em;
-  tab-size: 2;
 }
 
 :not(pre) > code {
-  background: var(--compact-color-panel);
-  border: 0.5pt solid var(--compact-color-rule-light);
   font-size: 0.88em;
-  padding: 0.03em 0.2em;
 }
 
 blockquote {
-  border-left: 2pt solid var(--compact-color-strong);
-  color: #41484e;
   margin: 0.55em 0;
   padding: 0.15em 0.7em;
 }
@@ -198,12 +171,8 @@ table {
   margin: 0.55em 0;
 }
 th, td {
-  border: 0.5pt solid var(--compact-color-rule);
   padding: 0.22em 0.38em;
 }
-
-th { background: #e5e7e9; font-weight: 700; }
-tbody tr:nth-child(even) { background: #f8f8f8; }
 
 ul, ol { margin-bottom: 0.38em; margin-top: 0.38em; padding-left: 1.55em; }
 li { margin: 0.08em 0; orphans: 2; widows: 2; }

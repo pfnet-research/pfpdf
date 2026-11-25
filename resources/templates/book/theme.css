@@ -1,0 +1,44 @@
+/* book template: colors and type shared by the document and slide variants. */
+:root {
+  --pfpdf-font-body: var(--pfpdf-font-serif);
+  --book-color-ink: #292521;
+  --book-color-muted: #71685d;
+  --book-color-paper: #fdfbf6;
+  --book-color-accent: #5b312e;
+  --book-color-accent-pale: #eee5df;
+  --book-color-rule: #b8aea0;
+  --book-color-panel: #f4f0e8;
+  --pfpdf-task-accent: var(--book-color-accent);
+  --pfpdf-toc-indent-step: 1.5em;
+}
+
+/* Content elements that look the same in the document and slide variants. */
+a {
+  color: var(--book-color-accent);
+  text-decoration-thickness: 0.5pt;
+  text-underline-offset: 0.15em;
+}
+pre {
+  background: var(--book-color-panel);
+  border-left: 2pt solid var(--book-color-rule);
+}
+:not(pre) > code {
+  background: var(--book-color-accent-pale);
+  padding: 0.08em 0.3em;
+}
+blockquote {
+  border-bottom: 0.3pt solid var(--book-color-rule);
+  border-top: 0.3pt solid var(--book-color-rule);
+  color: #554e47;
+}
+th, td {
+  border-bottom: 0.4pt solid var(--book-color-rule);
+}
+th {
+  border-bottom: 1pt solid var(--book-color-accent);
+  color: var(--book-color-accent);
+  font-weight: 700;
+}
+tbody tr:nth-child(even) td {
+  background: var(--book-color-panel);
+}
