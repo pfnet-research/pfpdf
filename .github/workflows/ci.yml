@@ -57,9 +57,12 @@ jobs:
           browser_path="$(command -v google-chrome)"
           test -n "$browser_path"
           echo "BROWSER_PATH=$browser_path" >> "$GITHUB_ENV"
-      - run: make docs-release docs-template-samples
+      - run: make docs-release docs-template-samples docs-template-slides
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: docs-template-samples
-          path: build/docs/templates/*/sample.pdf
+          path: |
+            build/docs/templates/*/sample.pdf
+            build/docs/templates/*/slides.pdf
+            build/docs/templates/*/slides.en.pdf
           retention-days: 7

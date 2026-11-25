@@ -46,6 +46,15 @@ export function loadSample(template: string, language: Locale): GallerySample {
   return JSON.parse(fs.readFileSync(indexPath, 'utf8')) as GallerySample;
 }
 
+/** The slide sample of a template, or null when the template has no slide variant. */
+export function loadSlides(template: string, language: Locale): GallerySample | null {
+  const indexPath = path.join(
+    process.cwd(), 'public', 'assets', 'gallery', template, language, 'slides.json',
+  );
+  if (!fs.existsSync(indexPath)) return null;
+  return JSON.parse(fs.readFileSync(indexPath, 'utf8')) as GallerySample;
+}
+
 export function loadHero(language: Locale): HeroSample {
   const indexPath = path.join(process.cwd(), 'public', 'assets', 'hero', language, 'index.json');
   return JSON.parse(fs.readFileSync(indexPath, 'utf8')) as HeroSample;
@@ -70,4 +79,9 @@ export function imageUrl(template: string, language: Locale, file: string): stri
 /** Root-relative URL of a downloadable sample PDF. */
 export function pdfUrl(template: string, language: Locale): string {
   return `/gallery/${template}/sample.${language}.pdf`;
+}
+
+/** Root-relative URL of a downloadable slide sample PDF. */
+export function slidesPdfUrl(template: string, language: Locale): string {
+  return `/gallery/${template}/slides.${language}.pdf`;
 }

@@ -100,6 +100,11 @@ export const ja: typeof en = {
     lightbox: { close: '閉じる', prev: '前のページ', next: '次のページ' },
     pageAlt: (template: string, lang: string, page: number) =>
       `${template} テンプレート（${lang === 'ja' ? '日本語' : '英語'}サンプル）の${page}ページ目`,
+    slidesTitle: 'スライド',
+    slidesNote: 'フロントマターに slides: true を書くと、同じテンプレートで同じデザインの 16:9 のスライドになります。',
+    downloadSlides: 'スライドの PDF',
+    slideAlt: (template: string, lang: string, page: number) =>
+      `${template} テンプレート（${lang === 'ja' ? '日本語' : '英語'}スライド）の${page}枚目`,
   },
   templateDescriptions: {
     academic: '論文・研究レポート向け',

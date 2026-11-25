@@ -8,6 +8,8 @@ import { PDFDocument } from 'pdf-lib';
 // Converts the rendered template sample PDFs (Japanese and English) into the
 // gallery assets consumed by site/: per-page WebP thumbnails, lightbox images,
 // downloadable PDFs, and an index.json manifest per template and language.
+// Templates with a slide variant also get the slide sample as slide-*.webp
+// images and a slides.json manifest in the same directory.
 // The cover of the separate hero document (no Confidential badge) is converted
 // alongside them, for the landing page illustration.
 //
@@ -49,11 +51,33 @@ const templates = manifest.templates;
 if (!Array.isArray(templates) || templates.length === 0) {
   throw new Error('bundled template manifest is empty or unreadable');
 }
+const slideVariants = manifest.slideVariants;
+if (!Array.isArray(slideVariants)) {
+  throw new Error('bundled template manifest has no slideVariants list');
+}
 
 const LANGUAGES = [
-  { code: 'ja', pdfName: 'sample.pdf', heroPdfName: 'hero.pdf' },
-  { code: 'en', pdfName: 'sample.en.pdf', heroPdfName: 'hero.en.pdf' },
+  { code: 'ja', pdfName: 'sample.pdf', slidesPdfName: 'slides.pdf', heroPdfName: 'hero.pdf' },
+  { code: 'en', pdfName: 'sample.en.pdf', slidesPdfName: 'slides.en.pdf', heroPdfName: 'hero.en.pdf' },
 ];
+const KINDS = {
+  document: {
+    pdfName: (language) => language.pdfName,
+    target: 'docs-template-samples',
+    minimumPages: (template) => (template === 'compact' ? 4 : 5),
+    prefix: 'page',
+    pdf: (language) => `sample.${language.code}.pdf`,
+    index: 'index.json',
+  },
+  slides: {
+    pdfName: (language) => language.slidesPdfName,
+    target: 'docs-template-slides',
+    minimumPages: () => 8,
+    prefix: 'slide',
+    pdf: (language) => `slides.${language.code}.pdf`,
+    index: 'slides.json',
+  },
+};
 const THUMB_WIDTH = 480;
 const FULL_WIDTH = 1500;
 
@@ -68,22 +92,23 @@ function run(command, commandArgs) {
   return result.stdout;
 }
 
-async function buildLanguageAssets(template, language) {
-  const pdfPath = path.join(docsRoot, 'templates', template, language.pdfName);
+async function buildLanguageAssets(template, language, kind = KINDS.document) {
+  const pdfPath = path.join(docsRoot, 'templates', template, kind.pdfName(language));
   if (!fs.existsSync(pdfPath)) {
-    throw new Error(`missing sample PDF (run "make docs-template-samples" first): ${pdfPath}`);
+    throw new Error(`missing sample PDF (run "make ${kind.target}" first): ${pdfPath}`);
   }
   const pdf = await PDFDocument.load(fs.readFileSync(pdfPath));
   const pageCount = pdf.getPageCount();
-  const minimumPageCount = template === 'compact' ? 4 : 5;
+  const minimumPageCount = kind.minimumPages(template);
   if (pageCount < minimumPageCount) {
-    throw new Error(`${template} ${language.code} sample must have at least ${minimumPageCount} pages, got ${pageCount}`);
+    throw new Error(`${template} ${language.code} ${kind.prefix} sample must have at least ${minimumPageCount} pages, got ${pageCount}`);
   }
 
   const outputDir = path.join(outputRoot, 'gallery', template, language.code);
-  fs.rmSync(outputDir, { recursive: true, force: true });
+  // The document sample resets the directory; the slide sample is added beside it.
+  if (kind === KINDS.document) fs.rmSync(outputDir, { recursive: true, force: true });
   fs.mkdirSync(outputDir, { recursive: true });
-  fs.copyFileSync(pdfPath, path.join(outputDir, `sample.${language.code}.pdf`));
+  fs.copyFileSync(pdfPath, path.join(outputDir, kind.pdf(language)));
 
   const masterDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-site-assets-'));
   const pages = [];
@@ -91,14 +116,14 @@ async function buildLanguageAssets(template, language) {
     const pageNumberWidth = Math.max(2, String(pageCount).length);
     for (let page = 1; page <= pageCount; page++) {
       const label = String(page).padStart(pageNumberWidth, '0');
-      const masterPrefix = path.join(masterDir, `page-${label}`);
+      const masterPrefix = path.join(masterDir, `${kind.prefix}-${label}`);
       run('pdftoppm', [
         '-f', String(page), '-l', String(page), '-r', '180', '-png', '-singlefile',
         pdfPath, masterPrefix,
       ]);
       const master = sharp(`${masterPrefix}.png`);
-      const thumbName = `page-${label}.thumb.webp`;
-      const fullName = `page-${label}.webp`;
+      const thumbName = `${kind.prefix}-${label}.thumb.webp`;
+      const fullName = `${kind.prefix}-${label}.webp`;
       const thumb = await master
         .clone()
         .resize({ width: THUMB_WIDTH })
@@ -120,10 +145,10 @@ async function buildLanguageAssets(template, language) {
   }
 
   fs.writeFileSync(
-    path.join(outputDir, 'index.json'),
-    `${JSON.stringify({ template, language: language.code, pageCount, pdf: `sample.${language.code}.pdf`, pages }, null, 2)}\n`,
+    path.join(outputDir, kind.index),
+    `${JSON.stringify({ template, language: language.code, pageCount, pdf: kind.pdf(language), pages }, null, 2)}\n`,
   );
-  process.stdout.write(`${template}/${language.code}: ${pageCount} pages\n`);
+  process.stdout.write(`${template}/${language.code}: ${pageCount} ${kind.prefix === 'page' ? 'pages' : 'slides'}\n`);
 }
 
 async function buildHeroAsset(language) {
@@ -160,6 +185,7 @@ async function buildHeroAsset(language) {
 for (const template of templates) {
   for (const language of LANGUAGES) {
     await buildLanguageAssets(template, language);
+    if (slideVariants.includes(template)) await buildLanguageAssets(template, language, KINDS.slides);
   }
 }
 for (const language of LANGUAGES) {

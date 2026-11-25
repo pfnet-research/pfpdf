@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import CodeSnippet from './CodeSnippet.astro';
 import { t, localeRoot, type Locale } from '../i18n';
-import { listTemplates, loadSample, imageUrl, pdfUrl } from '../lib/gallery';
+import { listTemplates, loadSample, loadSlides, imageUrl, pdfUrl, slidesPdfUrl } from '../lib/gallery';
 
 interface Props {
   locale: Locale;
@@ -19,6 +19,10 @@ const nextTemplate = templates[(index + 1) % templates.length];
 const samples = {
   en: loadSample(template, 'en'),
   ja: loadSample(template, 'ja'),
+};
+const slides = {
+  en: loadSlides(template, 'en'),
+  ja: loadSlides(template, 'ja'),
 };
 const defaultTab: Locale = locale;
 const command = `npx @pfnet-research/pfpdf@latest --input document.md --output document.pdf --template ${template}`;
@@ -59,7 +63,8 @@ const description = `${template}: ${dict.templateDescriptions[template]}`;
     <p class="showcase-note">{dict.gallery.jaShowcase}</p>
 
     {(['en', 'ja'] as Locale[]).map((lang) => (
-      <div class="page-grid" data-tab-panel={lang} hidden={lang !== defaultTab}>
+      <div data-tab-panel={lang} hidden={lang !== defaultTab}>
+      <div class="page-grid">
         {samples[lang].pages.map((page) => (
           <button
             type="button"
@@ -78,6 +83,34 @@ const description = `${template}: ${dict.templateDescriptions[template]}`;
             />
           </button>
         ))}
+      </div>
+      {slides[lang] && (
+        <section class="slides">
+          <h2>{dict.gallery.slidesTitle}</h2>
+          <p class="showcase-note">{dict.gallery.slidesNote}</p>
+          <p><a class="button secondary" href={slidesPdfUrl(template, lang)} download>{dict.gallery.downloadSlides}</a></p>
+          <div class="page-grid slide-grid">
+            {slides[lang]!.pages.map((page) => (
+              <button
+                type="button"
+                class="page-thumb slide-thumb paper-frame"
+                data-lightbox-src={imageUrl(template, lang, page.full.file)}
+                data-lightbox-alt={dict.gallery.slideAlt(template, lang, page.page)}
+                data-lightbox-lang={`${lang}-slides`}
+                data-lightbox-index={page.page - 1}
+              >
+                <img
+                  src={imageUrl(template, lang, page.thumb.file)}
+                  width={page.thumb.width}
+                  height={page.thumb.height}
+                  alt={dict.gallery.slideAlt(template, lang, page.page)}
+                  loading="lazy"
+                />
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       </div>
     ))}
 
@@ -209,9 +242,8 @@ const description = `${template}: ${dict.templateDescriptions[template]}`;
     margin-block: 1.5rem 2.5rem;
   }
 
-  /* `display: grid` above would otherwise beat the user-agent `[hidden]` rule,
-     leaving both language panels visible at once. */
-  .page-grid[hidden] {
+  /* Keep both language panels from showing at once. */
+  [data-tab-panel][hidden] {
     display: none;
   }
 
@@ -220,6 +252,14 @@ const description = `${template}: ${dict.templateDescriptions[template]}`;
     padding: 0;
     cursor: zoom-in;
     aspect-ratio: 1 / 1.4142;
+  }
+
+  .slide-grid {
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  }
+
+  .slide-thumb {
+    aspect-ratio: 16 / 9;
   }
 
   .template-nav {
