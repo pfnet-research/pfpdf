@@ -58,7 +58,7 @@ test('every bundled document template ships a slide variant listed in the manife
   assert.deepEqual([...BUNDLED_SLIDE_VARIANT_NAMES].sort(), [...BUNDLED_TEMPLATE_NAMES].sort());
   for (const name of BUNDLED_SLIDE_VARIANT_NAMES) {
     const style = fs.readFileSync(resourcePath('templates', name, 'slides-style.css'), 'utf8');
-    assert.match(style, /^@import "\.\.\/common\.css";\n@import "\.\.\/common-slides\.css";/m, name);
+    assert.match(style, /^@import "\.\.\/common\.css";\r?\n@import "\.\.\/common-slides\.css";/m, name);
     const html = fs.readFileSync(resourcePath('templates', name, 'slides-template.html'), 'utf8');
     assert.match(html, /data-pfpdf-slot="cover"/, name);
     assert.doesNotMatch(html, /data-pfpdf-slot="toc"/, name);
@@ -168,7 +168,7 @@ test('every bundled slide variant renders the sample deck on 16:9 pages without 
       assert.equal(res.status, 0, `${name} ${input}: ${res.stderr}`);
       const info = spawnSync('pdfinfo', [output], { encoding: 'utf8' });
       if (info.error === undefined && info.status === 0) {
-        assert.match(info.stdout, /Pages:\s+9\n/, `${name} ${input}`);
+        assert.match(info.stdout, /Pages:\s+9\r?\n/, `${name} ${input}`);
         assert.match(info.stdout, /Page size:\s+960 x 540 pts/, `${name} ${input}`);
       }
       const text = spawnSync('pdftotext', [output, '-'], { encoding: 'utf8' });
