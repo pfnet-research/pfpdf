@@ -3,6 +3,18 @@
 Notable changes to pfpdf are documented in this file. Versions follow Semantic
 Versioning; breaking changes before 1.0 are called out explicitly.
 
+## [0.7.0](https://github.com/pfnet-research/pfpdf/compare/v0.6.0...v0.7.0) (2026-11-26)
+
+
+### Features
+
+* **template:** support Git repository root templates ([#59](https://github.com/pfnet-research/pfpdf/issues/59)) ([a25c6f1](https://github.com/pfnet-research/pfpdf/commit/a25c6f19dfc7db959ef774d47f0a268cdd32b293))
+
+
+### Bug Fixes
+
+* **pdf:** omit presenter notes and diagnose clipped slides ([#58](https://github.com/pfnet-research/pfpdf/issues/58)) ([e33d573](https://github.com/pfnet-research/pfpdf/commit/e33d5734e2ee16765d62873e43dad58dee087f18))
+
 ## [0.6.0](https://github.com/pfnet-research/pfpdf/compare/v0.5.0...v0.6.0) (2026-11-26)
 
 
