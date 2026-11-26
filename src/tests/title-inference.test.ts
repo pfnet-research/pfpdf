@@ -146,6 +146,13 @@ test('directory fallback uses the input directory name even when it contains onl
   assert.equal(title(dir), '日本語のノート集');
 });
 
+test('automatic document metadata uses the same visible regions as the body', (t) => {
+  const input = document(t, '::: column\nWorkshop schedule\n===\n\n::: talk\n時刻を確認しておきます。\n');
+  const resolved = resolveInput(input, null, env, noop);
+  assert.equal(resolved.metadata.title.plainText, 'Workshop schedule');
+  assert.equal(resolved.metadata.lang, 'en');
+});
+
 test('fallback text supplies language and generated date only when prose supplies no language', (t) => {
   for (const [name, content, lang, date] of [
     ['日本語の表題.md', '', 'ja', '1970 年 1 月 1 日'],

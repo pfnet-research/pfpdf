@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import { visit } from 'unist-util-visit';
 import type { SourceFile } from './input.js';
+import { prepareSlideDirectives } from './slides.js';
 
 export function inferDocumentLanguage(files: SourceFile[], title: string): 'ja' | 'en' {
   let prose = '';
@@ -12,7 +13,9 @@ export function inferDocumentLanguage(files: SourceFile[], title: string): 'ja' 
   for (const file of files) {
     // Text nodes omit fenced/inline code, math, raw HTML blocks, link targets,
     // and front matter. Keep authored link labels and footnote prose.
-    visit(parser.parse(file.content), 'text', (node) => { prose += `${node.value}\n`; });
+    const tree = parser.parse(file.content);
+    prepareSlideDirectives(file, tree, false);
+    visit(tree, 'text', (node) => { prose += `${node.value}\n`; });
   }
   const count = (text: string): { hiragana: number; kana: number; han: number; latin: number } => {
     const cleaned = text.replace(/https?:\/\/\S+/gi, '');

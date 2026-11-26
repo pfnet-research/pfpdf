@@ -64,8 +64,9 @@ function splitAtDirectives(file: SourceFile, node: Paragraph | Heading, sourceLi
       const next = node.children[index + 1];
       const wholeLine = (i > 0 || lineStart) && (i < lines.length - 1 || next === undefined || next.type === 'break');
       // Match the source line: the parser has decoded escapes such as `\:::` in the text.
+      // A newline from `&#10;` has no source line of its own, so such text is left unsplit.
       const source = sourceLines[(child.position?.start.line ?? 0) + i - 1] ?? '';
-      const name = wholeLine ? directive.exec(source)?.[1] : undefined;
+      const name = wholeLine && breaks.length === lines.length - 1 ? directive.exec(source)?.[1] : undefined;
       if (name === undefined) return;
       pushLines(from, i);
       flush();

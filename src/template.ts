@@ -527,7 +527,7 @@ function require_resolve_css(): string {
 /**
  * Measure the DOM that the pinned Vivliostyle CLI prints, after pagination,
  * and report pages whose slide extends outside the page. The PDF page count
- * is checked separately, so a slide that breaks across pages fails there.
+ * is checked separately and rejects any change in the total.
  */
 function slideOverflowScript(): string {
   return `(() => {

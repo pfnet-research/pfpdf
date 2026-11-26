@@ -3,6 +3,7 @@ import { fromHtml } from 'hast-util-from-html';
 import type { PhrasingContent } from 'mdast';
 import type { NormalizedTitle, SourceFile } from './input.js';
 import { createMarkdownParser } from './markdown-parser.js';
+import { prepareSlideDirectives } from './slides.js';
 
 type FragmentNode = ReturnType<typeof fromHtml>['children'][number];
 
@@ -50,7 +51,9 @@ function singleLine(text: string): string {
 export function inferDocumentTitle(files: SourceFile[], inputName: string): NormalizedTitle {
   const parser = createMarkdownParser();
   for (const file of files) {
-    for (const node of parser.parse(file.content).children) {
+    const tree = parser.parse(file.content);
+    prepareSlideDirectives(file, tree, false);
+    for (const node of tree.children) {
       // Quotes, list items, code, raw HTML blocks and footnote definitions do
       // not supply the document's top-level Markdown title.
       if (node.type !== 'heading' || node.depth !== 1) continue;

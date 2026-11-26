@@ -256,6 +256,7 @@ test('the paginated slide check warns about clipping, and a split slide fails th
   };
   const fits = renderDeck(14);
   assert.equal(fits.status, 0, fits.stderr);
+  assert.doesNotMatch(fits.stderr, /may be clipped/);
   const firstPage = spawnSync('pdftotext', ['-f', '1', '-l', '1', output, '-'], { encoding: 'utf8' });
   if (firstPage.status === 0) {
     assert.match(firstPage.stdout, /\bITEM-14\b/);
