@@ -25,6 +25,8 @@ export interface Metadata {
   /** Ordered author names; newlines are intentional display breaks within a name. */
   author: string[] | null;
   series: string | null;
+  /** Optional subtitle shown under the title by templates with a subtitle slot. */
+  subtitle?: string | null;
   /** Display date string: explicit front matter value or a generated one. */
   date: string | null;
   confidential: boolean;
@@ -118,6 +120,7 @@ export interface FrontMatterOptions {
 const ALLOWED_KEYS = new Set([
   'title', 'author', 'series', 'date', 'page_size', 'confidential', 'lang', 'dir',
   'bibliography', 'template', 'toc', 'cover', 'logo', 'slides', 'section_covers',
+  'subtitle', 'slide_font_size',
 ]);
 
 interface SourceLine {
@@ -236,6 +239,10 @@ function resolveFrontMatterConfig(
   if (sectionCovers !== undefined && typeof sectionCovers !== 'boolean') {
     throw new InputError('front matter section_covers: expected a YAML boolean');
   }
+  const slideFontSize = raw.get('slide_font_size');
+  if (slideFontSize !== undefined && (typeof slideFontSize !== 'number' || !(slideFontSize >= 10 && slideFontSize <= 40))) {
+    throw new InputError('front matter slide_font_size: expected a number of points from 10 to 40');
+  }
   const tocValue = raw.get('toc');
   if (tocValue !== undefined && typeof tocValue !== 'boolean') {
     throw new InputError('front matter toc: expected a YAML boolean');
@@ -273,6 +280,7 @@ function resolveFrontMatterConfig(
     logo,
     ...(slides === undefined ? {} : { slides }),
     ...(sectionCovers === undefined ? {} : { sectionCovers }),
+    ...(slideFontSize === undefined ? {} : { slideFontSize }),
   };
 }
 
@@ -322,7 +330,7 @@ function readSourceFiles(
 
 /** Validate every block, including unselected values, without opening assets. */
 function validateFrontMatterValues(raw: Map<string, unknown>, filePath: string): void {
-  for (const key of ['title', 'series', 'date', 'page_size', 'lang', 'dir']) {
+  for (const key of ['title', 'subtitle', 'series', 'date', 'page_size', 'lang', 'dir']) {
     const value = raw.get(key);
     if (value !== undefined && typeof value !== 'string') throw new InputError(`front matter ${key}: expected a string`);
   }
@@ -474,6 +482,7 @@ export function resolveInput(
 
   const author = normalizeAuthors(raw.get('author'));
   const series = requireString('series');
+  const subtitle = requireString('subtitle');
   const explicitDate = requireString('date');
 
   const confidentialRaw = raw.get('confidential');
@@ -520,6 +529,7 @@ export function resolveInput(
       title,
       author,
       series,
+      subtitle,
       date,
       confidential,
       pageSize,

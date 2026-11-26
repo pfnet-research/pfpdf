@@ -64,32 +64,54 @@ resources/templates/
     template.html
     style.css
     vivliostyle.css
+    theme.css
+    slides-template.html
+    slides-style.css
   book/
     template.html
     style.css
     vivliostyle.css
+    theme.css
+    slides-template.html
+    slides-style.css
   compact/
     template.html
     style.css
     vivliostyle.css
+    theme.css
+    slides-template.html
+    slides-style.css
   default/
     template.html
     style.css
     vivliostyle.css
+    theme.css
+    slides-template.html
+    slides-style.css
   notebook/
     template.html
     style.css
     vivliostyle.css
+    theme.css
+    slides-template.html
+    slides-style.css
   pfn/
     template.html
     style.css
     vivliostyle.css
+    slides-template.html
+    slides-style.css
   technical/
     template.html
     style.css
     vivliostyle.css
+    theme.css
+    slides-template.html
+    slides-style.css
 ```
 
+- Each template keeps the slide variant files `slides-template.html` and `slides-style.css` in the same directory as its three document files. Documents with `slides: true` use the slide variant, and without a selected template they use the slide variant of `default`. Colors and fonts shared by the document and slide variants live in `theme.css`, which both stylesheets `@import`. `pfn`, which shares few rules, restates its values in the slide variant. Rules shared among slide variants for regions (`left`, `right`, `note`), the agenda, and the footer live in `common-slides.css`. pfpdf itself holds no region vocabulary (DD-58)
+- The slide-only bundled template `slide-base` is deprecated and prints a warning when selected. It will be removed in 0.7.0
 - Select a bundled template with Markdown front matter `template`, or with `--template SOURCE` when the source exactly matches a bundled name. With multiple files, the first supplied `template` is used. `--template-preset NAME` explicitly requires a bundled preset. CLI arguments take precedence over front matter
 - A custom template or one obtained from a repository may declare a default logo by putting a path relative to the template directory in the `src` of its `logo` slot. Bundled templates have no default logo
 - Front matter `logo` accepts a local path or `false`. CLI `--logo SOURCE` accepts a local path or Git locator and overrides front matter and the template default; `--no-logo` disables both
@@ -104,6 +126,7 @@ resources/templates/
 - Custom templates are treated like trusted local code, with explicit documentation that they may execute raw HTML and scripts
 - The custom template format has no `apiVersion`, JSON Schema, or cross-version compatibility guarantee. Users who need to preserve a template's appearance and structure should pin the pfpdf version. Within a given version, the following DOM slot contract prevents ambiguous string substitution
 - A custom template directory contains `template.html`, `style.css`, and `vivliostyle.css` directly. Only the presence of the files required by the selected pfpdf version is checked
+- For a document with `slides: true`, when `slides-template.html` exists, pfpdf uses `slides-template.html`, `slides-style.css`, and the optional `slides-vivliostyle.css` instead. A missing `slides-style.css`, or a `slides-style.css` without `slides-template.html`, is an input error. Without slide variant files, the three files are used as they are, which keeps slide-only templates working. Ordinary documents never read the slide variant files
 
 ### 4.5.1 Fetching from Git repositories
 
@@ -124,6 +147,7 @@ resources/templates/
 | `content` | Required, 1 | Body containing one section per source file |
 | `cover` | Optional, 0 or 1 | Entire cover or leading header; removed as an element when `cover: false` |
 | `title` | Optional, 0 or 1 | Title. Only the allowed `<br>` is preserved as an element |
+| `subtitle` | Optional, 0 or 1 | Subtitle text; removed as an element when unspecified |
 | `author` | Optional, 0 or 1 | Author text |
 | `series` | Optional, 0 or 1 | Series text |
 | `date` | Optional, 0 or 1 | Date text |
@@ -145,7 +169,8 @@ resources/templates/
 - Omitting the cover also omits its visual title / author / date / logo, while retaining the HTML title and PDF metadata. Series / Confidential named-string sources move to a non-painted marker, preserving running information on bundled-template contents and body pages. Custom templates should put their own running elements outside the cover slot
 - The `body` receives a `pfpdf-has-cover` or `pfpdf-no-cover` class. Bundled standalone covers use the `pfpdf-cover` named page; `compact` uses the `:first` rule of its own named page to keep its header and body on one page. Cover-specific first-page exceptions do not apply to body pages when the cover is omitted
 - Scripts do not run until the final `document.html` is loaded in the browser. Register asynchronous work in template scripts with the document readiness mechanism
-- `style.css` is loaded as common styles and `vivliostyle.css` as paged media styles, in that order. Both pass through the resource graph, which resolves `@import` and `url()`
+- `style.css` is loaded as common styles and `vivliostyle.css` as paged media styles, in that order. Both pass through the resource graph, which resolves `@import` and `url()`. For slides, pfpdf's shared `slides.css` is loaded before them. Without a `slides-vivliostyle.css` in the slide variant, no paged media stylesheet is loaded
+- A `<link rel="stylesheet">` in `template.html` is loaded after pfpdf's page size rules. Templates do not choose their stylesheets in HTML; shared styles are loaded with CSS `@import`
 
 ## 4.6 `TemplateResolver` and `HtmlDocumentBuilder`
 

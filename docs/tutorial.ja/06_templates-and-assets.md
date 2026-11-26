@@ -22,6 +22,8 @@ pfpdf には 7 つのテンプレートが同梱されています。用途と�
 
 `book` は章の区切りを明確にするため、短い章でも H1 の前で改ページするデザインです。ただし現在は、目次を表示すると、先頭の Markdown ファイル内の H1 にこの自動改ページが適用されません。ページ数を抑えたい文書には `default` または `compact` を使用してください。
 
+どのテンプレートも、文書と同じ書体、配色、見出しの飾りを 16:9 の横長に合わせたスライド版を持っています。フロントマターに `slides: true` を書くと、同じ `template` の指定でスライド版が使われます。原稿の書き方は[文書構造](02_document-structure.md)の「スライド」を参照してください。
+
 通常は Markdown のフロントマターに `template` を書いて選択します。複数ファイルでは最初に指定された値を使います。
 
 ```md
@@ -99,7 +101,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template ./my-
 - カスタムテンプレートは信頼できるローカルコードとして扱われ、生の HTML やスクリプトを実行できます
 - テンプレートの形式にバージョン間の互換性保証はありません。見た目を維持したい場合は pfpdf のバージョンを固定してください
 - `template.html` は HTML 文書とし、本文の挿入先を `data-pfpdf-slot="content"` で 1 個だけ指定します
-- 省略可能なスロットとして、`cover`、`title`、`author`、`series`、`date`、`confidential`、`toc`、`logo` をそれぞれ 0 または 1 個置けます。未知のスロット、スロットの重複、必須の `content` の欠落はエラーです
+- 省略可能なスロットとして、`cover`、`title`、`subtitle`、`author`、`series`、`date`、`confidential`、`toc`、`logo` をそれぞれ 0 または 1 個置けます。未知のスロット、スロットの重複、必須の `content` の欠落はエラーです
 - 目次が複数ページに続く場合、文書言語に応じた継続ラベルが柱に表示されます。カスタムテンプレートで表示位置を変更する場合は、目次内の `.pfpdf-toc-continuation-marker` が設定する名前付き文字列 `pfpdf-toc-continuation` を、ページメディアのマージンボックスから参照します
 - 処理済みの `data-pfpdf-slot` 属性は、HTML を組み立てた後に削除されます。信頼済みの入力に含まれるその他の属性は保持されます
 
@@ -125,8 +127,30 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template ./my-
 
 - ロゴを明示してもテンプレートに `logo` スロットがなければ、指定を黙って無視せずエラーになります
 - 既定の `src` も明示指定のロゴもなければ、`logo` スロット自体が出力から削除されます
-- `author` または `series` が未指定の場合も、対応するスロットが削除されます
+- `subtitle`、`author`、`series` が未指定の場合も、対応するスロットが削除されます
 - `toc` スロットがない場合、目次は `content` の先頭に挿入されます
+
+### スライド版
+
+`slides: true` の原稿にも使えるようにするには、同じディレクトリーにスライド版のファイルを並べます。
+
+```text
+my-template/
+  template.html
+  style.css
+  vivliostyle.css
+  theme.css                書体や配色など、両方で共有する部分（任意）
+  slides-template.html
+  slides-style.css
+  slides-vivliostyle.css   スライドのページメディア用スタイル（任意）
+```
+
+- `slides: true` の原稿では、`slides-template.html` があれば、`slides-template.html`、`slides-style.css`、`slides-vivliostyle.css` を `template.html`、`style.css`、`vivliostyle.css` の代わりに使います。通常の文書は、これまでどおり 3 ファイルだけを使います
+- `slides-template.html` があるのに `slides-style.css` がない場合と、`slides-style.css` だけがある場合はエラーです。`slides-vivliostyle.css` は省略でき、省略すると文書用の `vivliostyle.css` も読み込みません。スライドの余白は、pfpdf が先に読み込むスライド共通のスタイルで 0 になります
+- スライド版のファイルがないテンプレートは、`slides: true` でも 3 ファイルをそのまま使います。スライド専用に作ったテンプレートは、これまでどおり 3 ファイルだけで構いません
+- 文書版とスライド版で共有する部分は、`theme.css` のようなファイルに分け、両方の CSS から `@import "./theme.css";` で読み込みます。同じディレクトリーに並べるので、画像やフォントも文書版と同じ相対パスで参照できます。共有する規則が少なければ、分けなくても構いません
+- `template.html` に `<link rel="stylesheet">` を書くと、そのスタイルはページサイズの指定より後に読み込まれ、`@page` の `size` などを上書きしてしまいます。共有する CSS は `@import` で読み込んでください
+- スライドでは、表紙の `cover` スロットに `data-pfpdf-slide="title"` が付きます。pfpdf が作る各ページは `data-pfpdf-slide` 属性を持ち、目次は `agenda`、中扉は `section`、通常のページは `content` か `layout` に指定した値です。ページの題名には `.pfpdf-slide-title`、`##` の直後の `###` によるサブタイトルには `.pfpdf-slide-subtitle`、本文には `.pfpdf-slide-body` が付きます。フロントマターの `slide_font_size` は、`body` の CSS 変数 `--pfpdf-slide-font-size` に入ります。本文の大きさにこの変数を使うと、利用者が原稿全体の文字の大きさを変えられます。ページ冒頭の `<!-- pfpdf:size=small -->` は `data-pfpdf-size="small"` 属性になります。目次はページ内に作るので、`toc` スロットは使いません
 
 ## 6.4 Git リポジトリーからの取得
 

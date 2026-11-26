@@ -1,0 +1,130 @@
+@import "../common.css";
+@import "../common-slides.css";
+@import "./theme.css";
+
+/* book template, slide variant: the calm long-form design on a 16:9 page.
+ * Body text keeps the serif face on warm paper; tables use the sans face. */
+:root {
+  --pfpdf-slide-padding: 36pt 60pt 48pt;
+  --pfpdf-slide-footer-color: var(--book-color-muted);
+  --pfpdf-slide-confidential-color: var(--book-color-accent);
+}
+
+body[data-pfpdf-slides] {
+  background: var(--book-color-paper);
+  color: var(--book-color-ink);
+  font-feature-settings: "palt" 1;
+  line-height: 1.65;
+}
+[data-pfpdf-slide] { background: var(--book-color-paper); }
+[data-pfpdf-slide] table { font-family: var(--pfpdf-font-heading); }
+
+/* The slide title follows the document's second-level heading and its dash. */
+.pfpdf-slide-title {
+  border-bottom: 0.7pt solid var(--book-color-rule);
+  color: var(--book-color-ink);
+  letter-spacing: 0.04em;
+  padding-bottom: 0.3em;
+}
+.pfpdf-slide-title::after { color: var(--book-color-accent); content: "  —"; font-weight: 400; }
+.pfpdf-slide-subtitle { color: var(--book-color-muted); letter-spacing: 0.04em; }
+[data-pfpdf-slide] h3:not(.pfpdf-slide-subtitle) { border-left: 2pt solid var(--book-color-accent); font-size: 1em; padding-left: 0.6em; }
+[data-pfpdf-slide] h4 { font-size: 0.95em; }
+
+[data-pfpdf-slide]::after { content: "—  " counter(pfpdf-slide) "  —"; left: 0; right: 0; text-align: center; }
+
+/* Cover: the double frame with a centered title. */
+.book-slide-cover { padding: 26pt 36pt; }
+.book-slide-cover-frame {
+  border: 0.8pt solid var(--book-color-rule);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 52pt);
+  padding: 24pt 36pt;
+  position: relative;
+}
+.book-slide-cover-frame::before {
+  border: 0.4pt solid var(--book-color-rule);
+  bottom: 6pt;
+  content: "";
+  left: 6pt;
+  position: absolute;
+  right: 6pt;
+  top: 6pt;
+}
+.book-slide-cover-topline { align-items: flex-start; display: flex; justify-content: space-between; min-height: 30pt; position: relative; }
+.book-slide-cover-series { color: var(--book-color-muted); font-size: 13pt; font-weight: 700; letter-spacing: 0.2em; margin: 0; }
+.book-slide-cover-logo { display: block; max-height: 36pt; max-width: 130pt; }
+.book-slide-cover-main { margin: auto; max-width: 700pt; position: relative; text-align: center; width: 100%; }
+.book-slide-cover-confidential {
+  border: 0.6pt solid var(--book-color-accent);
+  color: var(--book-color-accent);
+  display: inline-block;
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  margin: 0 0 18pt;
+  padding: 0.2em 1.1em;
+  text-transform: uppercase;
+}
+.book-slide-cover-title { color: var(--book-color-ink); font-size: 48pt; letter-spacing: 0.04em; line-height: 1.35; margin: 0; }
+.book-slide-cover-subtitle { color: var(--book-color-muted); font-size: 24pt; letter-spacing: 0.04em; line-height: 1.45; margin: 12pt 0 0; }
+.book-slide-cover-rule { background: var(--book-color-accent); height: 0.8pt; margin: 20pt auto 16pt; width: 90pt; }
+.book-slide-cover-author, .book-slide-cover-date { color: var(--book-color-muted); margin: 0.2em 0; }
+.book-slide-cover-author { font-size: 20pt; }
+.book-slide-cover-date { font-size: 16pt; }
+
+/* The agenda is left aligned for reading, with the accent title and serif
+ * numbers of the document's contents. */
+[data-pfpdf-slide="agenda"] .pfpdf-slide-title { color: var(--book-color-accent); letter-spacing: 0.08em; }
+[data-pfpdf-slide="agenda"] .pfpdf-slide-title::after { content: none; }
+.pfpdf-slide-agenda { padding-inline-start: 2em; }
+.pfpdf-slide-agenda-entry { border-bottom: 0.4pt solid var(--book-color-rule); padding-bottom: 0.3em; }
+.pfpdf-slide-agenda-entry::marker { color: var(--book-color-accent); }
+
+/* Section covers open a chapter: a ruled page with the chapter number set
+ * between dashes like the document's page numbers, then the title over a
+ * short accent rule. */
+[data-pfpdf-slide="section"] {
+  align-items: center;
+  text-align: center;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title {
+  border-bottom: 0;
+  color: var(--book-color-ink);
+  letter-spacing: 0.1em;
+  margin: 0;
+  padding: 0;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title::before {
+  color: var(--book-color-accent);
+  content: "—  " counter(pfpdf-section) "  —";
+  display: block;
+  font-size: 30pt;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  margin-bottom: 20pt;
+  white-space: pre;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title::after {
+  background: var(--book-color-accent);
+  color: var(--book-color-accent);
+  content: "";
+  display: block;
+  height: 0.8pt;
+  margin: 22pt auto 0;
+  width: 90pt;
+}
+[data-pfpdf-slide][data-pfpdf-slide="section"] {
+  background:
+    linear-gradient(var(--book-color-rule), var(--book-color-rule)) top 26pt left 36pt / calc(100% - 72pt) 0.8pt no-repeat,
+    linear-gradient(var(--book-color-rule), var(--book-color-rule)) bottom 38pt left 36pt / calc(100% - 72pt) 0.8pt no-repeat,
+    var(--book-color-paper);
+}
+
+blockquote { margin-inline: 1.2em; padding: 0.4em 1.2em; }
+th, td { padding: 0.35em 0.6em; }
+
+[data-pfpdf-region="note"] { border-top: 0.4pt solid var(--book-color-rule); color: var(--book-color-muted); padding-top: 0.4em; }

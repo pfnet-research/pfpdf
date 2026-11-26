@@ -175,6 +175,7 @@ export function assembleSlides(
     const boundaries = new Map(source.mdast.children.filter((node) => isSlideBoundary(node, sourceLines))
       .map((node) => [node.position?.start.offset, node.type === 'heading' ? node.depth : 0]));
     let title: Element | undefined;
+    let subtitle: Element | undefined;
     let children: ElementContent[] = [];
     let modifiers: Record<string, string> = {};
     let fileAnchored = false;
@@ -198,10 +199,12 @@ export function assembleSlides(
       }
       pendingGroups = [];
       if (title) { classes(title, 'pfpdf-slide-title'); slide.children.push(title); }
+      if (subtitle) { classes(subtitle, 'pfpdf-slide-subtitle'); slide.children.push(subtitle); }
 
       slide.children.push(body);
       slides.push(slide);
       title = undefined;
+      subtitle = undefined;
       children = [];
       modifiers = {};
     };
@@ -224,7 +227,8 @@ export function assembleSlides(
         && node.properties?.className?.includes('pfpdf-page-break-marker')) { flush(); }
       else if (isSlideOptions(node, children)) {
         Object.assign(modifiers, parseSlideOptions(node, source.file));
-      } else { children.push(node); }
+      } else if (isSubtitle(node, title, subtitle, children)) { subtitle = node as Element; }
+      else { children.push(node); }
     }
     flush();
     // Keep source-file navigation valid even for files containing only a group.
@@ -271,6 +275,15 @@ function buildAgendas(headings: Element[], allocator: IdAllocator, japanese: boo
 function anchorFile(slide: SlideElement, index: number, anchored: boolean): boolean {
   if (!anchored) slide.properties.id = `pfpdf-file-${String(index + 1).padStart(4, '0')}`;
   return true;
+}
+
+/**
+ * A `###` directly under a slide title is the slide's subtitle. Anything in
+ * between, including a region marker, keeps it an ordinary heading.
+ */
+function isSubtitle(node: ElementContent, title: Element | undefined, subtitle: Element | undefined, children: ElementContent[]): boolean {
+  return title !== undefined && subtitle === undefined && node.type === 'element' && node.tagName === 'h3'
+    && children.every((child) => child.type === 'text' && child.value.trim() === '');
 }
 
 function isSlideOptions(node: ElementContent, children: ElementContent[]): boolean {

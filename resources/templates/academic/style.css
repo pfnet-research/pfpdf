@@ -1,18 +1,7 @@
 @import "../common.css";
+@import "./theme.css";
 
 /* academic template: restrained research papers and scholarly reports */
-:root {
-  --pfpdf-font-body: var(--pfpdf-font-serif);
-  --academic-color-ink: #20252b;
-  --academic-color-muted: #59636d;
-  --academic-color-accent: #243f5b;
-  --academic-color-rule: #aeb7bf;
-  --academic-color-panel: #f2f5f7;
-  --academic-color-paper: #fff;
-  --pfpdf-task-accent: var(--academic-color-accent);
-  --pfpdf-toc-indent-step: 1.1em;
-}
-
 html {
   background: var(--academic-color-paper);
   color: var(--academic-color-ink);
@@ -171,7 +160,6 @@ html {
 .academic-content h6::before { content: "– "; }
 
 .academic-content p { margin: 0.65em 0; }
-a { color: var(--academic-color-accent); text-underline-offset: 0.14em; }
 
 /* Raw HTML can use these classes for common scholarly front matter. */
 .abstract {
@@ -192,21 +180,15 @@ a { color: var(--academic-color-accent); text-underline-offset: 0.14em; }
 }
 
 pre {
-  background: var(--academic-color-panel);
-  border: 0.4pt solid var(--academic-color-rule);
   font-size: 0.86em;
   line-height: 1.55;
 }
 
 :not(pre) > code {
-  background: var(--academic-color-panel);
   font-size: 0.88em;
-  padding: 0.08em 0.28em;
 }
 
 blockquote {
-  border-left: 2pt solid var(--academic-color-rule);
-  color: #46515b;
   font-size: 9.5pt;
   margin: 1em 1.2em;
   padding: 0.25em 0 0.25em 1em;
@@ -218,9 +200,7 @@ table {
   margin: 1.2em 0;
 }
 caption { font-weight: 700; margin-bottom: 0.5em; text-align: center; }
-th, td { border-bottom: 0.4pt solid var(--academic-color-rule); padding: 0.4em 0.55em; }
-th { border-bottom: 1pt solid var(--academic-color-accent); border-top: 1pt solid var(--academic-color-accent); font-weight: 700; }
-tbody tr:last-child td { border-bottom-color: var(--academic-color-accent); }
+th, td { padding: 0.4em 0.55em; }
 
 figure { margin: 1.3em auto; text-align: center; }
 figure img { display: block; margin: 0 auto; }
@@ -254,3 +234,5 @@ details > summary { color: var(--academic-color-accent); }
 
 .references { font-size: 8.8pt; }
 .references li { margin: 0.45em 0; }
+
+.academic-cover-subtitle { color: var(--academic-color-muted); font-family: var(--pfpdf-font-heading); font-size: 14pt; line-height: 1.5; margin: 4mm 0 0; max-width: 150mm; overflow-wrap: anywhere; }

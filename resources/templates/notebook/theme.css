@@ -1,0 +1,52 @@
+/* notebook template: colors and type shared by the document and slide variants. */
+:root {
+  --notebook-color-ink: #293b40;
+  --notebook-color-muted: #66777a;
+  --notebook-color-paper: #fffdf8;
+  --notebook-color-teal: #287d78;
+  --notebook-color-teal-dark: #185b58;
+  --notebook-color-teal-pale: #e5f2ef;
+  --notebook-color-coral: #e66b58;
+  --notebook-color-coral-pale: #fbe8e2;
+  --notebook-color-gold: #d8a62d;
+  --notebook-color-gold-pale: #fff4cf;
+  --notebook-color-rule: #c9d5d2;
+  --pfpdf-task-accent: var(--notebook-color-teal-dark);
+  --pfpdf-task-indent: 1.3em;
+}
+
+/* Content elements that look the same in the document and slide variants. */
+a {
+  color: var(--notebook-color-teal-dark);
+  text-decoration-color: var(--notebook-color-coral);
+  text-underline-offset: 0.16em;
+}
+pre {
+  background: #f5f5f1;
+  border: 0.5pt solid var(--notebook-color-rule);
+}
+:not(pre) > code {
+  background: var(--notebook-color-gold-pale);
+  border-radius: 2pt;
+  padding: 0.08em 0.3em;
+}
+blockquote {
+  background: var(--notebook-color-coral-pale);
+  box-shadow: inset 3pt 0 var(--notebook-color-coral);
+  color: #574743;
+}
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+th, td {
+  border-bottom: 0.5pt solid var(--notebook-color-rule);
+}
+th {
+  background: var(--notebook-color-teal);
+  color: #fff;
+  font-weight: 700;
+}
+tbody tr:nth-child(even) td {
+  background: var(--notebook-color-teal-pale);
+}

@@ -1,0 +1,119 @@
+@import "../common.css";
+@import "../common-slides.css";
+@import "./theme.css";
+
+/* compact template, slide variant: the monochrome brief on a 16:9 page,
+ * with tighter margins and slightly smaller type so more fits on each slide.
+ * Body text stays at 22 pt, above the 18 pt floor of accessibility guides. */
+:root {
+  --pfpdf-slide-font-size: 22pt;
+  --pfpdf-slide-padding: 28pt 40pt 40pt;
+  --pfpdf-slide-title-size: 32pt;
+  --pfpdf-slide-subtitle-size: 20pt;
+  --pfpdf-slide-agenda-size: 26pt;
+  --pfpdf-slide-gap: 18pt;
+  --pfpdf-slide-footer-color: var(--compact-color-muted);
+  --pfpdf-slide-confidential-color: var(--compact-color-strong);
+}
+
+body[data-pfpdf-slides] { color: var(--compact-color-text); line-height: 1.4; }
+
+.pfpdf-slide-title {
+  border-bottom: 1.5pt solid var(--compact-color-strong);
+  color: var(--compact-color-text);
+  padding-bottom: 0.15em;
+}
+.pfpdf-slide-subtitle { color: var(--compact-color-muted); }
+[data-pfpdf-slide] h3:not(.pfpdf-slide-subtitle) { border-left: 2pt solid var(--compact-color-strong); font-size: 1em; padding-left: 0.45em; }
+[data-pfpdf-slide] h4 { font-size: 0.95em; }
+
+[data-pfpdf-slide]::after,
+body[data-pfpdf-confidential] [data-pfpdf-slide]::before { font-family: var(--pfpdf-font-code); font-weight: 700; }
+
+/* Cover: the document's header block, enlarged. */
+.compact-slide-cover {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40pt 64pt;
+}
+.compact-slide-cover-bar {
+  align-items: center;
+  border-bottom: 1.5pt solid var(--compact-color-strong);
+  display: flex;
+  justify-content: space-between;
+  min-height: 28pt;
+  padding-bottom: 8pt;
+}
+.compact-slide-cover-series {
+  color: var(--compact-color-muted);
+  font-family: var(--pfpdf-font-code);
+  font-size: 13pt;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  margin: 0;
+}
+.compact-slide-cover-logo { display: block; max-height: 28pt; max-width: 140pt; }
+.compact-slide-cover-title-row { align-items: start; display: flex; gap: 16pt; justify-content: space-between; margin-top: 16pt; }
+.compact-slide-cover-title { color: var(--compact-color-text); flex: 1 1 auto; font-size: 48pt; line-height: 1.2; margin: 0; }
+.compact-slide-cover-subtitle { color: var(--compact-color-muted); font-size: 22pt; line-height: 1.35; margin: 14pt 0 0; }
+.compact-slide-cover-confidential {
+  border: 1pt solid var(--compact-color-strong);
+  flex: 0 0 auto;
+  font-family: var(--pfpdf-font-code);
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 12pt 0 0;
+  padding: 0.16em 0.55em;
+  text-transform: uppercase;
+}
+.compact-slide-cover-meta { color: var(--compact-color-muted); display: flex; flex-wrap: wrap; font-size: 16pt; gap: 0 18pt; margin-top: 16pt; }
+.compact-slide-cover-meta p { margin: 0; }
+
+/* The agenda is one column so that each entry can grow a description. */
+.pfpdf-slide-agenda-entry { margin-block: 0 0.45em; }
+
+/* Section covers: a dark divider with the section number in a white box on
+ * the title line, so the break stands out in a dense deck. */
+[data-pfpdf-slide="section"] {
+  background: var(--compact-color-strong);
+  color: #fff;
+  padding-inline: 64pt;
+  --pfpdf-slide-footer-color: #c9ced3;
+  --pfpdf-slide-confidential-color: #fff;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title {
+  align-items: flex-end;
+  border-bottom: 1.5pt solid #fff;
+  color: #fff;
+  display: flex;
+  font-size: 44pt;
+  gap: 0.45em;
+  margin: 0;
+  padding-bottom: 0.2em;
+}
+/* A square as tall as the title's letters, aligned with them rather than
+ * with the taller line box, so it neither floats above nor drops below. Two
+ * digits still fit. */
+[data-pfpdf-slide="section"] .pfpdf-slide-title::before {
+  align-items: center;
+  background: #fff;
+  color: var(--compact-color-strong);
+  content: counter(pfpdf-section);
+  display: flex;
+  flex: 0 0 auto;
+  font-family: var(--pfpdf-font-code);
+  font-size: 22pt;
+  height: 1.8em;
+  justify-content: center;
+  line-height: 1;
+  margin-bottom: 0.26em;
+  width: 1.8em;
+}
+
+blockquote { margin-inline: 0; padding: 0.1em 0.7em; }
+th, td { padding: 0.22em 0.4em; }
+
+[data-pfpdf-region="note"] { border-top: 0.5pt solid var(--compact-color-rule); color: var(--compact-color-muted); padding-top: 0.35em; }

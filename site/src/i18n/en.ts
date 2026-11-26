@@ -98,6 +98,11 @@ export const en = {
     lightbox: { close: 'Close', prev: 'Previous page', next: 'Next page' },
     pageAlt: (template: string, lang: string, page: number) =>
       `${template} template (${lang === 'ja' ? 'Japanese' : 'English'} sample) — page ${page}`,
+    slidesTitle: 'Slides',
+    slidesNote: 'With slides: true in the front matter, the same template builds 16:9 slides in the same design.',
+    downloadSlides: 'Download slide PDF',
+    slideAlt: (template: string, lang: string, page: number) =>
+      `${template} template (${lang === 'ja' ? 'Japanese' : 'English'} slides) — slide ${page}`,
   },
   templateDescriptions: {
     academic: 'papers and research reports',

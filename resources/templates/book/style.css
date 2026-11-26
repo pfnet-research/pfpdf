@@ -1,19 +1,7 @@
 @import "../common.css";
+@import "./theme.css";
 
 /* book template: restrained long-form document design */
-:root {
-  --pfpdf-font-body: var(--pfpdf-font-serif);
-  --book-color-ink: #292521;
-  --book-color-muted: #71685d;
-  --book-color-paper: #fdfbf6;
-  --book-color-accent: #5b312e;
-  --book-color-accent-pale: #eee5df;
-  --book-color-rule: #b8aea0;
-  --book-color-panel: #f4f0e8;
-  --pfpdf-task-accent: var(--book-color-accent);
-  --pfpdf-toc-indent-step: 1.5em;
-}
-
 html {
   background: var(--book-color-paper);
   color: var(--book-color-ink);
@@ -193,37 +181,27 @@ html {
 .book-content h6 { color: var(--book-color-muted); font-size: 10pt; margin: 1.2em 0 0.5em; padding-left: 1.25em; }
 
 .book-content p { margin: 0.75em 0; }
-a { color: var(--book-color-accent); text-decoration-thickness: 0.5pt; text-underline-offset: 0.15em; }
 
 pre {
-  background: var(--book-color-panel);
-  border-left: 2pt solid var(--book-color-rule);
   font-size: 0.88em;
   line-height: 1.6;
   padding: 0.9em 1.1em;
 }
 
 :not(pre) > code {
-  background: var(--book-color-accent-pale);
   font-size: 0.9em;
-  padding: 0.08em 0.3em;
 }
 
 blockquote {
-  border-bottom: 0.3pt solid var(--book-color-rule);
-  border-top: 0.3pt solid var(--book-color-rule);
-  color: #554e47;
   margin: 1.3em 1.5em;
   padding: 0.6em 1.2em;
 }
 
 table { font-family: var(--pfpdf-font-heading); margin: 1.2em 0; }
-th, td { border-bottom: 0.4pt solid var(--book-color-rule); padding: 0.45em 0.65em; }
+th, td { padding: 0.45em 0.65em; }
 .pfpdf-table-many-columns { font-size: 0.9em; }
 .pfpdf-table-many-columns th,
 .pfpdf-table-many-columns td { padding: 0.3em 0.4em; }
-th { border-bottom: 1pt solid var(--book-color-accent); color: var(--book-color-accent); font-weight: 700; }
-tbody tr:nth-child(even) td { background: var(--book-color-panel); }
 
 hr { border: 0; border-top: 0.5pt solid var(--book-color-rule); margin: 2em auto; width: 45%; }
 .pfpdf-math-display { margin: 1.2em 0; }
@@ -241,3 +219,5 @@ details {
 }
 
 details > summary { color: var(--book-color-accent); }
+
+.book-cover-subtitle { color: var(--book-color-muted); font-size: 13pt; letter-spacing: 0.04em; line-height: 1.6; margin: 4mm 0 0; overflow-wrap: anywhere; }

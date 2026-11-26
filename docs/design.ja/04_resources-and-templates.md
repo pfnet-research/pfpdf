@@ -64,32 +64,54 @@ resources/templates/
     template.html
     style.css
     vivliostyle.css
+    theme.css
+    slides-template.html
+    slides-style.css
   book/
     template.html
     style.css
     vivliostyle.css
+    theme.css
+    slides-template.html
+    slides-style.css
   compact/
     template.html
     style.css
     vivliostyle.css
+    theme.css
+    slides-template.html
+    slides-style.css
   default/
     template.html
     style.css
     vivliostyle.css
+    theme.css
+    slides-template.html
+    slides-style.css
   notebook/
     template.html
     style.css
     vivliostyle.css
+    theme.css
+    slides-template.html
+    slides-style.css
   pfn/
     template.html
     style.css
     vivliostyle.css
+    slides-template.html
+    slides-style.css
   technical/
     template.html
     style.css
     vivliostyle.css
+    theme.css
+    slides-template.html
+    slides-style.css
 ```
 
+- 各テンプレートは、文書版の 3 ファイルと同じディレクトリーに、スライド版の `slides-template.html` と `slides-style.css` を持つ。`slides: true` の文書ではスライド版を使い、テンプレートを指定しなければ `default` のスライド版を使う。文書版とスライド版で共有する配色や書体は `theme.css` に置き、両方の CSS から `@import` する。共有する規則の少ない `pfn` は、スライド版に値を書き直している。スライド版どうしで共有する欄（`left`、`right`、`note`）、目次、フッターの規則は `common-slides.css` に置く。欄の語彙は本体に持たない（DD-58）
+- スライド専用の同梱テンプレート `slide-base` は非推奨とし、選択すると警告を出す。0.7.0 で削除する
 - Markdown のフロントマターの `template`、または同梱名と完全一致する `--template SOURCE` で同梱テンプレートを選択する。複数ファイルでは最初に指定された `template` を使う。`--template-preset NAME` は同梱プリセットであることを明示する。CLI はフロントマターより優先する
 - カスタムテンプレートやリポジトリー由来のテンプレートは、`logo` スロットの `src` にテンプレートからの相対パスを指定して、既定のロゴを宣言できる。同梱テンプレートは既定のロゴを持たない
 - フロントマターの `logo` はローカルパスまたは `false` を受け付ける。CLI の `--logo SOURCE` は、ローカルパスまたは Git ロケーターでフロントマターのロゴとテンプレートの既定のロゴを上書きする。`--no-logo` は両方を無効化する
@@ -104,6 +126,7 @@ resources/templates/
 - カスタムテンプレートは信頼できるローカルコードと同様に扱い、生の HTML やスクリプトを実行し得ることを明記する
 - カスタムテンプレートの形式に `apiVersion`、JSON Schema、バージョン間の互換性保証は設けない。テンプレートの見た目と構造を維持したい利用者は、pfpdf のバージョンを固定する。ただし、同じ pfpdf バージョン内で曖昧な文字列置換を避けるため、次の DOM スロットの契約は明確に定義する
 - カスタムテンプレートのディレクトリーには、`template.html`、`style.css`、`vivliostyle.css` を直接配置する。選択した pfpdf バージョンが必要とするファイルの存在だけを検査する
+- `slides: true` の文書では、`slides-template.html` があれば、`slides-template.html`、`slides-style.css`、任意の `slides-vivliostyle.css` を代わりに使う。`slides-style.css` の欠落、または `slides-template.html` のない `slides-style.css` は入力エラーとする。スライド版のファイルがなければ 3 ファイルをそのまま使い、スライド専用のテンプレートとの互換を保つ。通常の文書はスライド版のファイルを読まない
 
 ### 4.5.1 Git リポジトリーからの取得
 
@@ -124,6 +147,7 @@ resources/templates/
 | `content` | 必須、1 個 | ソースファイルごとのセクションを含む本文 |
 | `cover` | 任意、0 または 1 個 | 表紙または先頭ヘッダー全体。`cover: false` で要素ごと削除 |
 | `title` | 任意、0 または 1 個 | タイトル。許可済みの `<br>` だけを要素として保持 |
+| `subtitle` | 任意、0 または 1 個 | サブタイトルのテキスト。未指定なら要素ごと削除 |
 | `author` | 任意、0 または 1 個 | 著者のテキスト |
 | `series` | 任意、0 または 1 個 | シリーズ名のテキスト |
 | `date` | 任意、0 または 1 個 | 日付のテキスト |
@@ -145,7 +169,8 @@ resources/templates/
 - 表紙を省略すると、タイトル / 著者 / 日付 / ロゴの表紙上の表示も省略するが、HTML のタイトルと PDF のメタデータは維持する。シリーズ名 / Confidential の名前付き文字列を設定する要素は非表示マーカーへ移し、同梱テンプレートの本文・目次ページの柱を維持する。カスタムテンプレートで独自のランニング要素を使う場合は、`cover` スロットの外へ置く
 - `body` に `pfpdf-has-cover` または `pfpdf-no-cover` クラスを付ける。同梱テンプレートは独立した表紙に `pfpdf-cover` の名前付きページを使い、`compact` はヘッダーと本文を同じページに保つ専用の名前付きページの `:first` 規則を使う。表紙用の先頭ページの例外規則を、表紙省略時の本文へ適用しない
 - スクリプトは、最終的な `document.html` がブラウザーに読み込まれるまで実行しない。テンプレートのスクリプトによる非同期処理は、文書の準備完了を通知する仕組みへ登録する
-- `style.css` は共通スタイル、`vivliostyle.css` はページメディア用スタイルとして、この順で読み込む。両方をリソースグラフに通し、`@import` と `url()` を解決する
+- `style.css` は共通スタイル、`vivliostyle.css` はページメディア用スタイルとして、この順で読み込む。両方をリソースグラフに通し、`@import` と `url()` を解決する。スライドでは、その前に本体のスライド共通の `slides.css` を読み込む。スライド版の `slides-vivliostyle.css` がなければ、ページメディア用スタイルは読み込まない
+- `template.html` の `<link rel="stylesheet">` は、本体のページサイズの指定より後に読み込まれる。テンプレートの CSS を選ぶ仕組みは HTML の側に持たせず、共有するスタイルは CSS の `@import` で読み込む
 
 ## 4.6 `TemplateResolver` と `HtmlDocumentBuilder`
 

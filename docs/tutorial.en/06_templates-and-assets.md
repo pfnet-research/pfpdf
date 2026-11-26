@@ -22,6 +22,8 @@ pfpdf ships with seven bundled templates. Choose one based on its uses and featu
 
 To make chapter boundaries clear, `book` is designed to start each H1 on a new page, even for short chapters. In the current version, displaying the table of contents disables this automatic page break for H1s in the first Markdown file. To reduce the page count, use `default` or `compact`.
 
+Every template also has a slide variant that fits the same fonts, colors, and heading ornaments onto a 16:9 page. With `slides: true` in the front matter, the same `template` setting selects the slide variant. See Slides in [document structure](02_document-structure.md) for how to write slides.
+
 Normally, select a template by writing `template` in Markdown front matter. With multiple files, the first supplied value is used.
 
 ```md
@@ -99,7 +101,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf --template ./my-
 - Custom templates are treated as trusted local code and can run raw HTML and scripts
 - The template format carries no compatibility guarantee across versions. To preserve a document's appearance, pin the pfpdf version
 - `template.html` must be an HTML document and must specify exactly one insertion point for the body via `data-pfpdf-slot="content"`
-- You may also place zero or one of each optional slot: `cover`, `title`, `author`, `series`, `date`, `confidential`, `toc`, and `logo`. Unknown slots, duplicate slots, and a missing required `content` slot are errors
+- You may also place zero or one of each optional slot: `cover`, `title`, `subtitle`, `author`, `series`, `date`, `confidential`, `toc`, and `logo`. Unknown slots, duplicate slots, and a missing required `content` slot are errors
 - When the table of contents spans multiple pages, a continuation label in the document's language is shown in the running header. To change its position in a custom template, reference the named string `pfpdf-toc-continuation` from a paged media margin box. The string is set by `.pfpdf-toc-continuation-marker` inside the table of contents
 - Processed `data-pfpdf-slot` attributes are removed from the assembled HTML. Other attributes in the trusted input are preserved
 
@@ -125,8 +127,30 @@ To provide a default logo, add a `src` attribute to the `logo` slot, such as `sr
 
 - If an explicit logo is selected for a template that has no `logo` slot, pfpdf raises an error rather than silently ignoring it
 - When neither a default `src` nor an explicit logo exists, the `logo` slot itself is removed from the output
-- If `author` or `series` is not specified, its corresponding slot is removed as well
+- If `subtitle`, `author`, or `series` is not specified, its corresponding slot is removed as well
 - If there is no `toc` slot, the table of contents is inserted at the beginning of `content`
+
+### Slide variants
+
+To make a template work for documents with `slides: true` as well, put the slide variant files in the same directory.
+
+```text
+my-template/
+  template.html
+  style.css
+  vivliostyle.css
+  theme.css                fonts, colors, and other shared parts (optional)
+  slides-template.html
+  slides-style.css
+  slides-vivliostyle.css   paged media styles for slides (optional)
+```
+
+- For a document with `slides: true`, when `slides-template.html` exists, pfpdf uses `slides-template.html`, `slides-style.css`, and `slides-vivliostyle.css` instead of `template.html`, `style.css`, and `vivliostyle.css`. Ordinary documents keep using only the three original files
+- It is an error when `slides-template.html` exists without `slides-style.css`, or when `slides-style.css` exists alone. `slides-vivliostyle.css` may be omitted, in which case the document's `vivliostyle.css` is not loaded either. The shared slide styles that pfpdf loads first already set the slide margins to 0
+- A template without slide variant files uses its three files as they are, even with `slides: true`. A template made only for slides can keep using just the three files
+- Put the parts that the document and slide variants share in a file such as `theme.css`, and load it from both stylesheets with `@import "./theme.css";`. Because the files sit in the same directory, images and fonts use the same relative paths as in the document variant. If little is shared, you need not split it out
+- A `<link rel="stylesheet">` in `template.html` is loaded after the page size, so it can override `@page` properties such as `size`. Load shared CSS with `@import`
+- In slides, the `cover` slot receives `data-pfpdf-slide="title"`. Every page that pfpdf builds has a `data-pfpdf-slide` attribute: `agenda` for the table of contents, `section` for dividers, and `content` or the `layout` value for other pages. Page titles have `.pfpdf-slide-title`, subtitles from a `###` directly after `##` have `.pfpdf-slide-subtitle`, and page bodies have `.pfpdf-slide-body`. `slide_font_size` in the front matter is set on `body` as the CSS variable `--pfpdf-slide-font-size`. Using this variable for the body text size lets authors resize the text of a whole deck. `<!-- pfpdf:size=small -->` at the beginning of a page becomes a `data-pfpdf-size="small"` attribute. The table of contents is built as pages, so the `toc` slot is not used
 
 ## 6.4 Git repository sources
 

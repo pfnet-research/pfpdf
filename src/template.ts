@@ -15,13 +15,16 @@ import {
 import type { Metadata, NormalizedTitle } from './input.js';
 import type { DocumentBody, TocEntry } from './markdown.js';
 
-const SLOTS = new Set(['content', 'cover', 'title', 'author', 'series', 'date', 'confidential', 'toc', 'logo']);
+const SLOTS = new Set(['content', 'cover', 'title', 'subtitle', 'author', 'series', 'date', 'confidential', 'toc', 'logo']);
 
 export interface Template {
   dir: string;
   htmlPath: string;
   stylePath: string;
-  vivliostylePath: string;
+  /** Optional only for a slide variant, which may rely on the shared slide page rules. */
+  vivliostylePath: string | null;
+  /** `slides` when `slides-template.html` and `slides-style.css` were selected. */
+  variant: 'document' | 'slides';
   bundled: boolean;
   repositoryRoot?: string | undefined;
 }
@@ -44,6 +47,7 @@ export function resolveTemplate(
     { kind: 'repository'; locator: string },
   templateDirAbs: string | null,
   repositoryRoot?: string,
+  slides = false,
 ): PreparedTemplate {
   if (template.kind === 'repository') {
     throw new RuntimeError('repository template must be checked out before template resolution');
@@ -58,10 +62,17 @@ export function resolveTemplate(
   } catch {
     throw err(`template directory not found: ${dir}`);
   }
-  const files = { htmlPath: 'template.html', stylePath: 'style.css', vivliostylePath: 'vivliostyle.css' };
+  // A slide variant sits beside the document files, so both share relative paths.
+  const variant = slides && fs.existsSync(path.join(dir, 'slides-template.html')) ? 'slides' : 'document';
+  if (slides && variant === 'document' && fs.existsSync(path.join(dir, 'slides-style.css'))) {
+    throw err(`template file missing: ${path.join(dir, 'slides-template.html')} (required by slides-style.css)`);
+  }
+  const prefix = variant === 'slides' ? 'slides-' : '';
+  const files = { htmlPath: `${prefix}template.html`, stylePath: `${prefix}style.css`, vivliostylePath: `${prefix}vivliostyle.css` };
   const resolved: Record<string, string> = {};
   for (const [key, name] of Object.entries(files)) {
     const p = path.join(dir, name);
+    if (variant === 'slides' && key === 'vivliostylePath' && !fs.existsSync(p)) continue;
     let valid = false;
     try {
       valid = fs.statSync(p).isFile();
@@ -77,9 +88,10 @@ export function resolveTemplate(
   const resolvedTemplate: Template = {
     dir,
     bundled,
+    variant,
     htmlPath: resolved.htmlPath!,
     stylePath: resolved.stylePath!,
-    vivliostylePath: resolved.vivliostylePath!,
+    vivliostylePath: resolved.vivliostylePath ?? null,
     repositoryRoot,
   };
   const source = readTemplateText(resolvedTemplate, resolvedTemplate.htmlPath);
@@ -249,6 +261,8 @@ export interface BuildOptions {
   logo: { kind: 'template' | 'none' } | { kind: 'file'; absPath: string };
   toc: boolean;
   cover?: boolean;
+  /** `slide_font_size` from front matter, in points. */
+  slideFontSize?: number | undefined;
   fontFaceCss: string;
   warn: (msg: string) => void;
 }
@@ -323,11 +337,9 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
     }
   }
 
-  // Slot: series
-  if (slots.series) {
-    if (metadata.series === null) removeElement(root, slots.series);
-    else slots.series.children = [text(metadata.series)];
-  }
+  // Slots: subtitle, series
+  setOptionalText(root, slots.subtitle, metadata.subtitle);
+  setOptionalText(root, slots.series, metadata.series);
 
   // Slot: date
   if (slots.date) {
@@ -360,11 +372,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   }
 
   // Slot: toc / content
-  if (opts.body.slideCount !== undefined) {
-    (htmlBody.properties ??= {})['data-pfpdf-slides'] = '';
-    if (metadata.confidential) htmlBody.properties['data-pfpdf-confidential'] = '';
-    if (slots.cover) (slots.cover.properties ??= {})['data-pfpdf-slide'] = 'title';
-  }
+  if (opts.body.slideCount !== undefined) markSlides(htmlBody, slots, metadata, opts.slideFontSize);
   applyCoverVisibility(root, htmlBody, slots, opts.cover !== false, metadata);
 
   const tocEl = opts.toc && opts.body.toc.length > 0 ? tocElement(opts.body.toc, metadata.lang) : null;
@@ -409,8 +417,8 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
     throw new RuntimeError(`bundled highlight stylesheet is broken: ${(e as Error).message}`);
   }
   generatedCss.push(['generated/fonts.css', opts.fontFaceCss]);
-  generatedCss.push(['generated/style.css', rewriteTemplateCss(template, template.stylePath, opts.manifest)]);
-  generatedCss.push(['generated/vivliostyle.css', rewriteTemplateCss(template, template.vivliostylePath, opts.manifest)]);
+  const templateSheets = templateStylesheets(template, opts.manifest);
+  generatedCss.push(...templateSheets);
   // Reserve the diagram's two 1.25em margins within the page area. A block
   // image avoids the extra baseline space of an inline image. Vivliostyle's
   // `vh` follows the page area left by each template's page margins.
@@ -435,8 +443,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
     el('link', { rel: 'stylesheet', href: 'generated/fonts.css' }, []),
     el('link', { rel: 'stylesheet', href: hljsLogical }, []),
     ...(opts.body.slideCount === undefined ? [] : [el('link', { rel: 'stylesheet', href: 'generated/slides.css' }, [])]),
-    el('link', { rel: 'stylesheet', href: 'generated/style.css' }, []),
-    el('link', { rel: 'stylesheet', href: 'generated/vivliostyle.css' }, []),
+    ...templateSheets.map(([href]) => el('link', { rel: 'stylesheet', href }, [])),
     el('link', { rel: 'stylesheet', href: 'generated/page.css' }, []),
     el('meta', { name: 'referrer', content: 'no-referrer' }, []),
   ];
@@ -467,6 +474,36 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
 
   const html5 = toHtml(root as never, { allowDangerousHtml: true });
   return { html: html5, generatedCss, hasCover: opts.cover !== false && Boolean(slots.cover) };
+}
+
+/** The template's own stylesheets in load order; a slide variant may omit the paged one. */
+function templateStylesheets(template: Template, manifest: ResourceManifest): Array<[string, string]> {
+  const sheets: Array<[string, string]> = [['generated/style.css', rewriteTemplateCss(template, template.stylePath, manifest)]];
+  if (template.vivliostylePath !== null) {
+    sheets.push(['generated/vivliostyle.css', rewriteTemplateCss(template, template.vivliostylePath, manifest)]);
+  }
+  return sheets;
+}
+
+/** Fill an optional text slot, or remove it when the value is missing. */
+function setOptionalText(root: HastRoot, slot: Element | undefined, value: string | null | undefined): void {
+  if (!slot) return;
+  if (value === null || value === undefined) removeElement(root, slot);
+  else slot.children = [text(value)];
+}
+
+/** Attributes that slide templates select on; the cover becomes the title slide. */
+function markSlides(body: Element, slots: SlotMap, metadata: Metadata, slideFontSize: number | undefined): void {
+  const properties = body.properties ??= {};
+  properties['data-pfpdf-slides'] = '';
+  if (metadata.confidential) properties['data-pfpdf-confidential'] = '';
+  if (slideFontSize !== undefined) {
+    // The author's value comes last so that it wins over a template's inline default.
+    const existing = typeof properties.style === 'string' ? properties.style.trim() : '';
+    const prefix = existing === '' ? '' : `${existing.replace(/;?$/, ';')} `;
+    properties.style = `${prefix}--pfpdf-slide-font-size: ${slideFontSize}pt;`;
+  }
+  if (slots.cover) (slots.cover.properties ??= {})['data-pfpdf-slide'] = 'title';
 }
 
 function removeElement(root: HastRoot, target: Element): void {

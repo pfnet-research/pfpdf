@@ -46,6 +46,8 @@ export interface Config {
   fontDirsAbs: string[];
   browserPathAbs: string | null;
   cwd: string;
+  /** Set from front matter; selects a template's slide variant when present. */
+  slides?: boolean;
 }
 
 interface RawCli {
@@ -301,6 +303,8 @@ export interface FrontMatterConfig {
   template: string | null;
   slides?: boolean;
   sectionCovers?: boolean;
+  /** Body text size of slides in points; templates read it as --pfpdf-slide-font-size. */
+  slideFontSize?: number;
   toc: boolean | null;
   cover: boolean | null;
   logo: { kind: 'none' } | { kind: 'local'; path: string; absPath: string } | null;
@@ -309,9 +313,7 @@ export interface FrontMatterConfig {
 export function applyFrontMatterConfig(config: Config, frontMatter: FrontMatterConfig): Config {
   const template = frontMatter.template !== null && config.template.source === 'default'
     ? { value: { kind: 'bundled' as const, name: frontMatter.template }, source: 'front-matter' as const }
-    : frontMatter.slides === true && config.template.source === 'default'
-      ? { value: { kind: 'bundled' as const, name: 'slide-base' }, source: 'default' as const }
-      : config.template;
+    : config.template;
   const toc = frontMatter.toc !== null && config.toc.source === 'default'
     ? { value: frontMatter.toc, source: 'front-matter' as const }
     : config.toc;
@@ -332,6 +334,7 @@ export function applyFrontMatterConfig(config: Config, frontMatter: FrontMatterC
     toc,
     cover,
     logo,
+    slides: frontMatter.slides === true,
     templateDirAbs: template.value.kind === 'custom' ? path.resolve(config.cwd, template.value.dir) : null,
     logoAbs: logo.source === 'front-matter' && frontMatter.logo?.kind === 'local'
       ? frontMatter.logo.absPath

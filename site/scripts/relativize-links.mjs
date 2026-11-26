@@ -42,7 +42,7 @@ function toRelative(url, pageDirUrl) {
 
 function rewriteHtml(html, pageDirUrl) {
   return html
-    .replaceAll(/(\s(?:href|src|poster)=")([^"]*)(")/g, (_, before, url, after) =>
+    .replaceAll(/(\s(?:href|src|poster|data-lightbox-src)=")([^"]*)(")/g, (_, before, url, after) =>
       `${before}${toRelative(url, pageDirUrl)}${after}`)
     .replaceAll(/(\ssrcset=")([^"]*)(")/g, (_, before, value, after) => {
       const rewritten = value

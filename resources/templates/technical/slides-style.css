@@ -1,0 +1,105 @@
+@import "../common.css";
+@import "../common-slides.css";
+@import "./theme.css";
+
+/* technical template, slide variant: the dense, code-first design on a 16:9 page. */
+@counter-style pfpdf-three-digit {
+  system: numeric;
+  symbols: "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
+  pad: 3 "0";
+}
+
+:root {
+  --pfpdf-slide-footer-color: var(--technical-color-muted);
+  --pfpdf-slide-confidential-color: var(--technical-color-danger);
+}
+
+body[data-pfpdf-slides] { color: var(--technical-color-text); }
+
+/* A thin accent rule on the left edge of every slide echoes the cover. */
+[data-pfpdf-slide] { border-left: 6pt solid var(--technical-color-accent); }
+
+.pfpdf-slide-title {
+  border-bottom: 2pt solid var(--technical-color-accent);
+  color: var(--technical-color-text);
+  padding: 0.1em 0 0.15em;
+}
+.pfpdf-slide-subtitle { color: var(--technical-color-accent-dark); font-family: var(--pfpdf-font-code); }
+[data-pfpdf-slide] h3:not(.pfpdf-slide-subtitle) { color: var(--technical-color-accent-dark); font-size: 1em; }
+[data-pfpdf-slide] h4 { font-size: 1em; }
+[data-pfpdf-slide] h4::before { color: var(--technical-color-accent); content: "// "; font-family: var(--pfpdf-font-code); }
+
+[data-pfpdf-slide]::after {
+  content: counter(pfpdf-slide, pfpdf-three-digit);
+  font-family: var(--pfpdf-font-code);
+  font-weight: 700;
+}
+body[data-pfpdf-confidential] [data-pfpdf-slide]::before { font-family: var(--pfpdf-font-code); left: 30pt; }
+
+/* Cover: the vertical accent rule, monospace series, and framed notice. */
+.technical-slide-cover {
+  border-left: 0;
+  box-sizing: border-box;
+  display: grid;
+  column-gap: 40pt;
+  grid-template-columns: 14pt minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  padding: 36pt 56pt 36pt 28pt;
+}
+.technical-slide-cover-rule { background: var(--technical-color-accent); grid-column: 1; grid-row: 1 / span 2; }
+.technical-slide-cover-logo { display: block; grid-column: 2; justify-self: end; max-height: 44pt; max-width: 160pt; }
+.technical-slide-cover-content { align-self: center; grid-column: 2; grid-row: 2; max-width: 720pt; }
+.technical-slide-cover-series {
+  color: var(--technical-color-accent);
+  font-family: var(--pfpdf-font-code);
+  font-size: 14pt;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0 0 14pt;
+}
+.technical-slide-cover-title { color: var(--technical-color-text); font-size: 52pt; line-height: 1.2; margin: 0; }
+.technical-slide-cover-subtitle { color: var(--technical-color-muted); font-size: 24pt; line-height: 1.4; margin: 12pt 0 0; }
+.technical-slide-cover-confidential {
+  border: 1pt solid var(--technical-color-danger);
+  color: var(--technical-color-danger);
+  display: inline-block;
+  font-family: var(--pfpdf-font-code);
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin: 18pt 0 0;
+  padding: 0.25em 0.75em;
+  text-transform: uppercase;
+}
+.technical-slide-cover-metadata { border-top: 0.75pt solid var(--technical-color-rule); color: var(--technical-color-muted); font-size: 18pt; margin: 28pt 0 0; padding-top: 10pt; }
+.technical-slide-cover-metadata p { margin: 0.2em 0; }
+
+/* Section covers: a large monospace section number beside the title, like a
+ * numbered chapter in a specification. */
+[data-pfpdf-slide="section"] {
+  background: var(--technical-color-panel);
+  padding-inline: 64pt;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title {
+  align-items: center;
+  border-bottom: 0;
+  display: flex;
+  gap: 28pt;
+  margin: 0;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title::before {
+  border-right: 3pt solid var(--technical-color-accent);
+  color: var(--technical-color-accent);
+  content: counter(pfpdf-section, decimal-leading-zero);
+  flex: 0 0 auto;
+  font-family: var(--pfpdf-font-code);
+  font-size: 88pt;
+  font-weight: 700;
+  line-height: 1;
+  padding-right: 28pt;
+}
+
+blockquote { margin-inline: 0; padding: 0.3em 0.9em; }
+th, td { padding: 0.3em 0.5em; }
+
+[data-pfpdf-region="note"] { border-top: 0.5pt solid var(--technical-color-rule); color: var(--technical-color-muted); padding-top: 0.4em; }

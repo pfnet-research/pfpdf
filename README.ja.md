@@ -53,7 +53,7 @@ npx @pfnet-research/pfpdf@latest --input chapters --output report.pdf
 
 ## テンプレートと記法
 
-見た目はフロントマターの`template`で選びます。一度だけ別のデザインを試す場合は、コマンドに`--template notebook`などを追加してください。コマンドライン引数がフロントマターより優先されます。
+見た目はフロントマターの`template`で選びます。同梱テンプレートはどれもスライド版を持っていて、`slides: true`を加えると同じデザインの16:9のスライドになります（[スライドの書き方](docs/tutorial.ja/02_document-structure.md)）。一度だけ別のデザインを試す場合は、コマンドに`--template notebook`などを追加してください。コマンドライン引数がフロントマターより優先されます。
 
 各テンプレートの既定フォントは、日本語フォントを含めて同梱しています。独自のテンプレートやロゴ、手元のフォントの指定方法は[テンプレートとアセット](docs/tutorial.ja/06_templates-and-assets.md)にまとめています。
 

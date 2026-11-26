@@ -3,8 +3,8 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 
 // Copies build outputs into public/ so Astro serves them verbatim:
-//   ../build/site-assets/gallery/<t>/<lang>/*.webp -> public/assets/gallery/<t>/<lang>/
-//   ../build/site-assets/gallery/<t>/<lang>/sample.<lang>.pdf -> public/gallery/<t>/
+//   ../build/site-assets/gallery/<t>/<lang>/*.webp, *.json -> public/assets/gallery/<t>/<lang>/
+//   ../build/site-assets/gallery/<t>/<lang>/*.<lang>.pdf -> public/gallery/<t>/
 //   ../build/site-assets/hero/<lang>/ -> public/assets/hero/<lang>/
 //   ../docs/tutorial.<lang>/assets/ -> public/assets/docs/<lang>/
 // and composes public/ogp.png from three template cover images.
@@ -39,7 +39,7 @@ for (const template of templates) {
       const source = path.join(sourceDir, file);
       if (file.endsWith('.pdf')) {
         fs.copyFileSync(source, path.join(pdfDir, file));
-      } else if (file.endsWith('.webp') || file === 'index.json') {
+      } else if (file.endsWith('.webp') || file === 'index.json' || file === 'slides.json') {
         fs.copyFileSync(source, path.join(imageDir, file));
       }
     }

@@ -1,0 +1,41 @@
+/* academic template: colors and type shared by the document and slide variants. */
+:root {
+  --pfpdf-font-body: var(--pfpdf-font-serif);
+  --academic-color-ink: #20252b;
+  --academic-color-muted: #59636d;
+  --academic-color-accent: #243f5b;
+  --academic-color-rule: #aeb7bf;
+  --academic-color-panel: #f2f5f7;
+  --academic-color-paper: #fff;
+  --pfpdf-task-accent: var(--academic-color-accent);
+  --pfpdf-toc-indent-step: 1.1em;
+}
+
+/* Content elements that look the same in the document and slide variants. */
+a {
+  color: var(--academic-color-accent);
+  text-underline-offset: 0.14em;
+}
+pre {
+  background: var(--academic-color-panel);
+  border: 0.4pt solid var(--academic-color-rule);
+}
+:not(pre) > code {
+  background: var(--academic-color-panel);
+  padding: 0.08em 0.28em;
+}
+blockquote {
+  border-left: 2pt solid var(--academic-color-rule);
+  color: #46515b;
+}
+th, td {
+  border-bottom: 0.4pt solid var(--academic-color-rule);
+}
+th {
+  border-bottom: 1pt solid var(--academic-color-accent);
+  border-top: 1pt solid var(--academic-color-accent);
+  font-weight: 700;
+}
+tbody tr:last-child td {
+  border-bottom-color: var(--academic-color-accent);
+}

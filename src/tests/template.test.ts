@@ -8,6 +8,7 @@ import { resolveConfig } from '../config.js';
 import { buildHtml } from '../build.js';
 import { InputError } from '../errors.js';
 import { resolveTemplate, resourcePath } from '../template.js';
+import { bundledCss, templateStyle } from './template-css.js';
 
 const log = { warn: (): void => {}, info: (): void => {}, debug: (): void => {} };
 const env = { SOURCE_DATE_EPOCH: '1750000000' };
@@ -21,14 +22,6 @@ function makeDoc(content: string): string {
 
 function config(args: string[]): ReturnType<typeof resolveConfig> {
   return resolveConfig(args, process.cwd());
-}
-
-function bundledCss(template: string, file: 'style.css' | 'vivliostyle.css'): string {
-  const common = file === 'style.css' ? 'common.css' : 'common-vivliostyle.css';
-  return [
-    fs.readFileSync(resourcePath('templates', common), 'utf8'),
-    fs.readFileSync(resourcePath('templates', template, file), 'utf8'),
-  ].join('\n');
 }
 
 test('bundled template manifest matches resource directories', () => {
@@ -62,8 +55,8 @@ test('shared styles own the bundled-template baseline and expose customization v
   assert.match(paged, /@page\s*\{[^}]*font-family:\s*var\(--pfpdf-font-heading,/s);
   assert.match(paged, /caption,[\s\S]*thead\s*\{[^}]*break-after:\s*avoid/s);
 
-  const academic = fs.readFileSync(resourcePath('templates', 'academic', 'style.css'), 'utf8');
-  const compact = fs.readFileSync(resourcePath('templates', 'compact', 'style.css'), 'utf8');
+  const academic = templateStyle('academic');
+  const compact = templateStyle('compact');
   assert.match(academic, /--pfpdf-font-body:\s*var\(--pfpdf-font-serif\)/);
   assert.match(academic, /--pfpdf-toc-indent-step:\s*1\.1em/);
   assert.match(compact, /--pfpdf-toc-indent-step:\s*1em/);
@@ -260,27 +253,27 @@ test('bundled templates split long highlighted code blocks across pages', () => 
 });
 
 test('compact and pfn details use a distinct left-edge treatment', () => {
-  const compact = fs.readFileSync(resourcePath('templates', 'compact', 'style.css'), 'utf8');
-  const pfn = fs.readFileSync(resourcePath('templates', 'pfn', 'style.css'), 'utf8');
+  const compact = templateStyle('compact');
+  const pfn = templateStyle('pfn');
   assert.match(compact, /details\s*\{[^}]*border-left:/s);
   assert.doesNotMatch(compact, /details\s*\{[^}]*(?:border-top|border-bottom):/s);
   assert.match(pfn, /details\s*\{[^}]*background:[^}]*border-left:/s);
 });
 
 test('template-specific finishing rules remain intentional', () => {
-  const academic = fs.readFileSync(resourcePath('templates', 'academic', 'style.css'), 'utf8');
+  const academic = templateStyle('academic');
   const academicPaged = bundledCss('academic', 'vivliostyle.css');
-  const book = fs.readFileSync(resourcePath('templates', 'book', 'style.css'), 'utf8');
+  const book = templateStyle('book');
   const bookEffective = bundledCss('book', 'style.css');
   const bookPaged = fs.readFileSync(resourcePath('templates', 'book', 'vivliostyle.css'), 'utf8');
-  const defaultStyle = fs.readFileSync(resourcePath('templates', 'default', 'style.css'), 'utf8');
+  const defaultStyle = templateStyle('default');
   const defaultPaged = bundledCss('default', 'vivliostyle.css');
-  const notebook = fs.readFileSync(resourcePath('templates', 'notebook', 'style.css'), 'utf8');
+  const notebook = templateStyle('notebook');
   const notebookPaged = fs.readFileSync(resourcePath('templates', 'notebook', 'vivliostyle.css'), 'utf8');
-  const pfn = fs.readFileSync(resourcePath('templates', 'pfn', 'style.css'), 'utf8');
+  const pfn = templateStyle('pfn');
   const pfnEffective = bundledCss('pfn', 'style.css');
   const pfnPaged = fs.readFileSync(resourcePath('templates', 'pfn', 'vivliostyle.css'), 'utf8');
-  const technical = fs.readFileSync(resourcePath('templates', 'technical', 'style.css'), 'utf8');
+  const technical = templateStyle('technical');
   const technicalPaged = fs.readFileSync(resourcePath('templates', 'technical', 'vivliostyle.css'), 'utf8');
 
   assert.match(academic, /\.academic-cover-head\s*\{[^}]*border-bottom:\s*2\.2pt solid var\(--academic-color-accent\)/s);

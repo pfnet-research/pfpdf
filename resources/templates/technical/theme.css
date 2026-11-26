@@ -1,0 +1,47 @@
+/* technical template: colors and type shared by the document and slide variants. */
+:root {
+  --technical-color-text: #17202a;
+  --technical-color-muted: #52606d;
+  --technical-color-accent: #086f83;
+  --technical-color-accent-dark: #064e5d;
+  --technical-color-rule: #aebbc4;
+  --technical-color-panel: #f2f6f7;
+  --technical-color-code: #f5f7f8;
+  --technical-color-warning: #9a5b00;
+  --technical-color-danger: #a12622;
+  --pfpdf-task-accent: var(--technical-color-accent-dark);
+  --pfpdf-task-indent: 1.25em;
+}
+
+/* Content elements that look the same in the document and slide variants. */
+a {
+  color: var(--technical-color-accent-dark);
+  text-underline-offset: 0.12em;
+}
+pre {
+  background: var(--technical-color-code);
+  border: 0.5pt solid var(--technical-color-rule);
+  border-left: 3pt solid var(--technical-color-accent);
+  tab-size: 2;
+}
+:not(pre) > code {
+  background: #e9eff1;
+  border-radius: 1.5pt;
+  padding: 0.08em 0.28em;
+}
+blockquote {
+  background: var(--technical-color-panel);
+  border-left: 3pt solid var(--technical-color-accent);
+  color: #33434d;
+}
+th, td {
+  border: 0.5pt solid var(--technical-color-rule);
+}
+th {
+  background: #dfe9ec;
+  color: #102f38;
+  font-weight: 700;
+}
+tbody tr:nth-child(even) {
+  background: #f8fafb;
+}

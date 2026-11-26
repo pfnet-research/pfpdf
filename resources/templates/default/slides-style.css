@@ -1,0 +1,67 @@
+@import "../common.css";
+@import "../common-slides.css";
+@import "./theme.css";
+
+/* default template, slide variant: the neutral document design on a 16:9 page. */
+:root { --pfpdf-slide-footer-color: #666; }
+
+body[data-pfpdf-slides] { color: var(--pfpdf-color-text); }
+
+[data-pfpdf-slide] h3:not(.pfpdf-slide-subtitle),
+[data-pfpdf-slide] h4 { color: var(--pfpdf-color-accent); line-height: 1.35; }
+[data-pfpdf-slide] h3:not(.pfpdf-slide-subtitle) { font-size: 1em; }
+[data-pfpdf-slide] h4 { font-size: 0.92em; padding-left: 0.45em; border-left: 2pt solid var(--pfpdf-color-accent); }
+
+.pfpdf-slide-title {
+  border-bottom: 1.5pt solid var(--pfpdf-color-accent);
+  color: var(--pfpdf-color-accent);
+  padding-bottom: 0.2em;
+}
+.pfpdf-slide-subtitle { color: #555; }
+
+/* Cover: the document cover, turned sideways. */
+.pfpdf-slide-cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48pt 72pt;
+}
+.pfpdf-slide-cover-logo { display: block; max-height: 48pt; max-width: 160pt; margin: 0 0 24pt; }
+.pfpdf-slide-cover-confidential {
+  color: #a00000;
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  margin: 0 0 16pt;
+  text-transform: uppercase;
+}
+.pfpdf-slide-cover-series { color: #555; font-size: 14pt; letter-spacing: 0.12em; margin: 0 0 12pt; }
+.pfpdf-slide-cover-title {
+  border-bottom: 2pt solid var(--pfpdf-color-accent);
+  color: var(--pfpdf-color-accent);
+  font-size: 52pt;
+  line-height: 1.25;
+  margin: 0 0 18pt;
+  max-width: 780pt;
+  padding-bottom: 0.2em;
+}
+.pfpdf-slide-cover-subtitle { color: #555; font-size: 24pt; line-height: 1.4; margin: -4pt 0 24pt; max-width: 780pt; }
+.pfpdf-slide-cover-author { font-size: 20pt; margin: 0 0 6pt; }
+.pfpdf-slide-cover-date { color: #555; font-size: 16pt; margin: 0; }
+
+/* Section covers: the section number in a quiet color on the same line as
+ * the title, with the document's heading rule under both. */
+[data-pfpdf-slide="section"] {
+  padding-inline: 72pt;
+}
+[data-pfpdf-slide="section"] .pfpdf-slide-title { border-bottom-width: 2pt; margin: 0; }
+[data-pfpdf-slide="section"] .pfpdf-slide-title::before {
+  color: #9aa5b1;
+  content: counter(pfpdf-section);
+  font-weight: 400;
+  margin-right: 0.6em;
+}
+
+.pfpdf-slide-agenda-entry::marker { color: var(--pfpdf-color-accent); font-weight: 700; }
+
+[data-pfpdf-region="note"] { border-top: 0.5pt solid var(--pfpdf-color-rule); color: #555; padding-top: 0.4em; }
