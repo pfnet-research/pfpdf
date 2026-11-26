@@ -40,7 +40,7 @@ body[data-pfpdf-slides] {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  height: 488pt;
+  height: calc(100vh - 52pt);
   padding: 24pt 36pt;
   position: relative;
 }
@@ -117,7 +117,6 @@ body[data-pfpdf-slides] {
   margin: 22pt auto 0;
   width: 90pt;
 }
-[data-pfpdf-slide="section"] .pfpdf-slide-body { display: none; }
 [data-pfpdf-slide][data-pfpdf-slide="section"] {
   background:
     linear-gradient(var(--book-color-rule), var(--book-color-rule)) top 26pt left 36pt / calc(100% - 72pt) 0.8pt no-repeat,

@@ -59,7 +59,7 @@ body[data-pfpdf-slides] { background: var(--notebook-color-paper); color: var(--
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  height: 480pt;
+  height: calc(100vh - 60pt);
   padding: 26pt 40pt;
   position: relative;
 }
