@@ -141,7 +141,7 @@ function resolveTemplateSetting(
     return { value: bundledTemplate(cliPreset, '--template-preset'), source: 'cli' };
   }
   if (cliTpl !== undefined) {
-    return { value: parseTemplateSource(cliTpl, '--template'), source: 'cli' };
+    return { value: parseTemplateSource(cliTpl), source: 'cli' };
   }
   return { value: { kind: 'bundled', name: 'default' }, source: 'default' };
 }
@@ -153,18 +153,18 @@ function bundledTemplate(name: string, source: string): { kind: 'bundled'; name:
   return { kind: 'bundled', name };
 }
 
-function parseTemplateSource(value: string, source: string): Config['template']['value'] {
+function parseTemplateSource(value: string): Config['template']['value'] {
   if (isBundledTemplate(value)) return { kind: 'bundled', name: value };
   if (value.startsWith('git::')) {
-    parseRepositoryLocator(value, source);
+    parseRepositoryLocator(value, 'template');
     return { kind: 'repository', locator: value };
   }
   return { kind: 'custom', dir: value };
 }
 
-function parseLogoSource(value: string, source: string): Config['logo']['value'] {
+function parseLogoSource(value: string): Config['logo']['value'] {
   if (value.startsWith('git::')) {
-    parseRepositoryLocator(value, source);
+    parseRepositoryLocator(value, 'logo');
     return { kind: 'repository', locator: value };
   }
   return { kind: 'local', path: value };
@@ -175,7 +175,7 @@ function resolveLogoSetting(
 ): Config['logo'] {
   const cliLogo = raw['--logo'] as string | undefined;
   if (cliLogo !== undefined) {
-    return { value: parseLogoSource(cliLogo, '--logo'), source: 'cli' };
+    return { value: parseLogoSource(cliLogo), source: 'cli' };
   }
   if (raw['--no-logo'] !== undefined) return { value: { kind: 'none' }, source: 'cli' };
 
@@ -389,7 +389,7 @@ Options:
   --title TEXT             set the title, overriding front matter and inference
   --toc / --no-toc         enable / disable table of contents (default: on)
   --cover / --no-cover     enable / disable cover or leading header (default: on)
-  --template SOURCE        preset name, local directory, or git::URL//PATH?ref=REVISION
+  --template SOURCE        preset name, local directory, or git::URL[//PATH][?ref=REVISION]
   --template-preset NAME   explicitly select a bundled template preset
   --logo SOURCE            local file or git::URL//PATH?ref=REVISION; overrides template default
   --no-logo                disable local, repository, and template default logos

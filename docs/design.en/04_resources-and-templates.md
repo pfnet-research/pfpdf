@@ -130,8 +130,8 @@ resources/templates/
 
 ### 4.5.1 Fetching from Git repositories
 
-- `--template 'git::URL//PATH?ref=REVISION'` selects a custom template directory inside a Git repository. `--logo` uses the same form to select a regular file
-- `PATH` is a `/`-separated relative path from the repository root. Subdirectories are allowed; absolute paths, empty components, `.`, `..`, and backslashes result in exit code `2`. A template must select a directory and a logo a regular file
+- `--template 'git::URL'` selects the root of a Git repository. `git::URL//` and `git::URL//.` also select the root, and `git::URL//PATH` selects a subdirectory. `--logo` requires a regular file specified as `git::URL//PATH`
+- `PATH` is a `/`-separated relative path from the repository root. Outside the root forms above, absolute paths, empty components, `.`, `..`, and backslashes result in exit code `2`. A template must select a directory and a logo a regular file
 - Supported URL schemes are `https://`, `ssh://`, and `file://`; `file://` is for local use and tests. Passwords and HTTPS userinfo are rejected to avoid credential disclosure. Private repositories authenticate through a Git credential helper or SSH agent
 - `ref` accepts a branch, tag, or commit. If omitted, remote `HEAD` is used and the resolved commit is reported as a warning. Reproducible CI should specify a full commit hash
 - A repository source is checked out under an OS temporary directory at depth 1, with a detached HEAD and submodules disabled. The checkout for the same URL / ref is shared within one process. There is no persistent cache; a conversion checkout lives in the build workspace and is reclaimed with it, subject to `--keep-work-dir`

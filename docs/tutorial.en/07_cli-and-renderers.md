@@ -13,7 +13,7 @@ Options:
   --title TEXT             Set the title, overriding front matter and inference
   --toc / --no-toc         Enable / disable table of contents generation. Enabled by default
   --cover / --no-cover     Enable / disable the cover or leading document header. Enabled by default
-  --template SOURCE        Preset name, local directory, or git::URL//PATH?ref=REVISION
+  --template SOURCE        Preset name, local directory, or git::URL[//PATH][?ref=REVISION]
   --template-preset NAME   Explicitly select a bundled template preset
   --logo SOURCE            Local file or git::URL//PATH?ref=REVISION; overrides template default
   --no-logo                Disable local, repository, and template default logos

@@ -154,11 +154,11 @@ my-template/
 
 ## 6.4 Git リポジトリーからの取得
 
-テンプレートは Git リポジトリー内のサブディレクトリーから、ロゴはファイルから直接取得できます。リポジトリー URL とリポジトリー内のパスを `//` で区切り、リビジョンを `ref` で指定します。
+テンプレートは Git リポジトリーのルートやサブディレクトリーから、ロゴはリポジトリー内のファイルから直接取得できます。テンプレートがルートにある場合は `git::URL` を使います。次の例では `?ref=` を付け、取得するコミットを固定しています。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
-  --template 'git::https://github.com/example/pdf-assets.git//templates/corporate?ref=0123456789abcdef0123456789abcdef01234567'
+  --template 'git::https://github.com/example/pdf-assets.git?ref=0123456789abcdef0123456789abcdef01234567'
 ```
 
 別のリポジトリーのロゴで、既定のロゴを上書きする例です。
@@ -169,7 +169,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --logo 'git::ssh://git@example.com/pdf-assets.git//logos/brand/main.svg?ref=v2.0.0'
 ```
 
-- リポジトリー内のパスはルートからの相対パスで、`templates/brand/print` のようなサブディレクトリーや `logos/brand/main.svg` のようなファイルを指定できます
+- サブディレクトリーにあるテンプレートを使う場合は、`git::URL//templates/corporate` のように `//` の後にルートからの相対パスを書きます。`git::URL//` と `git::URL//.` もルートを選びます。ロゴには `//logos/brand/main.svg` のようなファイルパスが必要です
 - リビジョンにはブランチ、タグ、コミットを使えます。省略時はリモートの `HEAD` を取得して警告を出します。CI では完全なコミットハッシュに固定してください
 - 非公開リポジトリーは Git の認証情報ヘルパーまたは SSH エージェントで認証します。トークンやパスワードを URL へ埋め込まないでください
 - サブモジュールは取得しません。リポジトリーから取得するテンプレートも、生の HTML やスクリプトを実行できる信頼済みコードです
