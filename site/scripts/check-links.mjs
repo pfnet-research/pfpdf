@@ -59,7 +59,7 @@ let checked = 0;
 for (const filePath of walk(distRoot)) {
   if (filePath.endsWith('.html')) {
     const html = fs.readFileSync(filePath, 'utf8');
-    for (const match of html.matchAll(/\s(?:href|src|poster)="([^"]*)"/g)) {
+    for (const match of html.matchAll(/\s(?:href|src|poster|data-lightbox-src)="([^"]*)"/g)) {
       checkUrl(match[1], filePath);
       checked += 1;
     }
