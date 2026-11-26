@@ -246,9 +246,9 @@ test('the paginated slide check warns about clipping and rejects broken paginati
   });
   const output = path.join(dir, 'deck.pdf');
   const renderDeck = (count: number, leadingSlide = '') => {
-    const list = Array.from({ length: count }, (_, index) => `- 項目 ${index + 1}`).join('\n');
+    const list = Array.from({ length: count }, (_, index) => `- ITEM-${index + 1}`).join('\n');
     const input = path.join(dir, 'slides.md');
-    fs.writeFileSync(input, `---\nslides: true\ncover: false\ntoc: false\n---\n\n${leadingSlide}## 長い箇条書き\n\n${list}\n\n## 次のページ\n\n本文です。\n`);
+    fs.writeFileSync(input, `---\nslides: true\ncover: false\ntoc: false\n---\n\n${leadingSlide}## Long list\n\n${list}\n\n## Next slide\n\nSome text.\n`);
     return spawnSync(process.execPath, [
       path.join(repoRoot, 'dist', 'launcher.js'), ...browserArgs,
       '--input', input, '--output', output, '--template', template,
@@ -258,17 +258,17 @@ test('the paginated slide check warns about clipping and rejects broken paginati
   assert.equal(fits.status, 0, fits.stderr);
   const firstPage = spawnSync('pdftotext', ['-f', '1', '-l', '1', output, '-'], { encoding: 'utf8' });
   if (firstPage.status === 0) {
-    assert.match(firstPage.stdout, /項目 14/);
+    assert.match(firstPage.stdout, /\bITEM-14\b/);
     assert.match(firstPage.stdout, /footer/);
   }
 
   const clipped = renderDeck(16);
   assert.equal(clipped.status, 0, clipped.stderr);
-  assert.match(clipped.stderr, /warn: slide 1 \("長い箇条書き"\) extends outside its page and may be clipped/);
+  assert.match(clipped.stderr, /warn: slide 1 \("Long list"\) extends outside its page and may be clipped/);
 
-  const laterSlide = renderDeck(16, '## 前のページ\n\n本文です。\n\n');
+  const laterSlide = renderDeck(16, '## Previous slide\n\nSome text.\n\n');
   assert.equal(laterSlide.status, 0, laterSlide.stderr);
-  assert.match(laterSlide.stderr, /warn: slide 2 \("長い箇条書き"\) extends outside its page and may be clipped/);
+  assert.match(laterSlide.stderr, /warn: slide 2 \("Long list"\) extends outside its page and may be clipped/);
 
   const previous = fs.readFileSync(output);
   const split = renderDeck(22);
