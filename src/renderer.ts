@@ -47,7 +47,9 @@ export async function renderDocument(job: DocumentRenderJob): Promise<RenderResu
   } catch (error) {
     throw new RuntimeError(`cannot create Vivliostyle context directory: ${(error as Error).message}`);
   }
-  return renderWithAssetServer(server, { ...job, processCwd }, job.controller);
+  const result = await renderWithAssetServer(server, { ...job, processCwd }, job.controller);
+  for (const page of server.slideOverflow) job.warn(`the slide on page ${page} extends outside the page and may be clipped`);
+  return result;
 }
 
 /** Coordinate server readiness, renderer completion, abort, and cleanup. */

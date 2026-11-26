@@ -346,7 +346,8 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
     slots.date.children = [text(metadata.date ?? '')];
   }
 
-  // Slot: confidential
+  // Confidential status is also available to CSS when there is no cover.
+  if (metadata.confidential) (htmlBody.properties ??= {})['data-pfpdf-confidential'] = '';
   if (slots.confidential) {
     if (!metadata.confidential) removeElement(root, slots.confidential);
     else slots.confidential.children = [text('Confidential')];
@@ -372,7 +373,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   }
 
   // Slot: toc / content
-  if (opts.body.slideCount !== undefined) markSlides(htmlBody, slots, metadata, opts.slideFontSize);
+  if (opts.body.slideCount !== undefined) markSlides(htmlBody, slots, opts.slideFontSize);
   applyCoverVisibility(root, htmlBody, slots, opts.cover !== false, metadata);
 
   const tocEl = opts.toc && opts.body.toc.length > 0 ? tocElement(opts.body.toc, metadata.lang) : null;
@@ -438,6 +439,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
 
   const headExtra: ElementContent[] = [
     el('script', {}, [text(readinessInitScript())]),
+    ...(opts.body.slideCount === undefined ? [] : [el('script', {}, [text(slideOverflowScript())])]),
     // oxlint-disable-next-line unicorn/text-encoding-identifier-case -- HTML requires the utf-8 label.
     el('meta', { charSet: 'utf-8' }, []),
     el('link', { rel: 'stylesheet', href: 'generated/fonts.css' }, []),
@@ -493,10 +495,9 @@ function setOptionalText(root: HastRoot, slot: Element | undefined, value: strin
 }
 
 /** Attributes that slide templates select on; the cover becomes the title slide. */
-function markSlides(body: Element, slots: SlotMap, metadata: Metadata, slideFontSize: number | undefined): void {
+function markSlides(body: Element, slots: SlotMap, slideFontSize: number | undefined): void {
   const properties = body.properties ??= {};
   properties['data-pfpdf-slides'] = '';
-  if (metadata.confidential) properties['data-pfpdf-confidential'] = '';
   if (slideFontSize !== undefined) {
     // The author's value comes last so that it wins over a template's inline default.
     const existing = typeof properties.style === 'string' ? properties.style.trim() : '';
@@ -521,6 +522,43 @@ function removeElement(root: HastRoot, target: Element): void {
 
 function require_resolve_css(): string {
   return resourcePath('vendor', 'hljs-github.css');
+}
+
+/**
+ * Measure the DOM that the pinned Vivliostyle CLI prints, after pagination,
+ * and report pages whose slide extends outside the page. The PDF page count
+ * is checked separately and rejects any change in the total.
+ */
+function slideOverflowScript(): string {
+  return `(() => {
+  'use strict';
+  const source = new URLSearchParams(location.hash.slice(1)).get('src');
+  const viewport = document.getElementById('vivliostyle-viewer-viewport');
+  if (!source || !viewport) return;
+  addEventListener('beforeprint', () => {
+    // Chromium can dispatch beforeprint before activating print styles, so
+    // expose the typeset pages as Vivliostyle's print CSS does while measuring.
+    const reveal = document.createElement('style');
+    reveal.textContent = '#vivliostyle-viewer-viewport [data-vivliostyle-page-container] { display: block !important; }';
+    document.head.append(reveal);
+    const pages = [];
+    viewport.querySelectorAll(':scope > div > div > div[data-vivliostyle-page-container]').forEach((page, index) => {
+      const box = (page.querySelector('[data-vivliostyle-page-box]') || page).getBoundingClientRect();
+      // Allow one CSS pixel for fractional layout and viewer scaling.
+      const outside = Array.from(page.querySelectorAll('[data-pfpdf-slide]'), (slide) => slide.getBoundingClientRect())
+        .some((rect) => rect.height > 0 && (rect.bottom > box.bottom + 1 || rect.top < box.top - 1));
+      if (outside) pages.push(index + 1);
+    });
+    reveal.remove();
+    if (pages.length === 0) return;
+    const url = new URL('generated/slide-overflow', new URL(source, location.href));
+    url.searchParams.set('pages', pages.join(','));
+    // The CLI may close Chromium as soon as the PDF is returned, so send synchronously.
+    const request = new XMLHttpRequest();
+    request.open('GET', url, false);
+    request.send();
+  }, { once: true });
+})();`;
 }
 
 function readinessInitScript(): string {

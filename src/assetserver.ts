@@ -35,6 +35,8 @@ export class AssetServer {
   private readonly sockets = new Set<Socket>();
   private readinessResult: { ok: boolean; message?: string } | null = null;
   private readonly readinessWaiters: Array<(result: { ok: boolean; message?: string }) => void> = [];
+  /** PDF pages whose slide extends outside the page, reported by the slide check. */
+  slideOverflow: number[] = [];
   private readonly gateResponses = new Set<{ request: http.IncomingMessage; response: http.ServerResponse }>();
 
   constructor(
@@ -122,6 +124,12 @@ export class AssetServer {
         message: detail === null || detail === '' ? 'document readiness failed' : `document readiness failed: ${detail}`,
       });
       res.writeHead(204, headers);
+      res.end();
+      return;
+    }
+    if (logical === 'generated/slide-overflow') {
+      this.slideOverflow = (new URL(url, 'http://127.0.0.1').searchParams.get('pages') ?? '').split(',').map(Number);
+      res.writeHead(204, { ...headers, 'Access-Control-Allow-Origin': '*' });
       res.end();
       return;
     }

@@ -46,8 +46,8 @@ export function transformCitationSyntax(
     if (only.type !== 'text' || typeof only.value !== 'string' || only.value.trim() !== '\\printbibliography') {
       continue;
     }
-    const start = child.position?.start.offset;
-    const end = child.position?.end.offset;
+    const start = only.position?.start.offset;
+    const end = only.position?.end.offset;
     const raw = typeof start === 'number' && typeof end === 'number'
       ? file.content.slice(start, end).trim()
       : only.value.trim();

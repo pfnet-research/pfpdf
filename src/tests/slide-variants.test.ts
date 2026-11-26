@@ -219,3 +219,61 @@ test('front matter subtitle fills the subtitle slot and slide_font_size sets the
       error instanceof InputError && /slide_font_size/.test(error.message), value);
   }
 });
+
+test('the confidential body attribute is common to document and slide output, with or without a cover', async (t) => {
+  const dir = workspace(t);
+  for (const source of [doc, deck]) {
+    for (const cover of [true, false]) {
+      for (const confidential of [true, false]) {
+        const { html } = await build(dir, source.replace('lang: en', `lang: en\ncover: ${cover}\nconfidential: ${confidential}`), []);
+        assert.equal(/<body[^>]*\sdata-pfpdf-confidential(?:\s|=|>)/.test(html), confidential);
+        assert.equal(/<div class="pfpdf-running-metadata" aria-hidden="true">/.test(html), confidential && !cover);
+        assert.equal(/>(?:Confidential)<\/p>/.test(html), confidential);
+      }
+    }
+  }
+});
+
+test('the paginated slide check warns about clipping, and a split slide fails the page count', { skip: process.env.RUN_E2E !== '1' }, (t) => {
+  const dir = workspace(t);
+  const template = writeTemplate(dir, {
+    'slides-template.html': 'SLIDE_HTML',
+    'slides-style.css': `
+      [data-pfpdf-slide] { padding: 75pt 33pt 35pt; }
+      [data-pfpdf-slide]::after { content: "footer"; position: absolute; left: 33pt; bottom: 13pt; }
+    `,
+    'slides-vivliostyle.css': '[data-pfpdf-slide] { break-inside: avoid; }',
+  });
+  const output = path.join(dir, 'deck.pdf');
+  const renderDeck = (count: number, leadingSlide = '') => {
+    const list = Array.from({ length: count }, (_, index) => `- ITEM-${index + 1}`).join('\n');
+    const input = path.join(dir, 'slides.md');
+    fs.writeFileSync(input, `---\nslides: true\ncover: false\ntoc: false\n---\n\n${leadingSlide}## Long list\n\n${list}\n\n## Next slide\n\nSome text.\n`);
+    return spawnSync(process.execPath, [
+      path.join(repoRoot, 'dist', 'launcher.js'), ...browserArgs,
+      '--input', input, '--output', output, '--template', template,
+    ], { encoding: 'utf8', env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' }, timeout: 120000 });
+  };
+  const fits = renderDeck(14);
+  assert.equal(fits.status, 0, fits.stderr);
+  assert.doesNotMatch(fits.stderr, /may be clipped/);
+  const firstPage = spawnSync('pdftotext', ['-f', '1', '-l', '1', output, '-'], { encoding: 'utf8' });
+  if (firstPage.status === 0) {
+    assert.match(firstPage.stdout, /\bITEM-14\b/);
+    assert.match(firstPage.stdout, /footer/);
+  }
+
+  const clipped = renderDeck(16);
+  assert.equal(clipped.status, 0, clipped.stderr);
+  assert.match(clipped.stderr, /warn: the slide on page 1 extends outside the page and may be clipped/);
+
+  const laterSlide = renderDeck(16, '## Previous slide\n\nSome text.\n\n');
+  assert.equal(laterSlide.status, 0, laterSlide.stderr);
+  assert.match(laterSlide.stderr, /warn: the slide on page 2 extends outside the page and may be clipped/);
+
+  const previous = fs.readFileSync(output);
+  const split = renderDeck(22);
+  assert.equal(split.status, 1, split.stderr);
+  assert.match(split.stderr, /slide pagination mismatch: expected 2 PDF pages/);
+  assert.deepEqual(fs.readFileSync(output), previous);
+});

@@ -147,7 +147,7 @@ When the resolved document language is `ja` or a variant tag, remove only source
 Preserve Latin word boundaries, Japanese/Latin boundaries, explicit spaces, soft breaks with authored trailing spaces, hard breaks, and paragraph boundaries. Code, math, images, and footnote references are boundaries; paragraphs containing raw HTML and raw HTML blocks are unchanged. Preserve authored newline character references such as `&#10;` / `&NewLine;` too. Headings, IDs, URLs, and source positions are unchanged. Non-Japanese document languages retain GFM soft breaks.
 
 
-With `slides: true`, top-level ATX headings and named regions also determine slide boundaries and layout. A `###` directly after a `##` is moved next to the title as that page's subtitle. Ordinary documents continue to use GFM and the existing pfpdf extensions. See the Slides section of the tutorial for an example.
+With `slides: true`, top-level ATX headings and named regions also determine slide boundaries and layout. A `###` directly after a `##` is moved next to the title as that page's subtitle. In both modes, a standalone top-level `::: name` starts a named region and `::: talk` removes its contents before resource and bibliography processing. A region ends at the next region marker, top-level ATX `#` or `##`, `___` page break, or source file boundary. Ordinary documents omit the marker lines and render the other regions as ordinary body text. Code examples retain their literal text. See the Slides section of the tutorial for an example.
 
 ## 3.4 Handling raw HTML
 
@@ -192,3 +192,4 @@ GFM Spec examples are run against the `GfmAdapter` before pfpdf-specific post-pr
 | `mermaid` fenced code block | Code block | Converted to a static SVG diagram | pfpdf extension |
 | `\cite{key}` / `\printbibliography` | Plain text | Citation link / bibliography list | pfpdf extension |
 | Soft breaks between CJK characters in Japanese paragraphs | Preserves newline | Removes source-only breaks with `lang: ja` | Source wrapping must not add whitespace; preserve authored spaces and code / HTML |
+| Standalone top-level `::: name` line | Plain text | Named region in slides; in documents the marker is omitted. Presenter notes are omitted in both modes | Reuse the same source for slides and documents |
