@@ -14,6 +14,7 @@ import {
 } from './resources.js';
 import type { Metadata, NormalizedTitle } from './input.js';
 import type { DocumentBody, TocEntry } from './markdown.js';
+import { slideTitle } from './slides.js';
 
 const SLOTS = new Set(['content', 'cover', 'title', 'subtitle', 'author', 'series', 'date', 'confidential', 'toc', 'logo']);
 
@@ -291,7 +292,9 @@ function applyCoverVisibility(root: HastRoot, body: Element, slots: SlotMap, vis
   if (running.length > 0) body.children.unshift(el('div', { className: ['pfpdf-running-metadata'], ariaHidden: 'true' }, running));
 }
 
-export function buildDocumentHtml(opts: BuildOptions): { html: string; generatedCss: Array<[string, string]>; hasCover: boolean } {
+export function buildDocumentHtml(opts: BuildOptions): {
+  html: string; generatedCss: Array<[string, string]>; slideTitles: string[] | undefined;
+} {
   const { metadata, template } = opts;
   const root = template.root;
   const { slots, html, head, body: htmlBody } = validateTemplate(root, template);
@@ -346,7 +349,8 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
     slots.date.children = [text(metadata.date ?? '')];
   }
 
-  // Slot: confidential
+  // Confidential status is also available to CSS when there is no cover.
+  if (metadata.confidential) (htmlBody.properties ??= {})['data-pfpdf-confidential'] = '';
   if (slots.confidential) {
     if (!metadata.confidential) removeElement(root, slots.confidential);
     else slots.confidential.children = [text('Confidential')];
@@ -372,8 +376,10 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   }
 
   // Slot: toc / content
-  if (opts.body.slideCount !== undefined) markSlides(htmlBody, slots, metadata, opts.slideFontSize);
+  if (opts.body.slideCount !== undefined) markSlides(htmlBody, slots, opts.slideFontSize);
   applyCoverVisibility(root, htmlBody, slots, opts.cover !== false, metadata);
+  const cover = opts.cover === false ? undefined : slots.cover;
+  const slideTitles = opts.body.slideCount === undefined ? undefined : indexSlides(opts.body.sections, cover, plainTitle);
 
   const tocEl = opts.toc && opts.body.toc.length > 0 ? tocElement(opts.body.toc, metadata.lang) : null;
   if (slots.toc) {
@@ -438,6 +444,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
 
   const headExtra: ElementContent[] = [
     el('script', {}, [text(readinessInitScript())]),
+    ...(slideTitles === undefined ? [] : [el('script', {}, [text(slidePaginationScript(slideTitles.length))])]),
     // oxlint-disable-next-line unicorn/text-encoding-identifier-case -- HTML requires the utf-8 label.
     el('meta', { charSet: 'utf-8' }, []),
     el('link', { rel: 'stylesheet', href: 'generated/fonts.css' }, []),
@@ -473,7 +480,7 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   });
 
   const html5 = toHtml(root as never, { allowDangerousHtml: true });
-  return { html: html5, generatedCss, hasCover: opts.cover !== false && Boolean(slots.cover) };
+  return { html: html5, generatedCss, slideTitles };
 }
 
 /** The template's own stylesheets in load order; a slide variant may omit the paged one. */
@@ -492,11 +499,19 @@ function setOptionalText(root: HastRoot, slot: Element | undefined, value: strin
   else slot.children = [text(value)];
 }
 
+/** Map generated slide elements to their one-based PDF page numbers. */
+function indexSlides(sections: Element[], cover: Element | undefined, coverTitle: string): string[] {
+  const slides = cover === undefined ? sections : [cover, ...sections];
+  return slides.map((slide, index) => {
+    (slide.properties ??= {})['data-internal-pfpdf-slide-index'] = index + 1;
+    return slide === cover ? coverTitle : slideTitle(slide);
+  });
+}
+
 /** Attributes that slide templates select on; the cover becomes the title slide. */
-function markSlides(body: Element, slots: SlotMap, metadata: Metadata, slideFontSize: number | undefined): void {
+function markSlides(body: Element, slots: SlotMap, slideFontSize: number | undefined): void {
   const properties = body.properties ??= {};
   properties['data-pfpdf-slides'] = '';
-  if (metadata.confidential) properties['data-pfpdf-confidential'] = '';
   if (slideFontSize !== undefined) {
     // The author's value comes last so that it wins over a template's inline default.
     const existing = typeof properties.style === 'string' ? properties.style.trim() : '';
@@ -521,6 +536,63 @@ function removeElement(root: HastRoot, target: Element): void {
 
 function require_resolve_css(): string {
   return resourcePath('vendor', 'hljs-github.css');
+}
+
+/**
+ * Measure the DOM that the pinned Vivliostyle CLI will print, after pagination.
+ * An ordinary browser layout does not resolve Vivliostyle page sizes or breaks.
+ */
+function slidePaginationScript(slideCount: number): string {
+  return `(() => {
+  'use strict';
+  const source = new URLSearchParams(location.hash.slice(1)).get('src');
+  const viewport = document.getElementById('vivliostyle-viewer-viewport');
+  if (!source || !viewport) return;
+  const verify = () => {
+    const pages = viewport.querySelectorAll(':scope > div > div > div[data-vivliostyle-page-container]');
+    const placed = new Map();
+    let outside;
+    for (const [pageIndex, page] of Array.from(pages).entries()) {
+      const box = (page.querySelector('[data-vivliostyle-page-box]') || page).getBoundingClientRect();
+      for (const slide of page.querySelectorAll('[data-internal-pfpdf-slide-index]')) {
+        const number = Number(slide.getAttribute('data-internal-pfpdf-slide-index'));
+        const rect = slide.getBoundingClientRect();
+        // Allow one CSS pixel for fractional layout and viewer scaling.
+        if (rect.height > 0 && (rect.bottom > box.bottom + 1 || rect.top < box.top - 1)) outside ??= number;
+        if (placed.has(number)) return [number, 'fragmented'];
+        placed.set(number, pageIndex + 1);
+      }
+    }
+    for (let number = 1; number <= ${slideCount}; number++) {
+      if (!placed.has(number)) return [number, 'missing'];
+      if (placed.get(number) !== number) return [number, 'misplaced'];
+    }
+    return outside === undefined ? null : [outside, 'outside'];
+  };
+  function report() {
+    if (viewport.getAttribute('data-vivliostyle-viewer-status') !== 'complete') return;
+    const url = new URL('generated/slide-pagination', new URL(source, location.href));
+    // Chromium can dispatch beforeprint before activating print styles.
+    // Expose all the already typeset pages, as Vivliostyle's print CSS does,
+    // and restore the viewer before Chromium takes the PDF snapshot.
+    const revealPages = document.createElement('style');
+    revealPages.textContent = '#vivliostyle-viewer-viewport [data-vivliostyle-page-container] { display: block !important; }';
+    document.head.append(revealPages);
+    let issue;
+    try { issue = verify(); }
+    finally { revealPages.remove(); }
+    if (issue) {
+      url.searchParams.set('slide', String(issue[0]));
+      url.searchParams.set('issue', issue[1]);
+    }
+    // The CLI may close Chromium as soon as the PDF is returned. Complete
+    // this one loopback request before yielding control back to Chromium.
+    const request = new XMLHttpRequest();
+    request.open('GET', url, false);
+    request.send();
+  }
+  addEventListener('beforeprint', report, { once: true });
+})();`;
 }
 
 function readinessInitScript(): string {

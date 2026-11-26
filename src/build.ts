@@ -38,7 +38,7 @@ interface PreparedDocument {
   manifest: ResourceManifest;
   generated: Map<string, Buffer>;
   fontWarnings: string[];
-  expectedPages: number | undefined;
+  slideTitles: string[] | undefined;
 }
 
 interface PreparedBoundaries {
@@ -142,9 +142,7 @@ async function prepareDocument(
   for (const [logical, content] of body.generatedFiles) {
     generated.set(logical, Buffer.from(content, 'utf8'));
   }
-  // A template without a cover slot emits no cover page.
-  const expectedPages = body.slideCount === undefined ? undefined : body.slideCount + Number(document.hasCover);
-  return { html: document.html, metadata: input.metadata, manifest, generated, fontWarnings: fonts.warnings, expectedPages };
+  return { html: document.html, metadata: input.metadata, manifest, generated, fontWarnings: fonts.warnings, slideTitles: document.slideTitles };
 }
 
 /**
@@ -194,7 +192,7 @@ export async function runBuild(
       log.info,
       env,
     );
-    const { html, metadata, manifest, generated, expectedPages } = await prepareDocument(config, env, log, {
+    const { html, metadata, manifest, generated, slideTitles } = await prepareDocument(config, env, log, {
       processStart,
       repositoryResolver,
     });
@@ -241,13 +239,14 @@ export async function runBuild(
         generated,
         workspaceDir: workspace.dir,
         controller: abortController,
+        ...(slideTitles === undefined ? {} : { slideTitles }),
       });
       if (interruptedBy !== null) throw new RuntimeError(`build interrupted by ${String(interruptedBy)}`);
       const size = await commitOutput({
         rendererOutput,
         finalOutput: config.outputAbs!,
         metadata,
-        ...(expectedPages === undefined ? {} : { expectedPages }),
+        ...(slideTitles === undefined ? {} : { expectedPages: slideTitles.length }),
         sourceDateEpoch,
         processStart,
         deadline,

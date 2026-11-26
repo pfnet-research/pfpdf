@@ -141,3 +141,31 @@ test('a content-only custom template and the bundled slide preset both build sli
   const preset = await buildHtml(resolveConfig(['--input', input, '--output', 'out.pdf', '--template-preset', 'slide-base'], dir), env, log);
   assert.match(preset.html, /data-pfpdf-slide="title"/);
 });
+
+test('documents omit speaker notes and use named regions as ordinary text across source files', async () => {
+  const contents = [
+    [
+      'Before', '::: column', 'Left side', '::: future-layout', 'Visible future region',
+      '::: talk', 'PRIVATE-NOTES', '![private](missing-speaker-image.png)', '## After notes',
+      'After the heading', '\\::: talk', '&#58;:: talk', '::: Talk', 'After literals',
+      '```md', '::: talk', 'Inside a code fence', '```',
+      '', '> ::: talk', '> Inside a quotation',
+      '', '    ::: talk', '    Inside indented code',
+      '', '::: talk', 'PRIVATE-UNTIL-PAGE-BREAK', '', '___', '', 'After the page break',
+      '', '::: talk', 'PRIVATE-UNTIL-BODY', '', '::: body', 'After body',
+      '', '::: talk', 'PRIVATE-UNTIL-NEXT-FILE',
+    ].join('\n'),
+    '# Behind another file\n\nVisible in the second file',
+  ];
+  const body = await buildDocumentBody(contents.map((content, index) => ({
+    content, name: `source-${index}.md`, path: `/virtual/source-${index}.md`, lineOffset: 0,
+  })), new ResourceManifest(), [], { warn: () => {} });
+  const html = body.sections.map((section) => toHtml(section as never)).join('');
+  for (const visible of [
+    'Before', 'Left side', 'Visible future region', 'After the heading', 'After literals', 'Inside a code fence',
+    'Inside a quotation', 'Inside indented code', 'After body', 'After the page break', 'Visible in the second file',
+  ]) assert.ok(html.includes(visible), visible);
+  assert.equal(html.match(/::: talk/g)?.length, 5);
+  assert.match(html, /::: Talk/);
+  assert.doesNotMatch(html, /PRIVATE-|missing-speaker-image|::: column|::: future-layout|pfpdf-region:/);
+});

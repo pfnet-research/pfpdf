@@ -35,6 +35,7 @@ export class AssetServer {
   private readonly sockets = new Set<Socket>();
   private readinessResult: { ok: boolean; message?: string } | null = null;
   private readonly readinessWaiters: Array<(result: { ok: boolean; message?: string }) => void> = [];
+  private pagination: { slide: number; issue: string } | null | undefined;
   private readonly gateResponses = new Set<{ request: http.IncomingMessage; response: http.ServerResponse }>();
 
   constructor(
@@ -45,6 +46,10 @@ export class AssetServer {
 
   get documentUrl(): string {
     return `http://127.0.0.1:${this.port}/document.html`;
+  }
+
+  get slidePagination(): { slide: number; issue: string } | null | undefined {
+    return this.pagination;
   }
 
   async waitUntilReady(deadline: number): Promise<void> {
@@ -122,6 +127,15 @@ export class AssetServer {
         message: detail === null || detail === '' ? 'document readiness failed' : `document readiness failed: ${detail}`,
       });
       res.writeHead(204, headers);
+      res.end();
+      return;
+    }
+    if (logical === 'generated/slide-pagination' && req.method === 'GET') {
+      const params = new URL(url, 'http://127.0.0.1').searchParams;
+      const issue = params.get('issue');
+      const slide = Number(params.get('slide'));
+      if (this.pagination === undefined) this.pagination = issue === null ? null : { slide, issue };
+      res.writeHead(204, { ...headers, 'Access-Control-Allow-Origin': '*' });
       res.end();
       return;
     }

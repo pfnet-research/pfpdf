@@ -166,7 +166,7 @@ export function parseSources(files: SourceFile[], slides = false): ParsedSource[
   return files.map((file) => {
     const processor = createMarkdownParser();
     const mdast = processor.parse(file.content);
-    if (slides) prepareSlideDirectives(file, mdast);
+    prepareSlideDirectives(file, mdast, slides);
     const imageDefinitions = new Map<string, string>();
     visit(mdast, 'definition', (definition) => {
       const id = definition.identifier.toUpperCase();
