@@ -3,6 +3,13 @@
 Notable changes to pfpdf are documented in this file. Versions follow Semantic
 Versioning; breaking changes before 1.0 are called out explicitly.
 
+## [0.6.0](https://github.com/pfnet-research/pfpdf/compare/v0.5.0...v0.6.0) (2026-11-26)
+
+
+### Features
+
+* **slides:** give every bundled template a slide variant ([#56](https://github.com/pfnet-research/pfpdf/issues/56)) ([b214008](https://github.com/pfnet-research/pfpdf/commit/b214008eeb3261770b7a7059a45cf00d313e52e7))
+
 ## [0.5.0](https://github.com/pfnet-research/pfpdf/compare/v0.4.1...v0.5.0) (2026-11-22)
 
 
