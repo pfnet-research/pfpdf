@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { PDFDocument } from 'pdf-lib';
 import { BUNDLED_SLIDE_VARIANT_NAMES, BUNDLED_TEMPLATE_NAMES } from '../bundled-templates.js';
 import { resolveConfig } from '../config.js';
 import { buildHtml } from '../build.js';
@@ -154,7 +155,7 @@ test('an incomplete slide variant is an input error', async (t) => {
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const browserArgs = process.env.BROWSER_PATH ? ['--browser-path', process.env.BROWSER_PATH] : [];
 
-test('every bundled slide variant renders the sample deck on 16:9 pages without speaker notes', { skip: process.env.RUN_E2E !== '1' }, (t) => {
+test('every bundled slide variant renders the sample deck on 16:9 pages without speaker notes', { skip: process.env.RUN_E2E !== '1' }, async (t) => {
   const dir = workspace(t);
   for (const name of BUNDLED_SLIDE_VARIANT_NAMES) {
     for (const input of ['slides.md', 'slides.en.md']) {
@@ -166,10 +167,11 @@ test('every bundled slide variant renders the sample deck on 16:9 pages without 
       ], { encoding: 'utf8', env: { ...process.env, SOURCE_DATE_EPOCH: '1750000000' }, timeout: 660000 });
       // pfpdf itself rejects a deck whose slides overflow onto extra pages.
       assert.equal(res.status, 0, `${name} ${input}: ${res.stderr}`);
-      const info = spawnSync('pdfinfo', [output], { encoding: 'utf8' });
-      if (info.error === undefined && info.status === 0) {
-        assert.match(info.stdout, /Pages:\s+9\r?\n/, `${name} ${input}`);
-        assert.match(info.stdout, /Page size:\s+960 x 540 pts/, `${name} ${input}`);
+      const pdf = await PDFDocument.load(fs.readFileSync(output), { updateMetadata: false });
+      assert.equal(pdf.getPageCount(), 9, `${name} ${input}`);
+      for (const page of pdf.getPages()) {
+        const { width, height } = page.getSize();
+        assert.deepEqual([Math.round(width), Math.round(height)], [960, 540], `${name} ${input}`);
       }
       const text = spawnSync('pdftotext', [output, '-'], { encoding: 'utf8' });
       if (text.error === undefined && text.status === 0) {
