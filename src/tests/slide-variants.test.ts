@@ -234,7 +234,7 @@ test('the confidential body attribute is common to document and slide output, wi
   }
 });
 
-test('the paginated slide check warns about clipping and rejects broken pagination', { skip: process.env.RUN_E2E !== '1' }, (t) => {
+test('the paginated slide check warns about clipping, and a split slide fails the page count', { skip: process.env.RUN_E2E !== '1' }, (t) => {
   const dir = workspace(t);
   const template = writeTemplate(dir, {
     'slides-template.html': 'SLIDE_HTML',
@@ -264,15 +264,15 @@ test('the paginated slide check warns about clipping and rejects broken paginati
 
   const clipped = renderDeck(16);
   assert.equal(clipped.status, 0, clipped.stderr);
-  assert.match(clipped.stderr, /warn: slide 1 \("Long list"\) extends outside its page and may be clipped/);
+  assert.match(clipped.stderr, /warn: the slide on page 1 extends outside the page and may be clipped/);
 
   const laterSlide = renderDeck(16, '## Previous slide\n\nSome text.\n\n');
   assert.equal(laterSlide.status, 0, laterSlide.stderr);
-  assert.match(laterSlide.stderr, /warn: slide 2 \("Long list"\) extends outside its page and may be clipped/);
+  assert.match(laterSlide.stderr, /warn: the slide on page 2 extends outside the page and may be clipped/);
 
   const previous = fs.readFileSync(output);
   const split = renderDeck(22);
   assert.equal(split.status, 1, split.stderr);
-  assert.match(split.stderr, /slide pagination mismatch/);
+  assert.match(split.stderr, /slide pagination mismatch: expected 2 PDF pages/);
   assert.deepEqual(fs.readFileSync(output), previous);
 });

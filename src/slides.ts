@@ -22,9 +22,7 @@ const regionComment = /^pfpdf-region:([a-z][a-z0-9-]*)$/;
  * The parsed inline nodes are reused, so references, footnotes, and code
  * spans keep the meaning they have in the whole document.
  */
-function splitAtDirectives(
-  file: SourceFile, node: Paragraph | Heading, sourceLines: string[], markers: Map<RootContent, string>,
-): RootContent[] {
+function splitAtDirectives(file: SourceFile, node: Paragraph | Heading, sourceLines: string[]): RootContent[] {
   const result: RootContent[] = [];
   let children: PhrasingContent[] = [];
   const flush = (): void => {
@@ -62,18 +60,16 @@ function splitAtDirectives(
       children.push(piece);
     };
     let from = 0;
-    lines.forEach((line, i) => {
+    lines.forEach((_, i) => {
       const next = node.children[index + 1];
       const wholeLine = (i > 0 || lineStart) && (i < lines.length - 1 || next === undefined || next.type === 'break');
-      // The parser decodes Markdown escapes and character references in text.
-      const rawLine = sourceLines[(child.position?.start.line ?? 0) + i - 1] ?? '';
-      const name = wholeLine && directive.test(line) ? directive.exec(rawLine)?.[1] : undefined;
+      // Match the source line: the parser has decoded escapes such as `\:::` in the text.
+      const source = sourceLines[(child.position?.start.line ?? 0) + i - 1] ?? '';
+      const name = wholeLine ? directive.exec(source)?.[1] : undefined;
       if (name === undefined) return;
       pushLines(from, i);
       flush();
-      const marker: RootContent = { type: 'html', value: `<!--pfpdf-region:${name}-->` };
-      markers.set(marker, name);
-      result.push(marker);
+      result.push({ type: 'html', value: `<!--pfpdf-region:${name}-->` });
       from = i + 1;
     });
     if (from === 0) children.push(child);
@@ -87,18 +83,17 @@ function splitAtDirectives(
 
 /** Turn standalone top-level `::: name` lines into region markers. */
 export function prepareSlideDirectives(file: SourceFile, tree: MdastRoot, slides: boolean): void {
-  const markers = new Map<RootContent, string>();
   const sourceLines = file.content.split(/\r?\n/);
   // Only a Setext heading can span lines; an ATX heading is never a directive.
   const expanded = tree.children.flatMap((node) => node.type === 'paragraph'
     || (node.type === 'heading' && node.position?.start.line !== node.position?.end.line)
-    ? splitAtDirectives(file, node, sourceLines, markers) : [node]);
+    ? splitAtDirectives(file, node, sourceLines) : [node]);
   // Speaker notes do not participate in bibliography, resources, or rendering.
   let talk = false;
   tree.children = expanded.filter((node) => {
-    const marker = markers.get(node);
-    if (marker !== undefined) {
-      talk = marker === 'talk';
+    const marker = node.type === 'html' ? /^<!--pfpdf-region:([a-z0-9-]+)-->$/.exec(node.value) : null;
+    if (marker) {
+      talk = marker[1] === 'talk';
       return slides && !talk;
     }
     if (isSlideBoundary(node, sourceLines)) talk = false;
@@ -130,13 +125,6 @@ function significant(node: ElementContent): boolean {
 }
 function text(node: Element): string {
   return node.children.map((child) => child.type === 'text' ? child.value : child.type === 'element' ? text(child) : '').join('');
-}
-
-export function slideTitle(slide: Element): string {
-  const heading = slide.children.find((child): child is Element =>
-    child.type === 'element' && Array.isArray(child.properties?.className)
-    && child.properties.className.includes('pfpdf-slide-title'));
-  return heading === undefined ? '' : text(heading).replace(/\s+/g, ' ').trim();
 }
 
 /**

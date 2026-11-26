@@ -33,15 +33,7 @@ export interface DocumentRenderJob extends Omit<RenderJob, 'documentUrl'> {
   generated: Map<string, Buffer>;
   workspaceDir: string;
   controller: AbortController;
-  slideTitles?: string[];
 }
-
-const slidePaginationIssues: ReadonlyMap<string, string> = new Map([
-  ['outside', 'extends outside its page'],
-  ['fragmented', 'spans multiple pages'],
-  ['missing', 'did not appear in the paginated layout'],
-  ['misplaced', 'did not appear on its expected page'],
-]);
 
 /** Serve the prepared document graph and render it with Vivliostyle. */
 export async function renderDocument(job: DocumentRenderJob): Promise<RenderResult> {
@@ -56,19 +48,7 @@ export async function renderDocument(job: DocumentRenderJob): Promise<RenderResu
     throw new RuntimeError(`cannot create Vivliostyle context directory: ${(error as Error).message}`);
   }
   const result = await renderWithAssetServer(server, { ...job, processCwd }, job.controller);
-  if (job.slideTitles !== undefined) {
-    const pagination = server.slidePagination;
-    if (pagination === undefined) throw new RuntimeError('Vivliostyle did not report slide pagination');
-    if (pagination !== null) {
-      const { slide, issue } = pagination;
-      const title = job.slideTitles[slide - 1];
-      const detail = slidePaginationIssues.get(issue);
-      if (title === undefined || detail === undefined) throw new RuntimeError('Vivliostyle reported invalid slide pagination');
-      const label = title ? `slide ${slide} (${JSON.stringify(title)})` : `slide ${slide}`;
-      if (issue === 'outside') job.warn(`${label} ${detail} and may be clipped`);
-      else throw new RuntimeError(`slide pagination mismatch: ${label} ${detail}`);
-    }
-  }
+  for (const page of server.slideOverflow) job.warn(`the slide on page ${page} extends outside the page and may be clipped`);
   return result;
 }
 
