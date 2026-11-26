@@ -168,7 +168,7 @@ Options:
   --title TEXT             フロントマターと自動補完より優先するタイトル
   --cover / --no-cover     表紙または先頭の文書ヘッダーを有効 / 無効化する。既定は有効
   --toc / --no-toc         目次生成を有効 / 無効化する。既定は有効
-  --template SOURCE        プリセット名、ローカルディレクトリー、または git::URL//PATH?ref=REVISION
+  --template SOURCE        プリセット名、ローカルディレクトリー、または git::URL[//PATH][?ref=REVISION]
   --template-preset NAME   同梱テンプレートのプリセットを明示的に選択
   --logo SOURCE            ローカルファイルまたは git::URL//PATH?ref=REVISION。テンプレートの既定値を上書き
   --no-logo                ローカル・リポジトリー・テンプレート既定のロゴを無効化

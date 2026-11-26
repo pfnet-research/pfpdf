@@ -20,9 +20,13 @@ export interface ResolvedRepositoryPath {
 
 const FETCH_TIMEOUT_MS = 300_000;
 
-export function parseRepositoryLocator(value: string, source = 'repository source'): RepositoryLocator {
+type RepositoryRole = 'template' | 'logo';
+
+export function parseRepositoryLocator(value: string, role?: RepositoryRole): RepositoryLocator {
+  const source = role === undefined ? 'repository source' : `--${role}`;
   if (!value.startsWith('git::')) {
-    throw new InputError(`${source}: expected git::URL//PATH?ref=REVISION`);
+    const syntax = role === 'template' ? 'git::URL[//PATH][?ref=REVISION]' : 'git::URL//PATH[?ref=REVISION]';
+    throw new InputError(`${source}: expected ${syntax}`);
   }
   if (value.includes('\0')) throw new InputError(`${source}: NUL character is not allowed`);
   const address = value.slice('git::'.length);
@@ -34,13 +38,15 @@ export function parseRepositoryLocator(value: string, source = 'repository sourc
     throw new InputError(`${source}: repository URL must use https://, ssh://, or file://`);
   }
   const separatorAt = packageAndPath.indexOf('//', schemeAt + 3);
-  if (separatorAt < 0) {
+  if (separatorAt < 0 && role !== 'template') {
     throw new InputError(`${source}: repository path is required after //`);
   }
-  const urlText = packageAndPath.slice(0, separatorAt);
-  const subpath = packageAndPath.slice(separatorAt + 2);
+  const urlText = separatorAt < 0 ? packageAndPath : packageAndPath.slice(0, separatorAt);
+  const rawSubpath = separatorAt < 0 ? '' : packageAndPath.slice(separatorAt + 2);
+  const selectsRoot = role === 'template' && (rawSubpath === '' || rawSubpath === '.');
   validateRepositoryUrl(urlText, source);
-  validateRepositorySubpath(subpath, source);
+  if (!selectsRoot) validateRepositorySubpath(rawSubpath, source);
+  const subpath = selectsRoot ? '.' : rawSubpath;
   const ref = parseRepositoryRef(query, source);
   return { original: value, url: urlText, subpath, ref };
 }
@@ -102,9 +108,9 @@ export class RepositoryResolver {
     fs.mkdirSync(root, { recursive: true, mode: 0o700 });
   }
 
-  async resolve(locatorText: string, role: 'template' | 'logo'): Promise<ResolvedRepositoryPath> {
+  async resolve(locatorText: string, role: RepositoryRole): Promise<ResolvedRepositoryPath> {
     const option = `--${role}`;
-    const locator = parseRepositoryLocator(locatorText, option);
+    const locator = parseRepositoryLocator(locatorText, role);
     const key = `${locator.url}\0${locator.ref ?? ''}`;
     let pending = this.checkouts.get(key);
     if (!pending) {
@@ -114,7 +120,7 @@ export class RepositoryResolver {
     const checkout = await pending;
     const selected = path.resolve(checkout.root, ...locator.subpath.split('/'));
     const rootPrefix = checkout.root.endsWith(path.sep) ? checkout.root : checkout.root + path.sep;
-    if (!selected.startsWith(rootPrefix)) {
+    if (locator.subpath !== '.' && !selected.startsWith(rootPrefix)) {
       throw new InputError(`${option}: repository path escapes the checkout`);
     }
     let real: string;

@@ -154,11 +154,11 @@ my-template/
 
 ## 6.4 Git repository sources
 
-A template can be retrieved directly from a subdirectory in a Git repository, and a logo from a file. `//` separates the repository URL from its internal path, and `ref` selects the revision.
+You can fetch a template from the root or a subdirectory of a Git repository and a logo from a file in the repository. Use `git::URL` for a template at the root. This example adds `?ref=` to pin the commit.
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
-  --template 'git::https://github.com/example/pdf-assets.git//templates/corporate?ref=0123456789abcdef0123456789abcdef01234567'
+  --template 'git::https://github.com/example/pdf-assets.git?ref=0123456789abcdef0123456789abcdef01234567'
 ```
 
 This example overrides the default with a logo from another repository.
@@ -169,7 +169,7 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
   --logo 'git::ssh://git@example.com/pdf-assets.git//logos/brand/main.svg?ref=v2.0.0'
 ```
 
-- The path within the repository is relative to its root. It can specify a subdirectory such as `templates/brand/print` or a file such as `logos/brand/main.svg`
+- For a template in a subdirectory, put its path relative to the root after `//`, as in `git::URL//templates/corporate`. `git::URL//` and `git::URL//.` also select the root. Logos require a file path such as `//logos/brand/main.svg`
 - A revision can be a branch, tag, or commit. Omitting it fetches remote `HEAD` with a warning. Pin a full commit hash in CI
 - Private repositories authenticate through a Git credential helper or SSH agent. Do not embed a token or password in the URL
 - Submodules are not fetched. A repository template remains trusted code that can run raw HTML and scripts
