@@ -206,6 +206,12 @@ test('front matter subtitle fills the subtitle slot and slide_font_size sets the
   assert.doesNotMatch(plain.html, /--pfpdf-slide-font-size: /);
   const document = await build(dir, doc.replace('title: Doc', 'title: Doc\nsubtitle: Second line'), []);
   assert.match(document.html, /class="pfpdf-cover-subtitle">Second line<\/p>/);
+  // The author's value follows a template's inline default, so it wins.
+  const template = writeTemplate(dir, {
+    'template.html': '<!doctype html><html><head></head><body style="color: #123; --pfpdf-slide-font-size: 30pt"><main data-pfpdf-slot="content"></main></body></html>',
+  });
+  const custom = await build(dir, withSubtitle, ['--template', template]);
+  assert.match(custom.html, /<body[^>]*style="color: #123; --pfpdf-slide-font-size: 30pt; --pfpdf-slide-font-size: 20pt;"/);
   for (const value of ['"20"', '9', '41', 'large']) {
     await assert.rejects(build(dir, deck.replace('title: Deck', `title: Deck\nslide_font_size: ${value}`), []), (error: unknown) =>
       error instanceof InputError && /slide_font_size/.test(error.message), value);

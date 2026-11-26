@@ -498,8 +498,10 @@ function markSlides(body: Element, slots: SlotMap, metadata: Metadata, slideFont
   properties['data-pfpdf-slides'] = '';
   if (metadata.confidential) properties['data-pfpdf-confidential'] = '';
   if (slideFontSize !== undefined) {
-    const style = typeof properties.style === 'string' ? ` ${properties.style}` : '';
-    properties.style = `--pfpdf-slide-font-size: ${slideFontSize}pt;${style}`;
+    // The author's value comes last so that it wins over a template's inline default.
+    const existing = typeof properties.style === 'string' ? properties.style.trim() : '';
+    const prefix = existing === '' ? '' : `${existing.replace(/;?$/, ';')} `;
+    properties.style = `${prefix}--pfpdf-slide-font-size: ${slideFontSize}pt;`;
   }
   if (slots.cover) (slots.cover.properties ??= {})['data-pfpdf-slide'] = 'title';
 }
