@@ -16,6 +16,7 @@ Options:
   --template SOURCE        Preset name, local directory, or git::URL[//PATH][?ref=REVISION]
   --template-preset NAME   Explicitly select a bundled template preset
   --logo SOURCE            Local file or git::URL//PATH?ref=REVISION; overrides template default
+                           Git sources without a URL scheme try SSH, then HTTPS
   --no-logo                Disable local, repository, and template default logos
   --host-fonts             Use the OS standard font directories
   --font-dir PATH          Additional font directory. Can be specified multiple times

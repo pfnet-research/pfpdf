@@ -171,6 +171,7 @@ Options:
   --template SOURCE        プリセット名、ローカルディレクトリー、または git::URL[//PATH][?ref=REVISION]
   --template-preset NAME   同梱テンプレートのプリセットを明示的に選択
   --logo SOURCE            ローカルファイルまたは git::URL//PATH?ref=REVISION。テンプレートの既定値を上書き
+                           Git URL のスキームを省くと SSH、次に HTTPS を試す
   --no-logo                ローカル・リポジトリー・テンプレート既定のロゴを無効化
   --host-fonts             OS 標準のフォントディレクトリーを使用する
   --font-dir PATH          追加のフォントディレクトリー。複数回指定可能

@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { buildHtml } from '../build.js';
 import { resolveConfig } from '../config.js';
 import { InputError } from '../errors.js';
-import { parseRepositoryLocator } from '../repository.js';
+import { parseRepositoryLocator, RepositoryResolver } from '../repository.js';
 
 const env = { SOURCE_DATE_EPOCH: '1750000000' };
 const log = { warn: (): void => {}, info: (): void => {}, debug: (): void => {} };
@@ -146,4 +146,166 @@ test('repository root template locators load the chosen revision and its relativ
         ref === '' ? [`repository source is not pinned; resolved ${fixture.url} HEAD to ${head}`] : []);
     }
   }
+});
+
+const automaticAddress = 'example.com/assets.git';
+const sshUrl = `ssh://git@${automaticAddress}`;
+const httpsUrl = `https://${automaticAddress}`;
+
+test('a bare repository address shares the explicit syntax for paths and refs', () => {
+  assert.deepEqual(parseRepositoryLocator(`git::${automaticAddress}?ref=main`, 'template'), {
+    original: `git::${automaticAddress}?ref=main`, url: sshUrl, fallbackUrl: httpsUrl, subpath: '.', ref: 'main',
+  });
+  for (const suffix of rootSuffixes) {
+    const source = `git::${automaticAddress}${suffix}?ref=v1`;
+    assert.equal(parseRepositoryLocator(source, 'template').subpath, '.');
+    assert.throws(() => parseRepositoryLocator(source, 'logo'), /repository path/);
+  }
+  assert.equal(parseRepositoryLocator(`git::${automaticAddress}//logos/x.svg?ref=v1`, 'logo').subpath, 'logos/x.svg');
+  assert.equal(parseRepositoryLocator(`git::${sshUrl}`, 'template').fallbackUrl, undefined);
+  assert.equal(parseRepositoryLocator('git::ssh://servant@[::1]:2121/assets.git', 'template').url,
+    'ssh://servant@[::1]:2121/assets.git');
+  for (const bad of [
+    './assets.git', 'assets/other.git', 'localhost/assets.git', '127.0.0.1/assets.git',
+    'example.com', 'example.com:22/assets.git', '[::1]/assets.git', 'example.com:assets.git',
+    'git@example.com/assets.git', 'user:secret@example.com/assets.git', 'example.com/../assets.git',
+    'example.com/assets.git//../logo.svg', 'example.com/assets.git?ref=--help',
+    'example.com/assets.git#main', 'example.com/space here.git',
+  ]) {
+    assert.throws(() => parseRepositoryLocator(`git::${bad}`, 'template'), InputError, bad);
+  }
+});
+
+interface TraceEvent {
+  event: string;
+  sid?: string;
+  argv?: string[];
+  param?: string;
+  value?: string;
+}
+
+function withRewrites(t: TestContext, primary: string, fallback: string) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pfpdf-repository-transport-'));
+  t.after(() => { fs.rmSync(root, { recursive: true, force: true }); });
+  const trace = path.join(root, 'trace.jsonl');
+  const gitConfig = path.join(root, 'gitconfig');
+  fs.writeFileSync(gitConfig, '');
+  const testEnv = {
+    ...env,
+    GIT_CONFIG_NOSYSTEM: '1',
+    GIT_CONFIG_GLOBAL: gitConfig,
+    GIT_CONFIG_COUNT: '2',
+    GIT_CONFIG_KEY_0: `url.${primary}.insteadOf`,
+    GIT_CONFIG_VALUE_0: sshUrl,
+    GIT_CONFIG_KEY_1: `url.${fallback}.insteadOf`,
+    GIT_CONFIG_VALUE_1: httpsUrl,
+    GIT_ASKPASS: 'unwanted-interactive-prompt',
+    GIT_TRACE2_EVENT: trace,
+    GIT_TRACE2_ENV_VARS: 'GIT_TERMINAL_PROMPT,GIT_ASKPASS,SSH_ASKPASS_REQUIRE,GCM_INTERACTIVE',
+  };
+  const events = (): TraceEvent[] => fs.readFileSync(trace, 'utf8').trim().split('\n')
+    .map((line) => JSON.parse(line) as TraceEvent);
+  const fetches = (): Array<string | undefined> => events().filter((event) =>
+    event.event === 'start' && event.argv?.[3] === 'fetch').map((event) => event.argv?.at(-1));
+  return { root, testEnv, events, fetches };
+}
+
+test('automatic SSH success is shared between template and logo without trying HTTPS', async (t) => {
+  const fixture = makeRepository(t);
+  const testGit = withRewrites(t, fixture.url, pathToFileURL(path.join(fixture.root, 'unavailable')).href);
+  const locator = `git::${automaticAddress}`;
+  const config = resolveConfig([
+    '--input', fixture.input, '--output', 'x.pdf',
+    '--template', `${locator}//templates/corporate?ref=${fixture.commit}`,
+    '--logo', `${locator}//logos/nested/override.svg?ref=${fixture.commit}`,
+  ], process.cwd());
+  const result = await buildHtml(config, testGit.testEnv, log);
+  assert.match(result.html, /Repository template/);
+  assert.match(result.html, /override\.svg/);
+  assert.deepEqual(testGit.fetches(), [fixture.commit]);
+});
+
+test('automatic fetch tries HTTPS after SSH failure and avoids prompts', async (t) => {
+  const fixture = makeRepository(t);
+  const testGit = withRewrites(t, pathToFileURL(path.join(fixture.root, 'unavailable')).href, fixture.url);
+  const messages: string[] = [];
+  const resolver = new RepositoryResolver(path.join(testGit.root, 'checkouts'), log.warn,
+    (message) => { messages.push(message); }, testGit.testEnv);
+  const resolved = await resolver.resolve(`git::${automaticAddress}//templates/corporate?ref=${fixture.commit}`, 'template');
+  assert.equal(resolved.commit, fixture.commit);
+  const logo = await resolver.resolve(`git::${automaticAddress}//logos/nested/override.svg?ref=${fixture.commit}`, 'logo');
+  assert.equal(logo.repositoryRoot, resolved.repositoryRoot);
+  assert.deepEqual(testGit.fetches(), [fixture.commit, fixture.commit]);
+  assert.match(messages.join('\n'), /SSH URL failed .*trying the HTTPS URL/);
+  assert.ok(messages.includes(`resolved repository ${httpsUrl} at ${fixture.commit}`));
+  const events = testGit.events();
+  for (const { sid } of events.filter((event) => event.event === 'start' && event.argv?.[3] === 'fetch')) {
+    assert.ok(sid);
+    const observed = new Map(events.filter((event) => event.event === 'def_param' && event.sid === sid)
+      .map((event) => [event.param, event.value]));
+    assert.equal(observed.get('GIT_TERMINAL_PROMPT'), '0');
+    assert.equal(observed.get('GIT_ASKPASS') ?? '', '');
+    assert.equal(observed.get('SSH_ASKPASS_REQUIRE'), 'never');
+    assert.equal(observed.get('GCM_INTERACTIVE'), '0');
+  }
+});
+
+test('both failed transports produce safe diagnoses without leaking stderr', async (t) => {
+  const fixture = makeRepository(t);
+  const marker = 'never-show-this-helper-secret';
+  const testGit = withRewrites(t, pathToFileURL(path.join(fixture.root, marker, 'ssh')).href,
+    pathToFileURL(path.join(fixture.root, marker, 'https')).href);
+  const resolver = new RepositoryResolver(path.join(testGit.root, 'checkouts'), log.warn, log.info, testGit.testEnv);
+  await assert.rejects(resolver.resolve(`git::${automaticAddress}?ref=${fixture.commit}`, 'template'), (error: unknown) =>
+    error instanceof Error && /repository fetch failed: SSH URL: .*, HTTPS URL: /.test(error.message) && !error.message.includes(marker));
+  assert.deepEqual(testGit.fetches(), [fixture.commit, fixture.commit]);
+});
+
+test('an explicit URL is tried once even when the other transport has the revision', async (t) => {
+  const fixture = makeRepository(t);
+  for (const url of [sshUrl, httpsUrl]) {
+    const missing = pathToFileURL(path.join(fixture.root, 'unavailable')).href;
+    const testGit = url === sshUrl ? withRewrites(t, missing, fixture.url) : withRewrites(t, fixture.url, missing);
+    const resolver = new RepositoryResolver(path.join(testGit.root, 'checkouts'), log.warn, log.info, testGit.testEnv);
+    await assert.rejects(resolver.resolve(`git::${url}?ref=${fixture.commit}`, 'template'), /git fetch failed|not accessible/);
+    assert.deepEqual(testGit.fetches(), [fixture.commit]);
+  }
+});
+
+test('a path or template error following a successful fetch does not try HTTPS', async (t) => {
+  const fixture = makeRepository(t);
+  fs.writeFileSync(path.join(fixture.root, 'templates', 'corporate', 'style.css'), '@import "./missing.css";');
+  commitFixture(fixture.root);
+  const pinned = git(['rev-parse', 'HEAD'], fixture.root);
+  for (const [subpath, message] of [
+    ['//missing', /path not found/],
+    ['//logos', /template\.html/],
+    ['//templates/corporate', /missing\.css/],
+  ] as const) {
+    const testGit = withRewrites(t, fixture.url, fixture.url);
+    const config = resolveConfig([
+      '--input', fixture.input, '--output', 'x.pdf',
+      '--template', `git::${automaticAddress}${subpath}?ref=${pinned}`,
+    ], process.cwd());
+    await assert.rejects(buildHtml(config, testGit.testEnv, log), message);
+    assert.deepEqual(testGit.fetches(), [pinned]);
+  }
+});
+
+test('an automatic SSH timeout leaves time for HTTPS', async (t) => {
+  const fixture = makeRepository(t);
+  const testGit = withRewrites(t, sshUrl, fixture.url);
+  const timedOut = path.join(testGit.root, 'stall-ssh.js');
+  fs.writeFileSync(timedOut, 'setTimeout(() => {}, 10000);');
+  const messages: string[] = [];
+  const resolver = new RepositoryResolver(path.join(testGit.root, 'checkouts'), log.warn,
+    (message) => { messages.push(message); }, {
+      ...testGit.testEnv,
+      GIT_SSH_VARIANT: 'simple',
+      GIT_SSH_COMMAND: `"${process.execPath.replaceAll('\\', '/')}" "${timedOut.replaceAll('\\', '/')}"`,
+    }, 4000);
+  const result = await resolver.resolve(`git::${automaticAddress}//templates/corporate?ref=${fixture.commit}`, 'template');
+  assert.equal(result.commit, fixture.commit);
+  assert.deepEqual(testGit.fetches(), [fixture.commit, fixture.commit]);
+  assert.ok(messages.includes('repository fetch from the SSH URL failed (git fetch timed out after 2000 ms); trying the HTTPS URL'));
 });

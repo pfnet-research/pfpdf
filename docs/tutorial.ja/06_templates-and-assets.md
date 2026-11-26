@@ -155,12 +155,14 @@ my-template/
 
 ## 6.4 Git リポジトリーからの取得
 
-テンプレートは Git リポジトリーのルートやサブディレクトリーから、ロゴはリポジトリー内のファイルから直接取得できます。テンプレートがルートにある場合は `git::URL` を使います。次の例では `?ref=` を付け、取得するコミットを固定しています。
+テンプレートは Git リポジトリーのルートやサブディレクトリーから、ロゴはリポジトリー内のファイルから取得できます。HTTPS と SSH の設定が人によって違う場合は、`git::github.com/組織名/リポジトリー名.git` のようにスキームを省いて、同じビルドコマンドを使えます。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
-  --template 'git::https://github.com/example/pdf-assets.git?ref=0123456789abcdef0123456789abcdef01234567'
+  --template 'git::github.com/example/pdf-assets.git?ref=0123456789abcdef0123456789abcdef01234567'
 ```
+
+スキームを省くと `ssh://git@ホスト/パス` を先に試し、取得に失敗すると同じホスト、パス、リビジョンを HTTPS で試します。ポートや SSH ユーザー名を指定する場合と、接続方式を固定する場合は、`git::https://...` または `git::ssh://...` を明示します。明示した URL では、もう一方の URL を試しません。実際の接続先には Git の `url.*.insteadOf` などの設定が適用されます。
 
 別のリポジトリーのロゴで、既定のロゴを上書きする例です。
 
@@ -172,17 +174,10 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
 
 - サブディレクトリーにあるテンプレートを使う場合は、`git::URL//templates/corporate` のように `//` の後にルートからの相対パスを書きます。`git::URL//` と `git::URL//.` もルートを選びます。ロゴには `//logos/brand/main.svg` のようなファイルパスが必要です
 - リビジョンにはブランチ、タグ、コミットを使えます。省略時はリモートの `HEAD` を取得して警告を出します。CI では完全なコミットハッシュに固定してください
-- テンプレートには `git::ssh://git@github.com/example/pdf-assets.git?ref=v2.0.0` のような SSH URL も指定できます。同じ HTTPS URL を共有し、利用者ごとに接続方式を選ぶときは、利用者の Git 設定で [`url.<base>.insteadOf`](https://git-scm.com/docs/git-config) を設定します。pfpdf は新しい一時リポジトリーで Git を実行するので、ユーザー単位または実行時の設定を使います。
-- 非公開リポジトリーは Git の認証情報ヘルパーまたは SSH エージェントで認証します。トークンやパスワードを URL へ埋め込まないでください
+- SSH エージェントと Git の認証情報ヘルパーを使えます。自動選択では、利用者の入力を求める Git と OpenSSH のプロンプトを無効にします。SSH のホスト鍵は既存の SSH 設定に従って検証します。
+- トークンやパスワードは URL へ埋め込まず、あらかじめ認証を設定してください
 - サブモジュールは取得しません。リポジトリーから取得するテンプレートも、生の HTML やスクリプトを実行できる信頼済みコードです
 - オフラインでビルドを繰り返す場合は、あらかじめリポジトリーをクローンし、`--template` や `--logo` でローカルパスを渡せます
-SSH を使う人が上の HTTPS の例を自分の環境だけで書き換えるときは、次のように設定します。
-
-```bash
-git config --global --add \
-  'url.ssh://git@github.com/example/pdf-assets.git.insteadOf' \
-  'https://github.com/example/pdf-assets.git'
-```
 
 ## 6.5 ローカルアセット
 

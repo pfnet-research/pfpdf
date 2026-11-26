@@ -693,3 +693,10 @@ Each decision follows this format:
 - Decision: Use `font_size: 20` in the front matter and `<!-- pfpdf:font_size=18 -->` at the start of a slide. Interpret a finite positive number without a unit as points in either location, and append `pt` in the CSS property `--pfpdf-font-size`. Put the deck or document value on `body` and the local value on the slide. When omitted, use the template size. Use `#` headings for the table of contents and add standalone divider slides when `section_covers: true`.
 - Comparison: Requiring `20pt` makes the unit visible at the point of use and adds string parsing for a value that uses one unit. Making the suffix optional adds multiple representations and validation cases for the same value. Points are absolute lengths used in PDFs and print, and match the previous numeric setting, so use one number. Making dividers the default adds one slide per `#` even in a short deck, so keep them selectable.
 - Replacement: Remove `slide_font_size` and the bundled `size=small` / `size=x-small` rules and update examples to use point values. Template-specific page options still pass through as attributes.
+
+## DD-63: Try SSH first when a Git locator omits the scheme
+
+- Status: adopted (2026-11-27)
+- Problem: Share one conversion command when authors and PDF builders authenticate through different transports.
+- Decision: Accept the shorthand `git::HOST/PATH`. Try SSH first when the scheme is omitted, then fetch the same revision over HTTPS if the SSH fetch fails. The caller still chooses an external template explicitly on the CLI.
+- Comparison: Editing the URL or setting a Git rewrite rule requires per-user setup. Honor the selected transport when the scheme is explicit. Stop after a file validation failure following a successful fetch so another fetch cannot mask an error in the template.

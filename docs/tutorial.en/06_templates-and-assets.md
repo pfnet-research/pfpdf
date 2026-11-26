@@ -155,12 +155,14 @@ my-template/
 
 ## 6.4 Git repository sources
 
-You can fetch a template from the root or a subdirectory of a Git repository and a logo from a file in the repository. Use `git::URL` for a template at the root. This example adds `?ref=` to pin the commit.
+You can fetch a template from the root or a subdirectory of a Git repository and a logo from a file in the repository. When users have different HTTPS or SSH setups, omit the scheme to share one build command, as in `git::github.com/organization/repository.git`.
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
-  --template 'git::https://github.com/example/pdf-assets.git?ref=0123456789abcdef0123456789abcdef01234567'
+  --template 'git::github.com/example/pdf-assets.git?ref=0123456789abcdef0123456789abcdef01234567'
 ```
+
+With no scheme, pfpdf first tries `ssh://git@host/path`. A failed fetch falls back to HTTPS with the same host, path, and revision. For a custom port or SSH user, or to select the transport explicitly, use `git::https://...` or `git::ssh://...`. An explicit URL does not trigger a second attempt. Git settings such as `url.*.insteadOf` still apply to either URL.
 
 This example overrides the default with a logo from another repository.
 
@@ -172,17 +174,10 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
 
 - For a template in a subdirectory, put its path relative to the root after `//`, as in `git::URL//templates/corporate`. `git::URL//` and `git::URL//.` also select the root. Logos require a file path such as `//logos/brand/main.svg`
 - A revision can be a branch, tag, or commit. Omitting it fetches remote `HEAD` with a warning. Pin a full commit hash in CI
-- A template can also use an SSH URL such as `git::ssh://git@github.com/example/pdf-assets.git?ref=v2.0.0`. To share one HTTPS URL and let each user choose their transport, use Git's [`url.<base>.insteadOf`](https://git-scm.com/docs/git-config) in user or command-scope configuration. pfpdf fetches from a fresh temporary repository.
-- Private repositories authenticate through a Git credential helper or SSH agent. Do not embed a token or password in the URL
+- Use an SSH agent or Git credential helper for authentication. Automatic selection disables Git and OpenSSH prompts that require user input. SSH host key verification follows the existing SSH configuration.
+- Configure authentication in advance. Do not embed a token or password in the URL
 - Submodules are not fetched. A repository template remains trusted code that can run raw HTML and scripts
 - For repeated offline builds, clone the repository ahead of time and pass a local path through `--template` or `--logo`
-For example, an SSH user can rewrite the HTTPS URL above in their own Git configuration.
-
-```bash
-git config --global --add \
-  'url.ssh://git@github.com/example/pdf-assets.git.insteadOf' \
-  'https://github.com/example/pdf-assets.git'
-```
 
 ## 6.5 Local assets
 
