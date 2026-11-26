@@ -7,6 +7,7 @@ import { toHtml } from 'hast-util-to-html';
 import { visit } from 'unist-util-visit';
 import type { Root as HastRoot, Element, ElementContent } from 'hast';
 import { InputError, RuntimeError } from './errors.js';
+import { FONT_SIZE_PROPERTY } from './font-size.js';
 import {
   type ResourceManifest,
   rewriteElementResources,
@@ -261,8 +262,8 @@ export interface BuildOptions {
   logo: { kind: 'template' | 'none' } | { kind: 'file'; absPath: string };
   toc: boolean;
   cover?: boolean;
-  /** `slide_font_size` from front matter, in points. */
-  slideFontSize?: number | undefined;
+  /** `font_size` from front matter, in points. */
+  fontSize?: number | undefined;
   fontFaceCss: string;
   warn: (msg: string) => void;
 }
@@ -373,7 +374,16 @@ export function buildDocumentHtml(opts: BuildOptions): { html: string; generated
   }
 
   // Slot: toc / content
-  if (opts.body.slideCount !== undefined) markSlides(htmlBody, slots, opts.slideFontSize);
+  const slides = opts.body.slideCount !== undefined;
+  if (slides) markSlides(htmlBody, slots);
+  if (opts.fontSize !== undefined) {
+    appendInlineStyle(htmlBody, `${FONT_SIZE_PROPERTY}: ${opts.fontSize}pt;`);
+    if (!slides) {
+      for (const section of opts.body.sections) {
+        appendInlineStyle(section, `font-size: var(${FONT_SIZE_PROPERTY});`);
+      }
+    }
+  }
   applyCoverVisibility(root, htmlBody, slots, opts.cover !== false, metadata);
 
   const tocEl = opts.toc && opts.body.toc.length > 0 ? tocElement(opts.body.toc, metadata.lang) : null;
@@ -494,16 +504,17 @@ function setOptionalText(root: HastRoot, slot: Element | undefined, value: strin
   else slot.children = [text(value)];
 }
 
+/** Append the author's value after existing inline template styles. */
+function appendInlineStyle(element: Element, style: string): void {
+  const properties = element.properties ??= {};
+  const existing = typeof properties.style === 'string' ? properties.style.trim() : '';
+  const prefix = existing === '' ? '' : `${existing.replace(/;?$/, ';')} `;
+  properties.style = prefix + style;
+}
+
 /** Attributes that slide templates select on; the cover becomes the title slide. */
-function markSlides(body: Element, slots: SlotMap, slideFontSize: number | undefined): void {
-  const properties = body.properties ??= {};
-  properties['data-pfpdf-slides'] = '';
-  if (slideFontSize !== undefined) {
-    // The author's value comes last so that it wins over a template's inline default.
-    const existing = typeof properties.style === 'string' ? properties.style.trim() : '';
-    const prefix = existing === '' ? '' : `${existing.replace(/;?$/, ';')} `;
-    properties.style = `${prefix}--pfpdf-slide-font-size: ${slideFontSize}pt;`;
-  }
+function markSlides(body: Element, slots: SlotMap): void {
+  (body.properties ??= {})['data-pfpdf-slides'] = '';
   if (slots.cover) (slots.cover.properties ??= {})['data-pfpdf-slide'] = 'title';
 }
 

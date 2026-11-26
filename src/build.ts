@@ -131,7 +131,7 @@ async function prepareDocument(
     logo,
     toc: slideOptions === undefined && documentConfig.toc.value,
     cover: documentConfig.cover.value,
-    slideFontSize: slideOptions === undefined ? undefined : input.config.slideFontSize,
+    fontSize: input.config.fontSize,
     fontFaceCss: fonts.css,
     warn: log.warn,
   });

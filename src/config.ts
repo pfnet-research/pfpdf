@@ -303,8 +303,8 @@ export interface FrontMatterConfig {
   template: string | null;
   slides?: boolean;
   sectionCovers?: boolean;
-  /** Body text size of slides in points; templates read it as --pfpdf-slide-font-size. */
-  slideFontSize?: number;
+  /** Body text size in points; templates read it as --pfpdf-font-size. */
+  fontSize?: number;
   toc: boolean | null;
   cover: boolean | null;
   logo: { kind: 'none' } | { kind: 'local'; path: string; absPath: string } | null;

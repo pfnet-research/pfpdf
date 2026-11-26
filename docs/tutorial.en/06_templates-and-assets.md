@@ -150,7 +150,8 @@ my-template/
 - A template without slide variant files uses its three files as they are, even with `slides: true`. A template made only for slides can keep using just the three files
 - Put the parts that the document and slide variants share in a file such as `theme.css`, and load it from both stylesheets with `@import "./theme.css";`. Because the files sit in the same directory, images and fonts use the same relative paths as in the document variant. If little is shared, you need not split it out
 - A `<link rel="stylesheet">` in `template.html` is loaded after the page size, so it can override `@page` properties such as `size`. Load shared CSS with `@import`
-- In slides, the `cover` slot receives `data-pfpdf-slide="title"`. Every page that pfpdf builds has a `data-pfpdf-slide` attribute: `agenda` for the table of contents, `section` for dividers, and `content` or the `layout` value for other pages. Page titles have `.pfpdf-slide-title`, subtitles from a `###` directly after `##` have `.pfpdf-slide-subtitle`, and page bodies have `.pfpdf-slide-body`. `slide_font_size` in the front matter is set on `body` as the CSS variable `--pfpdf-slide-font-size`. Using this variable for the body text size lets authors resize the text of a whole deck. `<!-- pfpdf:size=small -->` at the beginning of a page becomes a `data-pfpdf-size="small"` attribute. The table of contents is built as pages, so the `toc` slot is not used
+- In slides, the `cover` slot receives `data-pfpdf-slide="title"`. Every page that pfpdf builds has a `data-pfpdf-slide` attribute: `agenda` for the table of contents, `section` for dividers, and `content` or the `layout` value for other pages. Page titles have `.pfpdf-slide-title`, subtitles from a `###` directly after `##` have `.pfpdf-slide-subtitle`, and page bodies have `.pfpdf-slide-body`. The table of contents is built as pages, so the `toc` slot is not used.
+- pfpdf sets the CSS property `--pfpdf-font-size` on `body` from the front matter and applies it to document or slide body text. The comment `<!-- pfpdf:font_size=18 -->` sets the same property on a single slide. Templates with layouts that set an explicit font size can use the property to honor the setting there.
 
 ## 6.4 Git repository sources
 
@@ -171,9 +172,17 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
 
 - For a template in a subdirectory, put its path relative to the root after `//`, as in `git::URL//templates/corporate`. `git::URL//` and `git::URL//.` also select the root. Logos require a file path such as `//logos/brand/main.svg`
 - A revision can be a branch, tag, or commit. Omitting it fetches remote `HEAD` with a warning. Pin a full commit hash in CI
+- A template can also use an SSH URL such as `git::ssh://git@github.com/example/pdf-assets.git?ref=v2.0.0`. To share one HTTPS URL and let each user choose their transport, use Git's [`url.<base>.insteadOf`](https://git-scm.com/docs/git-config) in user or command-scope configuration. pfpdf fetches from a fresh temporary repository.
 - Private repositories authenticate through a Git credential helper or SSH agent. Do not embed a token or password in the URL
 - Submodules are not fetched. A repository template remains trusted code that can run raw HTML and scripts
 - For repeated offline builds, clone the repository ahead of time and pass a local path through `--template` or `--logo`
+For example, an SSH user can rewrite the HTTPS URL above in their own Git configuration.
+
+```bash
+git config --global --add \
+  'url.ssh://git@github.com/example/pdf-assets.git.insteadOf' \
+  'https://github.com/example/pdf-assets.git'
+```
 
 ## 6.5 Local assets
 

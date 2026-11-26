@@ -3,7 +3,7 @@
 body[data-pfpdf-slides] {
   margin: 0;
   font-family: "Noto Sans JP", "Noto Sans", sans-serif;
-  font-size: var(--pfpdf-slide-font-size, 18pt);
+  font-size: 18pt;
   line-height: 1.4;
 }
 
@@ -13,6 +13,11 @@ body[data-pfpdf-slides] {
   position: relative;
   padding: 30pt 36pt;
   overflow-wrap: anywhere;
+}
+
+/* An explicit size applies to the slide body, including relative sizes within it. */
+:where([data-pfpdf-slide]:not([data-pfpdf-slide="agenda"], [data-pfpdf-slide="section"], [data-pfpdf-slide="title"])) > .pfpdf-slide-body {
+  font-size: var(--pfpdf-font-size, inherit);
 }
 
 [data-pfpdf-slide] + [data-pfpdf-slide],
