@@ -1,7 +1,7 @@
 /** Resolve trusted files and directories from explicitly selected Git repositories. */
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { InputError, RuntimeError } from './errors.js';
 
 export interface RepositoryLocator {
@@ -233,6 +233,30 @@ function fetchFailure(stderr: string, exit: string): GitFetchError {
   return new GitFetchError(cause ?? `git fetch failed (${exit})`);
 }
 
+function stopGit(child: ChildProcess, stopped: () => void): void {
+  const pid = child.pid;
+  if (pid === undefined) {
+    stopped();
+    return;
+  }
+  if (process.platform === 'win32') {
+    // Git's SSH or credential helper can otherwise keep the checkout locked.
+    const root = process.env['SystemRoot'] ?? process.env['WINDIR'];
+    const taskkill = root === undefined ? 'taskkill.exe' : path.join(root, 'System32', 'taskkill.exe');
+    execFile(taskkill, ['/pid', String(pid), '/t', '/f'], { timeout: 1_000, windowsHide: true }, (error) => {
+      if (error) child.kill('SIGKILL');
+      stopped();
+    });
+    return;
+  }
+  try {
+    process.kill(-pid, 'SIGKILL');
+  } catch {
+    // The process group may have already exited.
+  }
+  stopped();
+}
+
 async function runGit(
   args: string[],
   env: Record<string, string | undefined>,
@@ -264,16 +288,12 @@ async function runGit(
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
-      try {
-        if (separateSession && child.pid !== undefined) process.kill(-child.pid, 'SIGKILL');
-        else child.kill('SIGKILL');
-      } catch {
-        // The process group may have already exited.
-      }
-      child.stdout.destroy();
-      child.stderr.destroy();
-      const message = `git ${fetch ? 'fetch' : 'command'} timed out after ${timeoutMs} ms`;
-      reject(fetch ? new GitFetchError(message) : new RuntimeError(message));
+      stopGit(child, () => {
+        child.stdout.destroy();
+        child.stderr.destroy();
+        const message = `git ${fetch ? 'fetch' : 'command'} timed out after ${timeoutMs} ms`;
+        reject(fetch ? new GitFetchError(message) : new RuntimeError(message));
+      });
     }, timeoutMs);
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
