@@ -292,11 +292,12 @@ test('a path or template error following a successful fetch does not try HTTPS',
   }
 });
 
-test('an automatic SSH timeout leaves time for HTTPS', async (t) => {
+test('an automatic SSH timeout leaves time and an unlocked checkout for HTTPS', async (t) => {
   const fixture = makeRepository(t);
   const testGit = withRewrites(t, sshUrl, fixture.url);
-  const timedOut = path.join(testGit.root, 'stall-ssh.js');
-  fs.writeFileSync(timedOut, 'setTimeout(() => {}, 10000);');
+  const timedOut = path.join(testGit.root, 'stall-ssh.cjs');
+  // Git runs SSH in the checkout. A fetch stopped mid-transfer leaves this lock behind.
+  fs.writeFileSync(timedOut, 'require("node:fs").writeFileSync(".git/shallow.lock", ""); setTimeout(() => {}, 10000);');
   const messages: string[] = [];
   const resolver = new RepositoryResolver(path.join(testGit.root, 'checkouts'), log.warn,
     (message) => { messages.push(message); }, {

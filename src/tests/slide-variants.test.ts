@@ -211,14 +211,21 @@ test('font_size sets a body size in points and a slide may override it', async (
   const dir = workspace(t);
   const source = deck.replace('title: Deck', 'title: Deck\nfont_size: 20')
     .replace('## First\n', '## First\n\n<!-- pfpdf:font_size=18.5 audience=client -->\n')
-    + '\n## Second\n\nOther text\n';
+    + '\n## Second\n\nOther text\n\n## Divider\n\n<!-- pfpdf:layout=section -->\n\nHand-made divider\n';
   const slides = await build(dir, source, []);
   assert.match(slides.html, /<body[^>]*style="--pfpdf-font-size: 20pt;"/);
   assert.match(slides.html, /<section[^>]*style="--pfpdf-font-size: 18.5pt;"[^>]*data-pfpdf-audience="client">/);
   assert.equal((slides.html.match(/<section[^>]*style="--pfpdf-font-size:/g) ?? []).length, 1);
   assert.doesNotMatch(slides.html, /data-pfpdf-font_size/);
+  // Only the two regular slides, not the agenda or a page with layout=section, apply the size inline over template rules.
+  const sizedBody = /class="pfpdf-slide-body" style="font-size: var\(--pfpdf-font-size\);"/g;
+  assert.equal((slides.html.match(sizedBody) ?? []).length, 2);
+  const local = await build(dir, source.replace('font_size: 20\n', ''), []);
+  assert.equal((local.html.match(sizedBody) ?? []).length, 1);
+  // Without a size, no rule overrides a template's own slide body size.
   const plain = await build(dir, deck, []);
-  assert.doesNotMatch(plain.html, /--pfpdf-font-size: /);
+  assert.doesNotMatch(plain.html, /--pfpdf-font-size/);
+  assert.doesNotMatch(plain.generated.get('generated/slides.css')!.toString(), /--pfpdf-font-size/);
 
   const template = writeTemplate(dir, {
     'template.html': '<!doctype html><html><head></head><body style="color: #123; --pfpdf-font-size: 30pt"><main data-pfpdf-slot="content"></main></body></html>',

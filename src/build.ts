@@ -116,6 +116,7 @@ async function prepareDocument(
     toc: documentConfig.toc.value,
     sectionCovers: input.config.sectionCovers === true,
     lang: input.metadata.lang,
+    fontSize: input.config.fontSize,
   } : undefined;
   const body = await buildDocumentBody(input.files, manifest, template.reservedIds, {
     warn: log.warn,

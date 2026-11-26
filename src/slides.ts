@@ -11,6 +11,8 @@ export interface SlideOptions {
   toc: boolean;
   sectionCovers: boolean;
   lang?: string;
+  /** `font_size` from front matter, in points. */
+  fontSize?: number | undefined;
 }
 
 // Region names belong to templates. Only `talk` (speaker notes) and `body`
@@ -198,6 +200,12 @@ export function assembleSlides(
         else if (key !== 'layout') slide.properties[`data-pfpdf-${key}`] = value;
       }
       const body = buildSlideBody(children);
+      // Inline, so an explicit size wins over template rules and an omitted one leaves them alone.
+      // Covers, agendas, and dividers keep template sizes, even when a page names that layout.
+      if ((modifiers.font_size !== undefined || options.fontSize !== undefined)
+        && !['agenda', 'section', 'title'].includes(modifiers.layout ?? 'content')) {
+        body.properties = { ...body.properties, style: `font-size: var(${FONT_SIZE_PROPERTY});` };
+      }
       for (const heading of pendingGroups) {
         classes(heading, 'pfpdf-slide-group-anchor');
         slide.children.push(heading);

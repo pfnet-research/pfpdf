@@ -157,12 +157,7 @@ export class RepositoryResolver {
   }
 
   private async checkout(locator: RepositoryLocator): Promise<Checkout> {
-    this.sequence++;
-    const destination = path.join(this.root, `git-${String(this.sequence).padStart(4, '0')}`);
-    fs.mkdirSync(destination, { mode: 0o700 });
-    await runGit(['init', '--quiet', destination], this.env, this.timeoutMs);
-    await runGit(['-C', destination, 'remote', 'add', 'origin', locator.url], this.env, this.timeoutMs);
-    const resolvedUrl = await this.fetch(destination, locator);
+    const { destination, url: resolvedUrl } = await this.fetch(locator);
     await runGit(
       ['-C', destination, 'checkout', '--quiet', '--detach', 'FETCH_HEAD'],
       this.env,
@@ -179,22 +174,16 @@ export class RepositoryResolver {
     this.info(`resolved repository ${resolvedUrl} at ${commit}`);
     return { root: fs.realpathSync(destination), commit };
   }
-  private async fetch(destination: string, locator: RepositoryLocator): Promise<string> {
-    const fetchArgs = [
-      '-C', destination, 'fetch', '--quiet', '--depth=1', '--no-tags',
-      '--no-recurse-submodules', 'origin', locator.ref ?? 'HEAD',
-    ];
+  private async fetch(locator: RepositoryLocator): Promise<{ destination: string; url: string }> {
     if (locator.fallbackUrl === undefined) {
-      await runGit(fetchArgs, this.env, this.timeoutMs, 'explicit');
-      return locator.url;
+      return { destination: await this.fetchInto(locator.url, locator.ref, () => this.timeoutMs, 'explicit'), url: locator.url };
     }
 
     const deadline = performance.now() + this.timeoutMs;
     // Keep time for the HTTPS attempt even when SSH cannot connect.
     const sshTimeout = Math.max(1, Math.min(AUTO_SSH_TIMEOUT_MS, Math.floor(this.timeoutMs / 2)));
     try {
-      await runGit(fetchArgs, this.env, sshTimeout, 'automatic');
-      return locator.url;
+      return { destination: await this.fetchInto(locator.url, locator.ref, () => sshTimeout, 'automatic'), url: locator.url };
     } catch (sshError) {
       if (!(sshError instanceof GitFetchError)) throw sshError;
       this.info(`repository fetch from the SSH URL failed (${sshError.message}); trying the HTTPS URL`);
@@ -204,14 +193,34 @@ export class RepositoryResolver {
         return time;
       };
       try {
-        await runGit(['-C', destination, 'remote', 'set-url', 'origin', locator.fallbackUrl], this.env, remaining());
-        await runGit(fetchArgs, this.env, remaining(), 'automatic');
-        return locator.fallbackUrl;
+        return {
+          destination: await this.fetchInto(locator.fallbackUrl, locator.ref, remaining, 'automatic'),
+          url: locator.fallbackUrl,
+        };
       } catch (httpsError) {
         if (!(httpsError instanceof GitFetchError)) throw httpsError;
         throw new RuntimeError(`repository fetch failed: SSH URL: ${sshError.message}, HTTPS URL: ${httpsError.message}`);
       }
     }
+  }
+
+  /**
+   * Fetch into a new directory. A Git process stopped by a timeout can leave
+   * locks such as `.git/shallow.lock`; a later attempt never reuses them.
+   */
+  private async fetchInto(
+    url: string, ref: string | null, timeout: () => number, fetch: 'explicit' | 'automatic',
+  ): Promise<string> {
+    this.sequence++;
+    const destination = path.join(this.root, `git-${String(this.sequence).padStart(4, '0')}`);
+    fs.mkdirSync(destination, { mode: 0o700 });
+    await runGit(['init', '--quiet', destination], this.env, timeout());
+    await runGit(['-C', destination, 'remote', 'add', 'origin', url], this.env, timeout());
+    await runGit([
+      '-C', destination, 'fetch', '--quiet', '--depth=1', '--no-tags',
+      '--no-recurse-submodules', 'origin', ref ?? 'HEAD',
+    ], this.env, timeout(), fetch);
+    return destination;
   }
 }
 

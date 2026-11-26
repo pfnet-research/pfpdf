@@ -15,11 +15,6 @@ body[data-pfpdf-slides] {
   overflow-wrap: anywhere;
 }
 
-/* An explicit size applies to the slide body, including relative sizes within it. */
-:where([data-pfpdf-slide]:not([data-pfpdf-slide="agenda"], [data-pfpdf-slide="section"], [data-pfpdf-slide="title"])) > .pfpdf-slide-body {
-  font-size: var(--pfpdf-font-size, inherit);
-}
-
 [data-pfpdf-slide] + [data-pfpdf-slide],
 [data-pfpdf-slide="title"] + main > [data-pfpdf-slide]:first-child {
   break-before: page;
