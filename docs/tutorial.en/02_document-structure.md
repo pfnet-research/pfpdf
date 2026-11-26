@@ -167,7 +167,7 @@ Explain the comparison conditions aloud.
 ```
 
 - A top-level `#` begins a group. A top-level `##` begins a new page and supplies its title. Use `###` and deeper headings within a page. Use `___` to start a page without a title.
-- A `###` written directly after a `##` becomes that page's subtitle and appears right below the title. With body text or a `::: name` in between, it stays an ordinary heading. Set the cover subtitle with `subtitle` in the front matter.
+- A `###` written directly after a `##` becomes that page's subtitle and appears right below the title. With body text or a `::: name` in between, it stays an ordinary heading. A raw HTML `<h3>` is treated the same way, so put body text before it to keep it as a heading in the body. Set the cover subtitle with `subtitle` in the front matter.
 - The cover uses front matter such as the title, author, and date. An omitted title falls back to the input file or directory name. The cover and table of contents are enabled by default. Use `cover: false` or `toc: false` to omit them. A template without a cover slot produces no cover.
 - The table of contents comes from `#` headings and is omitted when none are present. `section_covers: true` adds a divider at the start of each group. The table of contents continues on a new page after every five entries.
 - `::: name` starts a region, which continues until the next `::: name` or page. Adjacent regions with the same name form one group and, by default, sit side by side from left to right. The `::: column` regions in the example work this way. Names may contain lowercase letters, digits, and `-`.
