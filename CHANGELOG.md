@@ -3,6 +3,13 @@
 Notable changes to pfpdf are documented in this file. Versions follow Semantic
 Versioning; breaking changes before 1.0 are called out explicitly.
 
+## [0.8.0](https://github.com/pfnet-research/pfpdf/compare/v0.7.0...v0.8.0) (2026-11-27)
+
+
+### Features
+
+* **template:** share Git locators and body text sizing ([#61](https://github.com/pfnet-research/pfpdf/issues/61)) ([0db3197](https://github.com/pfnet-research/pfpdf/commit/0db3197d846396890ba6941c0a6e9325539b9132))
+
 ## [0.7.0](https://github.com/pfnet-research/pfpdf/compare/v0.6.0...v0.7.0) (2026-11-26)
 
 
