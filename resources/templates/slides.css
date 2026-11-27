@@ -3,7 +3,7 @@
 body[data-pfpdf-slides] {
   margin: 0;
   font-family: "Noto Sans JP", "Noto Sans", sans-serif;
-  font-size: var(--pfpdf-slide-font-size, 18pt);
+  font-size: 18pt;
   line-height: 1.4;
 }
 

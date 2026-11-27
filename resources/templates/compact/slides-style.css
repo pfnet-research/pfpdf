@@ -6,7 +6,7 @@
  * with tighter margins and slightly smaller type so more fits on each slide.
  * Body text stays at 22 pt, above the 18 pt floor of accessibility guides. */
 :root {
-  --pfpdf-slide-font-size: 22pt;
+  --pfpdf-default-slide-font-size: 22pt;
   --pfpdf-slide-padding: 28pt 40pt 40pt;
   --pfpdf-slide-title-size: 32pt;
   --pfpdf-slide-subtitle-size: 20pt;

@@ -116,6 +116,7 @@ async function prepareDocument(
     toc: documentConfig.toc.value,
     sectionCovers: input.config.sectionCovers === true,
     lang: input.metadata.lang,
+    fontSize: input.config.fontSize,
   } : undefined;
   const body = await buildDocumentBody(input.files, manifest, template.reservedIds, {
     warn: log.warn,
@@ -131,7 +132,7 @@ async function prepareDocument(
     logo,
     toc: slideOptions === undefined && documentConfig.toc.value,
     cover: documentConfig.cover.value,
-    slideFontSize: slideOptions === undefined ? undefined : input.config.slideFontSize,
+    fontSize: input.config.fontSize,
     fontFaceCss: fonts.css,
     warn: log.warn,
   });

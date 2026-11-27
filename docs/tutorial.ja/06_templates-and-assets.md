@@ -150,16 +150,19 @@ my-template/
 - スライド版のファイルがないテンプレートは、`slides: true` でも 3 ファイルをそのまま使います。スライド専用に作ったテンプレートは、これまでどおり 3 ファイルだけで構いません
 - 文書版とスライド版で共有する部分は、`theme.css` のようなファイルに分け、両方の CSS から `@import "./theme.css";` で読み込みます。同じディレクトリーに並べるので、画像やフォントも文書版と同じ相対パスで参照できます。共有する規則が少なければ、分けなくても構いません
 - `template.html` に `<link rel="stylesheet">` を書くと、そのスタイルはページサイズの指定より後に読み込まれ、`@page` の `size` などを上書きしてしまいます。共有する CSS は `@import` で読み込んでください
-- スライドでは、表紙の `cover` スロットに `data-pfpdf-slide="title"` が付きます。pfpdf が作る各ページは `data-pfpdf-slide` 属性を持ち、目次は `agenda`、中扉は `section`、通常のページは `content` か `layout` に指定した値です。ページの題名には `.pfpdf-slide-title`、`##` の直後の `###` によるサブタイトルには `.pfpdf-slide-subtitle`、本文には `.pfpdf-slide-body` が付きます。フロントマターの `slide_font_size` は、`body` の CSS 変数 `--pfpdf-slide-font-size` に入ります。本文の大きさにこの変数を使うと、利用者が原稿全体の文字の大きさを変えられます。ページ冒頭の `<!-- pfpdf:size=small -->` は `data-pfpdf-size="small"` 属性になります。目次はページ内に作るので、`toc` スロットは使いません
+- スライドでは、表紙の `cover` スロットに `data-pfpdf-slide="title"` が付きます。pfpdf が作る各ページは `data-pfpdf-slide` 属性を持ち、目次は `agenda`、中扉は `section`、通常のページは `content` か `layout` に指定した値です。ページの題名には `.pfpdf-slide-title`、`##` の直後の `###` によるサブタイトルには `.pfpdf-slide-subtitle`、本文には `.pfpdf-slide-body` が付きます。目次はページ内に作るので、`toc` スロットは使いません。
+- pfpdf はフロントマターの `font_size` を `body` の CSS 変数 `--pfpdf-font-size` に設定し、文書の本文またはスライドの本文に適用します。ページ冒頭の `<!-- pfpdf:font_size=18 -->` はそのスライドに同じ変数を設定します。テンプレートは、文字サイズを固定した個別のレイアウトでも、この変数を参照して指定を反映できます。
 
 ## 6.4 Git リポジトリーからの取得
 
-テンプレートは Git リポジトリーのルートやサブディレクトリーから、ロゴはリポジトリー内のファイルから直接取得できます。テンプレートがルートにある場合は `git::URL` を使います。次の例では `?ref=` を付け、取得するコミットを固定しています。
+テンプレートは Git リポジトリーのルートやサブディレクトリーから、ロゴはリポジトリー内のファイルから取得できます。HTTPS と SSH の設定が人によって違う場合は、`git::github.com/組織名/リポジトリー名.git` のようにスキームを省いて、同じビルドコマンドを使えます。
 
 ```bash
 npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
-  --template 'git::https://github.com/example/pdf-assets.git?ref=0123456789abcdef0123456789abcdef01234567'
+  --template 'git::github.com/example/pdf-assets.git?ref=0123456789abcdef0123456789abcdef01234567'
 ```
+
+スキームを省くと `ssh://git@ホスト/パス` を先に試し、取得に失敗すると同じホスト、パス、リビジョンを HTTPS で試します。ポートや SSH ユーザー名を指定する場合と、接続方式を固定する場合は、`git::https://...` または `git::ssh://...` を明示します。明示した URL では、もう一方の URL を試しません。実際の接続先には Git の `url.*.insteadOf` などの設定が適用されます。
 
 別のリポジトリーのロゴで、既定のロゴを上書きする例です。
 
@@ -171,7 +174,8 @@ npx @pfnet-research/pfpdf@latest --input docs --output docs.pdf \
 
 - サブディレクトリーにあるテンプレートを使う場合は、`git::URL//templates/corporate` のように `//` の後にルートからの相対パスを書きます。`git::URL//` と `git::URL//.` もルートを選びます。ロゴには `//logos/brand/main.svg` のようなファイルパスが必要です
 - リビジョンにはブランチ、タグ、コミットを使えます。省略時はリモートの `HEAD` を取得して警告を出します。CI では完全なコミットハッシュに固定してください
-- 非公開リポジトリーは Git の認証情報ヘルパーまたは SSH エージェントで認証します。トークンやパスワードを URL へ埋め込まないでください
+- SSH エージェントと Git の認証情報ヘルパーを使えます。自動選択では、利用者の入力を求める Git と OpenSSH のプロンプトを無効にします。SSH のホスト鍵は既存の SSH 設定に従って検証します。
+- トークンやパスワードは URL へ埋め込まず、あらかじめ認証を設定してください
 - サブモジュールは取得しません。リポジトリーから取得するテンプレートも、生の HTML やスクリプトを実行できる信頼済みコードです
 - オフラインでビルドを繰り返す場合は、あらかじめリポジトリーをクローンし、`--template` や `--logo` でローカルパスを渡せます
 

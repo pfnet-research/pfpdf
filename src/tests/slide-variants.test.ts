@@ -197,26 +197,63 @@ test('a ### directly under a slide title becomes its subtitle', async (t) => {
   assert.doesNotMatch(document.html, /pfpdf-slide-subtitle/);
 });
 
-test('front matter subtitle fills the subtitle slot and slide_font_size sets the body text variable', async (t) => {
+test('front matter subtitle fills document and slide cover slots', async (t) => {
   const dir = workspace(t);
-  const withSubtitle = deck.replace('title: Deck', 'title: Deck\nsubtitle: A <short> subtitle\nslide_font_size: 20');
-  const slides = await build(dir, withSubtitle, []);
+  const slides = await build(dir, deck.replace('title: Deck', 'title: Deck\nsubtitle: A <short> subtitle'), []);
   assert.match(slides.html, /class="pfpdf-slide-cover-subtitle">A &#x3C;short> subtitle<\/p>/);
-  assert.match(slides.html, /<body[^>]*style="--pfpdf-slide-font-size: 20pt;"/);
   const plain = await build(dir, deck, []);
   assert.doesNotMatch(plain.html, /cover-subtitle/);
-  assert.doesNotMatch(plain.html, /--pfpdf-slide-font-size: /);
   const document = await build(dir, doc.replace('title: Doc', 'title: Doc\nsubtitle: Second line'), []);
   assert.match(document.html, /class="pfpdf-cover-subtitle">Second line<\/p>/);
-  // The author's value follows a template's inline default, so it wins.
+});
+
+test('font_size sets a body size in points and a slide may override it', async (t) => {
+  const dir = workspace(t);
+  const source = deck.replace('title: Deck', 'title: Deck\nfont_size: 20')
+    .replace('## First\n', '## First\n\n<!-- pfpdf:font_size=18.5 audience=client -->\n')
+    + '\n## Second\n\nOther text\n\n## Divider\n\n<!-- pfpdf:layout=section -->\n\nHand-made divider\n';
+  const slides = await build(dir, source, []);
+  assert.match(slides.html, /<body[^>]*style="--pfpdf-font-size: 20pt;"/);
+  assert.match(slides.html, /<section[^>]*style="--pfpdf-font-size: 18.5pt;"[^>]*data-pfpdf-audience="client">/);
+  assert.equal((slides.html.match(/<section[^>]*style="--pfpdf-font-size:/g) ?? []).length, 1);
+  assert.doesNotMatch(slides.html, /data-pfpdf-font_size/);
+  // Only the two regular slides, not the agenda or a page with layout=section, apply the size inline over template rules.
+  const sizedBody = /class="pfpdf-slide-body" style="font-size: var\(--pfpdf-font-size\);"/g;
+  assert.equal((slides.html.match(sizedBody) ?? []).length, 2);
+  const local = await build(dir, source.replace('font_size: 20\n', ''), []);
+  assert.equal((local.html.match(sizedBody) ?? []).length, 1);
+  // Without a size, no rule overrides a template's own slide body size.
+  const plain = await build(dir, deck, []);
+  assert.doesNotMatch(plain.html, /--pfpdf-font-size/);
+  assert.doesNotMatch(plain.generated.get('generated/slides.css')!.toString(), /--pfpdf-font-size/);
+
   const template = writeTemplate(dir, {
-    'template.html': '<!doctype html><html><head></head><body style="color: #123; --pfpdf-slide-font-size: 30pt"><main data-pfpdf-slot="content"></main></body></html>',
+    'template.html': '<!doctype html><html><head></head><body style="color: #123; --pfpdf-font-size: 30pt"><main data-pfpdf-slot="content"></main></body></html>',
   });
-  const custom = await build(dir, withSubtitle, ['--template', template]);
-  assert.match(custom.html, /<body[^>]*style="color: #123; --pfpdf-slide-font-size: 30pt; --pfpdf-slide-font-size: 20pt;"/);
-  for (const value of ['"20"', '9', '41', 'large']) {
-    await assert.rejects(build(dir, deck.replace('title: Deck', `title: Deck\nslide_font_size: ${value}`), []), (error: unknown) =>
-      error instanceof InputError && /slide_font_size/.test(error.message), value);
+  const document = await build(dir, doc.replace('title: Doc', 'title: Doc\nfont_size: 9.5'), ['--template', template]);
+  assert.match(document.html, /<body[^>]*style="color: #123; --pfpdf-font-size: 30pt; --pfpdf-font-size: 9.5pt;"/);
+  assert.match(document.html, /<section[^>]*style="font-size: var\(--pfpdf-font-size\);"/);
+  assert.doesNotMatch(document.html, /<(?:nav|main)[^>]*style="font-size:/);
+});
+
+test('font_size rejects lengths and nonpositive or nonfinite values', async (t) => {
+  const dir = workspace(t);
+  for (const value of ['"20"', '0', '-1', '1e999', '18pt', '18px', 'large']) {
+    await assert.rejects(build(dir, doc.replace('title: Doc', `title: Doc\nfont_size: ${value}`), []), (error: unknown) =>
+      error instanceof InputError && /front matter font_size: expected a positive number of points without a unit/.test(error.message), value);
+  }
+  for (const value of ['0', '-1', '1e999', '18pt', '18px', 'large', '0x12']) {
+    await assert.rejects(build(dir, deck.replace('## First\n', `## First\n\n<!-- pfpdf:font_size=${value} -->\n`), []),
+      (error: unknown) => error instanceof InputError && /\.md:10: slide font_size: expected a positive number of points without a unit/.test(error.message), value);
+  }
+});
+
+test('section covers are optional and do not affect normal documents', async (t) => {
+  const dir = workspace(t);
+  for (const [input, count] of [[deck, 0], [deck.replace('slides: true', 'slides: true\nsection_covers: true'), 1],
+    [doc.replace('title: Doc', 'title: Doc\nsection_covers: true'), 0]] as const) {
+    const { html } = await build(dir, input, []);
+    assert.equal((html.match(/data-pfpdf-slide="section"/g) ?? []).length, count);
   }
 });
 

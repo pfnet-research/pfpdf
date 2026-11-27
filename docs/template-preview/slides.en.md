@@ -78,12 +78,11 @@ const speedup = (before - after) / before;
 
 ## A Dense Slide
 
-<!-- pfpdf:size=small -->
+<!-- pfpdf:font_size=20 -->
 
-### size=small makes the body text smaller
+### font_size=20 makes the body text smaller
 
 - The title and subtitle keep their size.
-- Body text, tables, code, and notes shrink to five sixths.
-- Use `size=x-small` to make them smaller still.
-- To shrink a whole deck, write `slide_font_size: 20` in the front matter.
+- The body text base is 20 pt. Tables, code, and notes scale with it.
+- To shrink a whole deck, write `font_size: 20` in the front matter.
 - When a slide does not fit on one page, conversion stops with an error.

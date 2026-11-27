@@ -303,8 +303,8 @@ export interface FrontMatterConfig {
   template: string | null;
   slides?: boolean;
   sectionCovers?: boolean;
-  /** Body text size of slides in points; templates read it as --pfpdf-slide-font-size. */
-  slideFontSize?: number;
+  /** Body text size in points; templates read it as --pfpdf-font-size. */
+  fontSize?: number;
   toc: boolean | null;
   cover: boolean | null;
   logo: { kind: 'none' } | { kind: 'local'; path: string; absPath: string } | null;
@@ -392,6 +392,7 @@ Options:
   --template SOURCE        preset name, local directory, or git::URL[//PATH][?ref=REVISION]
   --template-preset NAME   explicitly select a bundled template preset
   --logo SOURCE            local file or git::URL//PATH?ref=REVISION; overrides template default
+                           Git sources without a URL scheme try SSH, then HTTPS
   --no-logo                disable local, repository, and template default logos
   --host-fonts             search OS standard font directories
   --font-dir PATH          extra font directory (repeatable)

@@ -4,12 +4,15 @@ import type { Point } from 'unist';
 import type { Root, Element, ElementContent } from 'hast';
 import type { SourceFile } from './input.js';
 import { InputError } from './errors.js';
+import { FONT_SIZE_PROPERTY, requireFontSize } from './font-size.js';
 import type { IdAllocator, ParsedSource } from './markdown.js';
 
 export interface SlideOptions {
   toc: boolean;
   sectionCovers: boolean;
   lang?: string;
+  /** `font_size` from front matter, in points. */
+  fontSize?: number | undefined;
 }
 
 // Region names belong to templates. Only `talk` (speaker notes) and `body`
@@ -190,12 +193,19 @@ export function assembleSlides(
       }
       const slide = el('section', 'pfpdf-slide');
       fileAnchored = anchorFile(slide, fileIndex, fileAnchored);
-      // Templates give the layout name and every other key their meaning.
+      // Templates interpret the layout and its unreserved options.
       slide.properties['data-pfpdf-slide'] = modifiers.layout ?? 'content';
       for (const [key, value] of Object.entries(modifiers)) {
-        if (key !== 'layout') slide.properties[`data-pfpdf-${key}`] = value;
+        if (key === 'font_size') slide.properties.style = `${FONT_SIZE_PROPERTY}: ${value};`;
+        else if (key !== 'layout') slide.properties[`data-pfpdf-${key}`] = value;
       }
       const body = buildSlideBody(children);
+      // Inline, so an explicit size wins over template rules and an omitted one leaves them alone.
+      // Covers, agendas, and dividers keep template sizes, even when a page names that layout.
+      if ((modifiers.font_size !== undefined || options.fontSize !== undefined)
+        && !['agenda', 'section', 'title'].includes(modifiers.layout ?? 'content')) {
+        body.properties = { ...body.properties, style: `font-size: var(${FONT_SIZE_PROPERTY});` };
+      }
       for (const heading of pendingGroups) {
         classes(heading, 'pfpdf-slide-group-anchor');
         slide.children.push(heading);
@@ -293,17 +303,25 @@ function isSlideOptions(node: ElementContent, children: ElementContent[]): boole
   return node.type === 'comment' && /^\s*pfpdf:/.test(node.value) && !children.some((child) => significant(child));
 }
 
-/** Read `key=value` tokens. Values pass through whole; templates give them meaning. */
+/** Read `key=value` tokens. Templates give the unreserved keys their meaning. */
 function parseSlideOptions(node: ElementContent, file: SourceFile): Record<string, string> {
   const result: Record<string, string> = {};
   if (node.type !== 'comment') return result;
   for (const token of node.value.replace(/^\s*pfpdf:/, '').split(/\s+/).filter(Boolean)) {
-    const match = /^([a-z][a-z0-9-]*)=(.+)$/.exec(token);
+    const match = /^(font_size|[a-z][a-z0-9-]*)=(.+)$/.exec(token);
     if (!match) {
       const line = (node.position?.start.line ?? 1) + file.lineOffset;
       throw new InputError(`${file.path}:${line}: invalid slide option: ${token} (expected key=value)`);
     }
-    result[match[1]!] = match[2]!;
+    const [, key, value] = match;
+    if (key === 'font_size') {
+      const line = (node.position?.start.line ?? 1) + file.lineOffset;
+      const decimal = /^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
+      const size = requireFontSize(decimal.test(value!) ? Number(value) : value, `${file.path}:${line}: slide font_size`);
+      result.font_size = `${size}pt`;
+    } else {
+      result[key!] = value!;
+    }
   }
   return result;
 }

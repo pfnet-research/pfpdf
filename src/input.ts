@@ -6,6 +6,7 @@ import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import { isBundledTemplate } from './bundled-templates.js';
 import type { FrontMatterConfig } from './config.js';
 import { InputError } from './errors.js';
+import { requireFontSize } from './font-size.js';
 import { inferDocumentLanguage } from './language.js';
 import { inferDocumentTitle } from './infer-title.js';
 
@@ -120,7 +121,7 @@ export interface FrontMatterOptions {
 const ALLOWED_KEYS = new Set([
   'title', 'author', 'series', 'date', 'page_size', 'confidential', 'lang', 'dir',
   'bibliography', 'template', 'toc', 'cover', 'logo', 'slides', 'section_covers',
-  'subtitle', 'slide_font_size',
+  'subtitle', 'font_size',
 ]);
 
 interface SourceLine {
@@ -239,10 +240,8 @@ function resolveFrontMatterConfig(
   if (sectionCovers !== undefined && typeof sectionCovers !== 'boolean') {
     throw new InputError('front matter section_covers: expected a YAML boolean');
   }
-  const slideFontSize = raw.get('slide_font_size');
-  if (slideFontSize !== undefined && (typeof slideFontSize !== 'number' || !(slideFontSize >= 10 && slideFontSize <= 40))) {
-    throw new InputError('front matter slide_font_size: expected a number of points from 10 to 40');
-  }
+  const size = raw.get('font_size');
+  const fontSize = size === undefined ? undefined : requireFontSize(size, 'front matter font_size');
   const tocValue = raw.get('toc');
   if (tocValue !== undefined && typeof tocValue !== 'boolean') {
     throw new InputError('front matter toc: expected a YAML boolean');
@@ -280,7 +279,7 @@ function resolveFrontMatterConfig(
     logo,
     ...(slides === undefined ? {} : { slides }),
     ...(sectionCovers === undefined ? {} : { sectionCovers }),
-    ...(slideFontSize === undefined ? {} : { slideFontSize }),
+    ...(fontSize === undefined ? {} : { fontSize }),
   };
 }
 

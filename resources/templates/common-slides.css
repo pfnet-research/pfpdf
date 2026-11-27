@@ -4,8 +4,8 @@
  * and lays out adjacent regions with one name side by side. This file adds
  * what every bundled slide variant shares: readable type on a 16:9 page, the
  * slide subtitle, the `left`, `right`, and `note` regions, the agenda, section
- * numbers, text size modifiers, and the slide footer. Each template sets the
- * variables and its own colors after importing it.
+ * numbers, and the slide footer. Each template sets its variables and colors
+ * after importing it.
  *
  * Default sizes follow common presentation guidance for a 960 x 540 pt page
  * (the PowerPoint 16:9 slide size): body text 24 pt or more, slide titles
@@ -13,8 +13,7 @@
  * footer.
  */
 :root {
-  /* Body text. `slide_font_size` in front matter overrides this per deck. */
-  --pfpdf-slide-font-size: 24pt;
+  --pfpdf-default-slide-font-size: 24pt;
   --pfpdf-slide-title-size: 36pt;
   --pfpdf-slide-subtitle-size: 22pt;
   --pfpdf-slide-section-title-size: 48pt;
@@ -31,7 +30,7 @@ body[data-pfpdf-slides] {
   counter-reset: pfpdf-slide pfpdf-section;
   /* pfpdf's slides.css names a sans face; keep each template's body face. */
   font-family: var(--pfpdf-font-body);
-  font-size: var(--pfpdf-slide-font-size);
+  font-size: var(--pfpdf-default-slide-font-size);
   line-height: 1.45;
 }
 
@@ -51,11 +50,6 @@ body[data-pfpdf-slides] {
 [data-pfpdf-slide] pre { font-size: 0.75em; }
 [data-pfpdf-slide] table { font-size: 0.85em; }
 [data-pfpdf-slide] img { max-height: 280pt; }
-
-/* `<!-- pfpdf:size=small -->` and `size=x-small` fit more on one slide.
- * Titles keep their size; body text, notes, tables, and code shrink. */
-[data-pfpdf-slide][data-pfpdf-size="small"] { font-size: calc(var(--pfpdf-slide-font-size) * 5 / 6); }
-[data-pfpdf-slide][data-pfpdf-size="x-small"] { font-size: calc(var(--pfpdf-slide-font-size) * 2 / 3); }
 
 .pfpdf-slide-title {
   font-size: var(--pfpdf-slide-title-size);
