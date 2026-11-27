@@ -1,0 +1,125 @@
+{
+  "template": "pfn",
+  "language": "en",
+  "pageCount": 9,
+  "pdf": "slides.en.pdf",
+  "pages": [
+    {
+      "page": 1,
+      "thumb": {
+        "file": "slide-01.thumb.webp",
+        "width": 480,
+        "height": 270
+      },
+      "full": {
+        "file": "slide-01.webp",
+        "width": 1500,
+        "height": 844
+      }
+    },
+    {
+      "page": 2,
+      "thumb": {
+        "file": "slide-02.thumb.webp",
+        "width": 480,
+        "height": 270
+      },
+      "full": {
+        "file": "slide-02.webp",
+        "width": 1500,
+        "height": 844
+      }
+    },
+    {
+      "page": 3,
+      "thumb": {
+        "file": "slide-03.thumb.webp",
+        "width": 480,
+        "height": 270
+      },
+      "full": {
+        "file": "slide-03.webp",
+        "width": 1500,
+        "height": 844
+      }
+    },
+    {
+      "page": 4,
+      "thumb": {
+        "file": "slide-04.thumb.webp",
+        "width": 480,
+        "height": 270
+      },
+      "full": {
+        "file": "slide-04.webp",
+        "width": 1500,
+        "height": 844
+      }
+    },
+    {
+      "page": 5,
+      "thumb": {
+        "file": "slide-05.thumb.webp",
+        "width": 480,
+        "height": 270
+      },
+      "full": {
+        "file": "slide-05.webp",
+        "width": 1500,
+        "height": 844
+      }
+    },
+    {
+      "page": 6,
+      "thumb": {
+        "file": "slide-06.thumb.webp",
+        "width": 480,
+        "height": 270
+      },
+      "full": {
+        "file": "slide-06.webp",
+        "width": 1500,
+        "height": 844
+      }
+    },
+    {
+      "page": 7,
+      "thumb": {
+        "file": "slide-07.thumb.webp",
+        "width": 480,
+        "height": 270
+      },
+      "full": {
+        "file": "slide-07.webp",
+        "width": 1500,
+        "height": 844
+      }
+    },
+    {
+      "page": 8,
+      "thumb": {
+        "file": "slide-08.thumb.webp",
+        "width": 480,
+        "height": 270
+      },
+      "full": {
+        "file": "slide-08.webp",
+        "width": 1500,
+        "height": 844
+      }
+    },
+    {
+      "page": 9,
+      "thumb": {
+        "file": "slide-09.thumb.webp",
+        "width": 480,
+        "height": 270
+      },
+      "full": {
+        "file": "slide-09.webp",
+        "width": 1500,
+        "height": 844
+      }
+    }
+  ]
+}
